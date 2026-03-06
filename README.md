@@ -1,4 +1,4 @@
-# dotai
+# confai
 
 Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), and [Codex](https://openai.com/index/introducing-codex/).
 
@@ -7,55 +7,55 @@ Install, update, and uninstall agent skills from GitHub repos or local directori
 ## Quick start (no install needed)
 
 ```bash
-npx dotai install owner/repo
+npx confai install owner/repo
 ```
 
 ## Install globally
 
 ```bash
-npm i -g dotai
+npm i -g confai
 ```
 
 ## Usage
 
 ```bash
 # Install skills from a GitHub repo
-dotai install owner/repo
+confai install owner/repo
 
 # Install with no prompts
-dotai install owner/repo -y
+confai install owner/repo -y
 
 # Install from a GitHub URL (with optional subpath)
-dotai install https://github.com/owner/repo/tree/main/path/to/skills
+confai install https://github.com/owner/repo/tree/main/path/to/skills
 
 # Install from a local directory
-dotai install ./local/path
+confai install ./local/path
 
 # Interactive uninstall
-dotai install
+confai install
 
 # Check for updates and install them
-dotai check
+confai check
 ```
 
 ### With npx
 
-You can run dotai without installing it globally using `npx`:
+You can run confai without installing it globally using `npx`:
 
 ```bash
 # Install skills into the current project
-npx dotai install owner/repo
+npx confai install owner/repo
 
 # Skip prompts
-npx dotai install owner/repo -y
+npx confai install owner/repo -y
 
 # Uninstall mode
-npx dotai install
+npx confai install
 ```
 
 ## How it works
 
-1. **Discover** — dotai looks for `SKILL.md` files inside a `skills/` directory in the source.
+1. **Discover** — confai looks for `SKILL.md` files inside a `skills/` directory in the source.
 2. **Select** — Pick which skills and agents to install to (auto-detects installed agents). Already installed skills are pre-checked; uncheck to remove.
 3. **Install** — Skills are copied to a canonical `.agents/skills/` directory with symlinks to each agent's skills directory.
 

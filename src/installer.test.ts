@@ -20,7 +20,7 @@ describe('installSkill', () => {
   let fixtureDir: string;
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'dotai-test-'));
+    tempDir = await mkdtemp(join(tmpdir(), 'confai-test-'));
     fixtureDir = join(tempDir, 'fixtures');
     await mkdir(fixtureDir, { recursive: true });
   });

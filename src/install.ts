@@ -26,7 +26,7 @@ export async function runInstall(args: string[]): Promise<void> {
   const skipPrompts = args.includes('-y') || args.includes('--yes');
 
   console.log();
-  p.intro(pc.bgCyan(pc.black(' dotai install ')));
+  p.intro(pc.bgCyan(pc.black(' confai install ')));
 
   const spinner = p.spinner();
   let tempDir: string | null = null;
@@ -248,7 +248,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
 async function runUninstall(): Promise<void> {
   console.log();
-  p.intro(pc.bgCyan(pc.black(' dotai uninstall ')));
+  p.intro(pc.bgCyan(pc.black(' confai uninstall ')));
 
   const spinner = p.spinner();
 

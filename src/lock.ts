@@ -90,7 +90,7 @@ export async function fetchSkillFolderHash(
       const url = `https://api.github.com/repos/${ownerRepo}/git/trees/${branch}?recursive=1`;
       const headers: Record<string, string> = {
         Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'dotai',
+        'User-Agent': 'confai',
       };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 

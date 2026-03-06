@@ -10,12 +10,12 @@ const TEXT = '\x1b[38;5;145m';
 
 function showHelp(): void {
   console.log(`
-${BOLD}dotai${RESET} - Minimal skills manager
+${BOLD}confai${RESET} - Minimal skills manager
 
 ${BOLD}Usage:${RESET}
-  dotai install <source> [options]   Install skills from a GitHub repo
-  dotai install                      Interactive uninstall
-  dotai check                        Check for updates and install them
+  confai install <source> [options]   Install skills from a GitHub repo
+  confai install                      Interactive uninstall
+  confai check                        Check for updates and install them
 
 ${BOLD}Install Options:${RESET}
   -y, --yes       Skip prompts
@@ -26,11 +26,11 @@ ${BOLD}Sources:${RESET}
   ./local/path                           Local path
 
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} dotai install vercel-labs/agent-skills
-  ${DIM}$${RESET} dotai install vercel-labs/agent-skills -y
-  ${DIM}$${RESET} npx dotai install owner/repo
-  ${DIM}$${RESET} dotai install                              ${DIM}# uninstall mode${RESET}
-  ${DIM}$${RESET} dotai check
+  ${DIM}$${RESET} confai install vercel-labs/agent-skills
+  ${DIM}$${RESET} confai install vercel-labs/agent-skills -y
+  ${DIM}$${RESET} npx confai install owner/repo
+  ${DIM}$${RESET} confai install                              ${DIM}# uninstall mode${RESET}
+  ${DIM}$${RESET} confai check
 `);
 }
 
@@ -65,7 +65,7 @@ async function main(): Promise<void> {
 
     default:
       console.log(`Unknown command: ${command}`);
-      console.log(`Run ${BOLD}dotai --help${RESET} for usage.`);
+      console.log(`Run ${BOLD}confai --help${RESET} for usage.`);
   }
 }
 

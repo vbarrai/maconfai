@@ -1,10 +1,10 @@
 {
-  "name": "dotai",
+  "name": "confai",
   "version": "0.1.0",
   "description": "Minimal skills manager for Claude Code, Cursor, and Codex",
   "type": "module",
   "bin": {
-    "dotai": "./bin/cli.mjs"
+    "confai": "./bin/cli.mjs"
   },
   "files": [
     "dist",
@@ -30,7 +30,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vbarrai/dotai.git"
+    "url": "git+https://github.com/vbarrai/confai.git"
   },
   "keywords": [
     "claude-code",
