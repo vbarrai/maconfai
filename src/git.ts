@@ -23,7 +23,7 @@ function injectToken(url: string): string {
 }
 
 export async function cloneRepo(url: string, ref?: string): Promise<string> {
-  const tempDir = await mkdtemp(join(tmpdir(), 'confai-'));
+  const tempDir = await mkdtemp(join(tmpdir(), 'maconfai-'));
   const git = simpleGit({
     timeout: { block: CLONE_TIMEOUT_MS },
   });

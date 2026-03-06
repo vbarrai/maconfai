@@ -6,7 +6,7 @@ import type { SkillLockEntry } from './lock.ts';
 
 export async function runCheck(): Promise<void> {
   console.log();
-  p.intro(pc.bgCyan(pc.black(' confai check ')));
+  p.intro(pc.bgCyan(pc.black(' maconfai check ')));
 
   const spinner = p.spinner();
   spinner.start('Reading lock file...');
@@ -17,7 +17,7 @@ export async function runCheck(): Promise<void> {
   if (skillNames.length === 0) {
     spinner.stop('No skills tracked');
     p.log.info('No globally installed skills to check.');
-    p.log.info(`Install skills with: ${pc.cyan('confai install <source> -g')}`);
+    p.log.info(`Install skills with: ${pc.cyan('maconfai install <source> -g')}`);
     p.outro('');
     return;
   }

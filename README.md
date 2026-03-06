@@ -1,4 +1,4 @@
-# confai
+# maconfai
 
 Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), and [Codex](https://openai.com/index/introducing-codex/).
 
@@ -7,55 +7,55 @@ Install, update, and uninstall agent skills from GitHub repos or local directori
 ## Quick start (no install needed)
 
 ```bash
-npx confai install owner/repo
+npx maconfai install owner/repo
 ```
 
 ## Install globally
 
 ```bash
-npm i -g confai
+npm i -g maconfai
 ```
 
 ## Usage
 
 ```bash
 # Install skills from a GitHub repo
-confai install owner/repo
+maconfai install owner/repo
 
 # Install with no prompts
-confai install owner/repo -y
+maconfai install owner/repo -y
 
 # Install from a GitHub URL (with optional subpath)
-confai install https://github.com/owner/repo/tree/main/path/to/skills
+maconfai install https://github.com/owner/repo/tree/main/path/to/skills
 
 # Install from a local directory
-confai install ./local/path
+maconfai install ./local/path
 
 # Interactive uninstall
-confai install
+maconfai install
 
 # Check for updates and install them
-confai check
+maconfai check
 ```
 
 ### With npx
 
-You can run confai without installing it globally using `npx`:
+You can run maconfai without installing it globally using `npx`:
 
 ```bash
 # Install skills into the current project
-npx confai install owner/repo
+npx maconfai install owner/repo
 
 # Skip prompts
-npx confai install owner/repo -y
+npx maconfai install owner/repo -y
 
 # Uninstall mode
-npx confai install
+npx maconfai install
 ```
 
 ## How it works
 
-1. **Discover** — confai looks for `SKILL.md` files inside a `skills/` directory in the source.
+1. **Discover** — maconfai looks for `SKILL.md` files inside a `skills/` directory in the source.
 2. **Select** — Pick which skills and agents to install to (auto-detects installed agents). Already installed skills are pre-checked; uncheck to remove.
 3. **Install** — Skills are copied to a canonical `.agents/skills/` directory with symlinks to each agent's skills directory.
 

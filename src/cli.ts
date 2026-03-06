@@ -10,12 +10,12 @@ const TEXT = '\x1b[38;5;145m';
 
 function showHelp(): void {
   console.log(`
-${BOLD}confai${RESET} - Minimal skills manager
+${BOLD}maconfai${RESET} - Minimal skills manager
 
 ${BOLD}Usage:${RESET}
-  confai install <source> [options]   Install skills from a GitHub repo
-  confai install                      Interactive uninstall
-  confai check                        Check for updates and install them
+  maconfai install <source> [options]   Install skills from a GitHub repo
+  maconfai install                      Interactive uninstall
+  maconfai check                        Check for updates and install them
 
 ${BOLD}Install Options:${RESET}
   -y, --yes       Skip prompts
@@ -26,11 +26,11 @@ ${BOLD}Sources:${RESET}
   ./local/path                           Local path
 
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} confai install vercel-labs/agent-skills
-  ${DIM}$${RESET} confai install vercel-labs/agent-skills -y
-  ${DIM}$${RESET} npx confai install owner/repo
-  ${DIM}$${RESET} confai install                              ${DIM}# uninstall mode${RESET}
-  ${DIM}$${RESET} confai check
+  ${DIM}$${RESET} maconfai install vercel-labs/agent-skills
+  ${DIM}$${RESET} maconfai install vercel-labs/agent-skills -y
+  ${DIM}$${RESET} npx maconfai install owner/repo
+  ${DIM}$${RESET} maconfai install                              ${DIM}# uninstall mode${RESET}
+  ${DIM}$${RESET} maconfai check
 `);
 }
 
@@ -65,7 +65,7 @@ async function main(): Promise<void> {
 
     default:
       console.log(`Unknown command: ${command}`);
-      console.log(`Run ${BOLD}confai --help${RESET} for usage.`);
+      console.log(`Run ${BOLD}maconfai --help${RESET} for usage.`);
   }
 }
 
