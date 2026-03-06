@@ -1,0 +1,33 @@
+{
+  "name": "dotai",
+  "version": "0.1.0",
+  "description": "Minimal skills manager for Claude Code, Cursor, and Codex",
+  "type": "module",
+  "bin": {
+    "dotai": "./bin/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "obuild",
+    "dev": "node --experimental-strip-types src/cli.ts",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@types/node": "^22.10.0",
+    "gray-matter": "^4.0.3",
+    "obuild": "^0.4.22",
+    "picocolors": "^1.1.1",
+    "simple-git": "^3.27.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.17.1"
+}
