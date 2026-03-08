@@ -131,7 +131,7 @@ describe('install', () => {
     });
   });
 
-  describe('uninstall', () => {
+  describe('uninstall skill', () => {
     it('removes a skill from an agent', async () => {
       await givenSkill('to-remove');
       await when({ skills: ['to-remove'], agents: ['claude-code'] });
@@ -182,6 +182,55 @@ describe('install', () => {
 
       const after = await listInstalledSkills({ global: false, cwd: getTargetDir() });
       expect(after.find((s) => s.name === 'listed')).toBeUndefined();
+    });
+  });
+
+  describe('uninstall agent', () => {
+    it('removes a skill from claude-code only', async () => {
+      await givenSkill('per-agent');
+      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] });
+
+      await uninstallSkill('per-agent', 'claude-code', { global: false, cwd: getTargetDir() });
+
+      expect(await thenExists('.claude/skills/per-agent')).toBe(false);
+    });
+
+    it('removes a skill from cursor only', async () => {
+      await givenSkill('per-agent');
+      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] });
+
+      await uninstallSkill('per-agent', 'cursor', { global: false, cwd: getTargetDir() });
+
+      expect(await thenExists('.cursor/skills/per-agent')).toBe(false);
+    });
+
+    it('removes a skill from codex only', async () => {
+      await givenSkill('per-agent');
+      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] });
+
+      await uninstallSkill('per-agent', 'codex', { global: false, cwd: getTargetDir() });
+
+      expect(await thenExists('.codex/skills/per-agent')).toBe(false);
+    });
+
+    it('removes all skills from a single agent', async () => {
+      await givenSkill('skill-a', 'skill-b', 'skill-c');
+      await when({ agents: ['claude-code', 'cursor'] });
+
+      const opts = { global: false, cwd: getTargetDir() };
+      await uninstallSkill('skill-a', 'claude-code', opts);
+      await uninstallSkill('skill-b', 'claude-code', opts);
+      await uninstallSkill('skill-c', 'claude-code', opts);
+
+      expect(await thenExists('.claude/skills/skill-a')).toBe(false);
+      expect(await thenExists('.claude/skills/skill-b')).toBe(false);
+      expect(await thenExists('.claude/skills/skill-c')).toBe(false);
+    });
+
+    it('does not error when agent has no skills installed', async () => {
+      const result = await uninstallSkill('nope', 'codex', { global: false, cwd: getTargetDir() });
+
+      expect(result).toBe(true);
     });
   });
 });
