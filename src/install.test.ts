@@ -140,6 +140,63 @@ describe('install', () => {
       expect(await thenExists('.cursor/skills/everywhere/SKILL.md')).toBe(true);
       expect(await thenExists('.codex/skills/everywhere/SKILL.md')).toBe(true);
     });
+
+    it('does not install to agents not in --agents on re-install', async () => {
+      await givenSkill('my-skill');
+
+      // First install to claude-code only
+      await when({ agents: ['claude-code'] });
+      expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true);
+      expect(await thenExists('.cursor/skills/my-skill/SKILL.md')).toBe(false);
+
+      // Re-install to cursor only — claude-code keeps its skill
+      await when({ agents: ['cursor'] });
+      expect(await thenExists('.cursor/skills/my-skill/SKILL.md')).toBe(true);
+      expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true);
+    });
+
+    it('removes unselected skills from all agents even when --agents is narrowed', async () => {
+      await givenSkill('keep', 'drop');
+
+      // Install both skills to both agents
+      await when({ agents: ['claude-code', 'cursor'] });
+      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true);
+      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(true);
+
+      // Re-install with only 'keep' and only claude-code
+      // 'drop' should be removed from ALL agents (not just claude-code)
+      await when({ skills: ['keep'], agents: ['claude-code'] });
+
+      expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true);
+      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false);
+      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(false);
+    });
+
+    it('installs to a single new agent without affecting others', async () => {
+      await givenSkill('shared');
+
+      // Install to claude-code
+      await when({ agents: ['claude-code'] });
+      expect(await thenExists('.claude/skills/shared/SKILL.md')).toBe(true);
+
+      // Now add cursor — both should have the skill
+      await when({ agents: ['claude-code', 'cursor'] });
+      expect(await thenExists('.claude/skills/shared/SKILL.md')).toBe(true);
+      expect(await thenExists('.cursor/skills/shared/SKILL.md')).toBe(true);
+    });
+
+    it('switches from one agent to another keeping skills intact', async () => {
+      await givenSkill('portable');
+
+      await when({ agents: ['claude-code'] });
+      expect(await thenExists('.claude/skills/portable/SKILL.md')).toBe(true);
+      expect(await thenExists('.codex/skills/portable/SKILL.md')).toBe(false);
+
+      // Switch to codex only — claude-code keeps its existing skill
+      await when({ agents: ['codex'] });
+      expect(await thenExists('.codex/skills/portable/SKILL.md')).toBe(true);
+      expect(await thenExists('.claude/skills/portable/SKILL.md')).toBe(true);
+    });
   });
 
   describe('-y / --yes flag', () => {
