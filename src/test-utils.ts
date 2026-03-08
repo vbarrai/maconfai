@@ -11,6 +11,11 @@ const CLI_PATH = join(import.meta.dirname, 'cli.ts');
 
 export type FileTree = Record<string, string>;
 
+export function skillFile(name: string): string {
+  const description = name.replace(/-/g, ' ');
+  return `---\nname: ${name}\ndescription: ${description}\n---\n${description}`;
+}
+
 export async function exists(path: string): Promise<boolean> {
   try {
     await access(path);
@@ -45,6 +50,14 @@ export function setupScenario() {
     }
   }
 
+  async function givenSkill(...names: string[]) {
+    const files: FileTree = {};
+    for (const name of names) {
+      files[`./skills/${name}/SKILL.md`] = skillFile(name);
+    }
+    await given(files);
+  }
+
   async function when(opts: { skills?: string[]; agents?: AgentType[]; extraArgs?: string[] }) {
     const args = ['--experimental-strip-types', CLI_PATH, 'install', sourceDir, '-y'];
 
@@ -77,5 +90,5 @@ export function setupScenario() {
     return exists(join(targetDir, path));
   }
 
-  return { init, cleanup, given, when, then, thenExists, getTargetDir };
+  return { init, cleanup, given, givenSkill, when, then, thenExists, getTargetDir };
 }
