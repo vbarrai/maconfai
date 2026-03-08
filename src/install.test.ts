@@ -62,7 +62,19 @@ describe('install', () => {
     });
   });
 
-  describe('-y / --yes flag', () => {
+  describe('--skills filter', () => {
+    it('only installs specified skills', async () => {
+      await given({
+        './skills/wanted/SKILL.md': '---\nname: wanted\ndescription: I am wanted\n---\nI am wanted',
+        './skills/unwanted/SKILL.md': '---\nname: unwanted\ndescription: I am not wanted\n---\nI am not wanted',
+      });
+
+      await when({ skills: ['wanted'], agents: ['claude-code'] });
+
+      expect(await thenExists('.claude/skills/wanted/SKILL.md')).toBe(true);
+      expect(await thenExists('.claude/skills/unwanted/SKILL.md')).toBe(false);
+    });
+
     it('auto-selects all skills when no --skills filter', async () => {
       await given({
         './skills/alpha/SKILL.md': '---\nname: alpha\ndescription: Alpha skill\n---\nAlpha skill',
@@ -83,6 +95,20 @@ describe('install', () => {
       expect(alphaContent).toContain('Alpha skill');
       expect(betaContent).toContain('Beta skill');
     });
+  });
+
+  describe('--agents filter', () => {
+    it('only installs to specified agents', async () => {
+      await given({
+        './skills/targeted/SKILL.md': '---\nname: targeted\ndescription: Targeted skill\n---\nTargeted skill',
+      });
+
+      await when({ agents: ['cursor'] });
+
+      expect(await thenExists('.cursor/skills/targeted/SKILL.md')).toBe(true);
+      expect(await thenExists('.claude/skills/targeted/SKILL.md')).toBe(false);
+      expect(await thenExists('.codex/skills/targeted/SKILL.md')).toBe(false);
+    });
 
     it('auto-selects all agents when no --agents filter', async () => {
       await given({
@@ -95,14 +121,14 @@ describe('install', () => {
       expect(await thenExists('.cursor/skills/everywhere/SKILL.md')).toBe(true);
       expect(await thenExists('.codex/skills/everywhere/SKILL.md')).toBe(true);
     });
+  });
 
+  describe('-y / --yes flag', () => {
     it('--yes long form works the same as -y', async () => {
       await given({
         './skills/long-form/SKILL.md': '---\nname: long-form\ndescription: Long form test\n---\nLong form test',
       });
 
-      // The when() helper already passes -y; here we verify --yes also works
-      // by using extraArgs to override (when already includes -y, both flags are accepted)
       await when({ agents: ['claude-code'] });
 
       const content = await readFile(
@@ -110,30 +136,6 @@ describe('install', () => {
         'utf-8'
       );
       expect(content).toContain('Long form test');
-    });
-
-    it('with --skills filter only installs specified skills', async () => {
-      await given({
-        './skills/wanted/SKILL.md': '---\nname: wanted\ndescription: I am wanted\n---\nI am wanted',
-        './skills/unwanted/SKILL.md': '---\nname: unwanted\ndescription: I am not wanted\n---\nI am not wanted',
-      });
-
-      await when({ skills: ['wanted'], agents: ['claude-code'] });
-
-      expect(await thenExists('.claude/skills/wanted/SKILL.md')).toBe(true);
-      expect(await thenExists('.claude/skills/unwanted/SKILL.md')).toBe(false);
-    });
-
-    it('with --agents filter only installs to specified agents', async () => {
-      await given({
-        './skills/targeted/SKILL.md': '---\nname: targeted\ndescription: Targeted skill\n---\nTargeted skill',
-      });
-
-      await when({ agents: ['cursor'] });
-
-      expect(await thenExists('.cursor/skills/targeted/SKILL.md')).toBe(true);
-      expect(await thenExists('.claude/skills/targeted/SKILL.md')).toBe(false);
-      expect(await thenExists('.codex/skills/targeted/SKILL.md')).toBe(false);
     });
 
     it('skips confirmation and installs without interaction', async () => {
