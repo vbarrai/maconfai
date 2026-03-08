@@ -18,7 +18,9 @@ ${BOLD}Usage:${RESET}
   maconfai check                        Check for updates and install them
 
 ${BOLD}Install Options:${RESET}
-  -y, --yes       Skip prompts
+  -y, --yes                      Skip prompts
+  --agents=claude,cursor,codex   Install to specific agents
+  --skills=skill-a,skill-b      Install specific skills
 
 ${BOLD}Sources:${RESET}
   owner/repo                             GitHub shorthand

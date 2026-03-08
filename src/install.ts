@@ -15,6 +15,30 @@ import type { Skill, AgentType } from './types.ts';
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex'];
 
+const AGENT_ALIASES: Record<string, AgentType> = {
+  'claude-code': 'claude-code',
+  'claude': 'claude-code',
+  'cursor': 'cursor',
+  'codex': 'codex',
+};
+
+function parseListArg(args: string[], name: string): string[] | undefined {
+  const prefix = `--${name}=`;
+  const arg = args.find((a) => a.startsWith(prefix));
+  if (!arg) return undefined;
+  return arg.slice(prefix.length).split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+function parseAgentsArg(args: string[]): AgentType[] | undefined {
+  const raw = parseListArg(args, 'agents');
+  if (!raw) return undefined;
+  return raw.map((a) => {
+    const resolved = AGENT_ALIASES[a.toLowerCase()];
+    if (!resolved) throw new Error(`Unknown agent: ${a}. Valid: ${Object.keys(AGENT_ALIASES).join(', ')}`);
+    return resolved;
+  });
+}
+
 export async function runInstall(args: string[]): Promise<void> {
   if (args.length === 0) {
     // No source = interactive uninstall mode
@@ -22,8 +46,10 @@ export async function runInstall(args: string[]): Promise<void> {
     return;
   }
 
-  const source = args[0]!;
+  const source = args.find((a) => !a.startsWith('-'))!;
   const skipPrompts = args.includes('-y') || args.includes('--yes');
+  const argAgents = parseAgentsArg(args);
+  const argSkills = parseListArg(args, 'skills');
 
   console.log();
   p.intro(pc.bgCyan(pc.black(' maconfai install ')));
@@ -74,7 +100,9 @@ export async function runInstall(args: string[]): Promise<void> {
     let selectedSkills: Skill[];
     let allSkills = skills;
 
-    if (skills.length === 1 || skipPrompts) {
+    if (argSkills) {
+      selectedSkills = skills.filter((s) => argSkills.includes(s.name));
+    } else if (skills.length === 1 || skipPrompts) {
       selectedSkills = skills;
     } else {
       const choices = skills.map((s) => ({
@@ -111,7 +139,9 @@ export async function runInstall(args: string[]): Promise<void> {
     let targetAgents: AgentType[];
     let removedAgents: AgentType[] = [];
 
-    if (skipPrompts) {
+    if (argAgents) {
+      targetAgents = argAgents;
+    } else if (skipPrompts) {
       targetAgents = ALL_AGENTS;
     } else {
       const detected = detectInstalledAgents();
