@@ -2,8 +2,8 @@
 
 ## Project
 
-maconfai — Minimal skills manager for Claude Code, Cursor, and Codex.
-CLI tool to install, update, and uninstall agent skills from GitHub repos or local directories.
+maconfai — Universal configuration installer for AI coding agents (Claude Code, Cursor, Codex, Gemini CLI, Amp Code).
+CLI tool to install, update, and uninstall any type of agent configuration from GitHub repos or local directories, using a single source of truth.
 
 ## Stack
 
@@ -42,10 +42,10 @@ CLI tool to install, update, and uninstall agent skills from GitHub repos or loc
 
 ## Key concepts
 
-- **Agents**: `claude-code`, `cursor`, `codex` (type `AgentType`)
+- **Agents**: `claude-code`, `cursor`, `codex`, `gemini-cli`, `amp-code` (type `AgentType`)
 - **Skills**: Identified by a `SKILL.md` file inside a `skills/` directory
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
-- **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/` — symlinked to canonical dir
+- **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
 - **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents)
 
 ## Testing conventions
@@ -60,6 +60,56 @@ CLI tool to install, update, and uninstall agent skills from GitHub repos or loc
 - Tests run the actual CLI via `node --experimental-strip-types` as a subprocess
 - Each test gets an isolated temp directory (source + target)
 - Test describe blocks: `basic installation`, `--skills filter`, `--agents filter`, `-y / --yes flag`, `uninstall skill`, `uninstall agent`
+
+## Knowledge base — Agent configuration reference
+
+All agent-specific documentation lives in `docs/agents-config/`. Use these docs as the source of truth when implementing support for each agent.
+
+### Structure
+
+Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Each file includes a maconfai support status banner.
+
+| Agent | skills | hooks | mcp | context | Other |
+|:------|:-------|:------|:----|:--------|:------|
+| **Claude Code** | Supported | Not supported | Not supported | Not supported | `sub-agents.md` |
+| **Cursor** | Supported | Not supported | Not supported | Not supported | `rules.md` |
+| **Codex** | Supported | Not supported | Not supported | Not supported | — |
+| **Gemini CLI** | Not supported | — | Not supported | Not supported | — |
+| **Amp Code** | Not supported | — | Not supported | Not supported | — |
+
+### Agent skills directory mapping
+
+| Agent | Project skills dir | User skills dir | Canonical dir |
+|:------|:-------------------|:----------------|:--------------|
+| Claude Code | `.claude/skills/<name>/` | `~/.claude/skills/<name>/` | `.agents/skills/<name>/` |
+| Cursor | `.cursor/skills/<name>/` | `~/.cursor/skills/<name>/` | `.agents/skills/<name>/` |
+| Codex | `.agents/skills/<name>/` | `~/.codex/skills/<name>/` | `.agents/skills/<name>/` |
+| Gemini CLI | `.gemini/skills/<name>/` | `~/.gemini/skills/<name>/` | `.agents/skills/<name>/` |
+| Amp Code | `.agents/skills/<name>/` | `~/.config/agents/skills/<name>/` | `.agents/skills/<name>/` |
+
+### Agent instruction files
+
+| Agent | Instruction file | Config file | Config format |
+|:------|:----------------|:------------|:-------------|
+| Claude Code | `CLAUDE.md` | `settings.json` | JSON |
+| Cursor | `.cursor/rules/*.mdc` + `AGENTS.md` | Settings UI | — |
+| Codex | `AGENTS.md` (+ `AGENTS.override.md`) | `config.toml` | TOML |
+| Gemini CLI | `GEMINI.md` (configurable name) | `settings.json` | JSON |
+| Amp Code | `AGENTS.md` (fallback `CLAUDE.md`) | `settings.json` | JSON |
+
+### SKILL.md frontmatter (universal)
+
+```yaml
+---
+name: skill-name          # Required — identifier
+description: What it does  # Required — triggers implicit invocation
+---
+```
+
+Agent-specific extras:
+- **Codex**: `agents/openai.yaml` (interface, policy.allow_implicit_invocation, dependencies.tools)
+- **Claude Code**: frontmatter supports `version`, `mode`, `disable-model-invocation`, `allowed-tools`
+- **Gemini CLI**: only `name` + `description` recognized (no agents/google.yaml)
 
 ## Code style
 
