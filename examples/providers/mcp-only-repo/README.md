@@ -21,22 +21,18 @@ skills/
 ## Quick test
 
 ```bash
-# Install all MCP servers to project-b for Claude Code + Cursor
+# Interactive — choose which MCP servers and agents
 cd examples/consumers/project-b
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/mcp-only-repo
+
+# Non-interactive — all MCP servers, Claude Code + Cursor
 node --experimental-strip-types ../../../src/cli.ts install ../../providers/mcp-only-repo -y --agents=claude-code,cursor
+cat .mcp.json                        # "${GITHUB_TOKEN}" (bare)
+cat .cursor/mcp.json                 # "${env:GITHUB_TOKEN}" (env-prefix)
 
-# Check env var translation
-cat .mcp.json
-# → "GITHUB_TOKEN": "${GITHUB_TOKEN}"              (Claude Code: bare)
-cat .cursor/mcp.json
-# → "GITHUB_TOKEN": "${env:GITHUB_TOKEN}"           (Cursor: env-prefix)
-
-# Cleanup and test --mcps filter
+# Non-interactive — only github MCP, no brave-search
 rm -rf .agents .claude .cursor .codex .mcp.json
 node --experimental-strip-types ../../../src/cli.ts install ../../providers/mcp-only-repo -y --agents=claude-code --mcps=github
-
-# Only github installed, no brave-search
-cat .mcp.json
 grep "brave" .mcp.json && echo "FAIL" || echo "OK: no brave-search"
 
 # Cleanup

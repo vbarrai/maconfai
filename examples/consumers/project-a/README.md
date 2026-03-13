@@ -7,21 +7,21 @@ Consumer project to test skill and MCP installations.
 ```bash
 cd examples/consumers/project-a
 
-# Install from multi-skills-repo (3 skills + postgres MCP)
-node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo -y
+# Interactive install — choose skills, MCP servers, and agents manually
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/full-featured-repo
+
+# Non-interactive install — everything, all agents
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/full-featured-repo -y
 
 # Check what was created
-ls .claude/skills/                   # code-review  db-assistant  test-helper
-ls .cursor/skills/                   # code-review  db-assistant  test-helper
+ls .claude/skills/                   # api-helper  deploy-assistant  doc-writer
 ls -la .claude/skills/               # all symlinks → ../../.agents/skills/*
-cat .mcp.json                        # postgres MCP (bare env vars)
-cat .cursor/mcp.json                 # postgres MCP (env-prefix env vars)
+cat .mcp.json                        # github + filesystem + brave-search (bare)
+cat .cursor/mcp.json                 # same servers, ${env:...} syntax
 
-# Then install from mcp-only-repo (adds github + brave-search MCP)
-node --experimental-strip-types ../../../src/cli.ts install ../../providers/mcp-only-repo -y --agents=claude-code
-
-# MCP configs are merged, not overwritten
-cat .mcp.json                        # postgres + github + brave-search
+# Then install from multi-skills-repo (MCP configs are merged)
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo -y --agents=claude-code
+cat .mcp.json                        # previous servers + postgres
 
 # Cleanup
 rm -rf .agents .claude .cursor .codex .mcp.json

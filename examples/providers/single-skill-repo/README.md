@@ -16,13 +16,13 @@ SKILL.md                  # git-wizard skill (at the root, not in skills/)
 ## Quick test
 
 ```bash
-# Install to project-b for Claude Code
+# Interactive — single skill auto-selected, prompt for agents only
 cd examples/consumers/project-b
-node --experimental-strip-types ../../../src/cli.ts install ../../providers/single-skill-repo -y --agents=claude-code
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/single-skill-repo
 
-# Check results
+# Non-interactive
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/single-skill-repo -y --agents=claude-code
 cat .claude/skills/git-wizard/SKILL.md   # "git expert assistant"
-ls -la .claude/skills/git-wizard         # symlink → ../../.agents/skills/git-wizard
 
 # Cleanup
 rm -rf .agents .claude .cursor .codex

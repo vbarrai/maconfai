@@ -24,24 +24,18 @@ skills/
 ## Quick test
 
 ```bash
-# Install all skills to project-a for Claude Code only
+# Interactive — choose which skills, MCP servers, and agents
 cd examples/consumers/project-a
-node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo -y --agents=claude-code
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo
 
-# Check results
+# Non-interactive — all skills, Claude Code only
+node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo -y --agents=claude-code
 ls .claude/skills/                   # code-review  db-assistant  test-helper
 cat .mcp.json                        # postgres MCP with ${DATABASE_URL}
 
-# Cleanup
+# Non-interactive — filter to only code-review (no MCP)
 rm -rf .agents .claude .cursor .codex .mcp.json
-
-# Install only code-review to project-b for all agents
-cd ../project-b
 node --experimental-strip-types ../../../src/cli.ts install ../../providers/multi-skills-repo -y --skills=code-review
-
-# Check results
-ls .claude/skills/                   # code-review
-ls .cursor/skills/                   # code-review
 test -f .mcp.json && echo "FAIL" || echo "OK: no MCP (code-review has none)"
 
 # Cleanup
