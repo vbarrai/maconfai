@@ -8,7 +8,7 @@ Provider repository demonstrating **all maconfai features**: multiple skills, mu
 skills/
   api-helper/
     SKILL.md              # API development skill
-    mcp.json              # Declares: github
+    mcp.json              # Declares: github, linear
   doc-writer/
     SKILL.md              # Documentation skill (no MCP)
   deploy-assistant/
@@ -19,7 +19,7 @@ skills/
 ## What it demonstrates
 
 - 3 skills: some with MCP, one without
-- 3 MCP servers spread across 2 skills (`github`, `filesystem`, `brave-search`)
+- 4 MCP servers spread across 2 skills (`github`, `linear`, `filesystem`, `brave-search`)
 - Env var default syntax: `${PROJECT_ROOT:-/tmp}`
 - Interactive prompts for skill, MCP, and agent selection
 
@@ -35,7 +35,7 @@ node --experimental-strip-types ../../../src/cli.ts install ../../providers/full
 
 # Check results
 ls .claude/skills/                   # api-helper  deploy-assistant  doc-writer
-cat .mcp.json                        # github + filesystem + brave-search
+cat .mcp.json                        # github + linear + filesystem + brave-search
 cat .cursor/mcp.json                 # same, with ${env:...} syntax
 
 # Filter: only api-helper skill + only github MCP

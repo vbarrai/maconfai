@@ -8,13 +8,13 @@ Provider repository focused on **distributing MCP servers** alongside a skill.
 skills/
   mcp-tools/
     SKILL.md              # Lightweight skill description
-    mcp.json              # Declares 2 MCP servers: github + brave-search
+    mcp.json              # Declares 3 MCP servers: github, brave-search, linear
 ```
 
 ## What it demonstrates
 
 - A skill whose main purpose is to install MCP server configurations
-- Multiple MCP servers in a single `mcp.json`
+- Multiple MCP servers in a single `mcp.json` (including Linear's official remote MCP)
 - Environment variables using `${VAR}` syntax (auto-translated per agent)
 - The `--mcps` flag to selectively install MCP servers
 
