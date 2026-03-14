@@ -81,6 +81,8 @@ pnpm run dev           # Run CLI in dev mode
 pnpm test              # Run tests (vitest, watch mode)
 npx vitest run         # Run tests once
 pnpm typecheck         # TypeScript type checking
+pnpm lint              # Lint with oxlint
+pnpm knip              # Detect unused code and dependencies
 pnpm prettier          # Check formatting (used in CI)
 pnpm prettier:format   # Format all files with Prettier
 ```

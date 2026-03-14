@@ -9,14 +9,14 @@ import type { AgentType, McpServerConfig } from '../src/types.ts'
 const execFileAsync = promisify(execFile)
 const CLI_PATH = join(import.meta.dirname, '..', 'src', 'cli.ts')
 
-export type FileTree = Record<string, string>
+type FileTree = Record<string, string>
 
 export function skillFile(name: string): string {
   const description = name.replace(/-/g, ' ')
   return `---\nname: ${name}\ndescription: ${description}\n---\n${description}`
 }
 
-export async function exists(path: string): Promise<boolean> {
+async function exists(path: string): Promise<boolean> {
   try {
     await access(path)
     return true
@@ -189,7 +189,7 @@ export function setupScenario() {
   }
 }
 
-export type Scenario = ReturnType<typeof setupScenario>
+type Scenario = ReturnType<typeof setupScenario>
 
 export function describeConfai(name: string, fn: (scenario: Scenario) => void) {
   describe(name, () => {

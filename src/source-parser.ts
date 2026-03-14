@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'path'
 
-export interface ParsedSource {
+interface ParsedSource {
   type: 'github' | 'local'
   url: string
   subpath?: string

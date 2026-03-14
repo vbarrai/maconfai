@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from 'fs/promises'
-import { join, basename, dirname } from 'path'
+import { join, dirname } from 'path'
 import matter from 'gray-matter'
 import type { Skill, McpServerConfig } from './types.ts'
 

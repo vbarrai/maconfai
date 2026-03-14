@@ -6,7 +6,6 @@ import { runCheck } from './check.ts'
 const RESET = '\x1b[0m'
 const BOLD = '\x1b[1m'
 const DIM = '\x1b[38;5;102m'
-const TEXT = '\x1b[38;5;145m'
 
 function showHelp(): void {
   console.log(`

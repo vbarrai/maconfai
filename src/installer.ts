@@ -1,16 +1,5 @@
 import { existsSync } from 'fs'
-import {
-  mkdir,
-  cp,
-  readdir,
-  rm,
-  access,
-  stat,
-  lstat,
-  readlink,
-  symlink,
-  realpath,
-} from 'fs/promises'
+import { mkdir, cp, readdir, rm, stat, lstat, readlink, symlink, realpath } from 'fs/promises'
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path'
 import { homedir, platform } from 'os'
 import type { Skill, AgentType, McpServerConfig } from './types.ts'
@@ -25,7 +14,7 @@ export function sanitizeName(name: string): string {
   const sanitized = name
     .toLowerCase()
     .replace(/[^a-z0-9._]+/g, '-')
-    .replace(/^[.\-]+|[.\-]+$/g, '')
+    .replace(/^[.-]+|[.-]+$/g, '')
   return sanitized.substring(0, 255) || 'unnamed-skill'
 }
 
@@ -225,7 +214,7 @@ export async function uninstallSkill(
   return true
 }
 
-export interface InstalledSkill {
+interface InstalledSkill {
   name: string
   description: string
   dirName: string

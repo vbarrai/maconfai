@@ -15,6 +15,8 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - CLI prompts: @clack/prompts
 - Git operations: simple-git
 - Formatting: prettier
+- Linting: oxlint
+- Dead code: knip
 
 ## Commands
 
@@ -22,6 +24,8 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `npx vitest run` — Run tests once (no watch)
 - `pnpm build` — Build with obuild
 - `pnpm typecheck` — TypeScript type checking (`tsc --noEmit`)
+- `pnpm lint` — Lint with oxlint
+- `pnpm knip` — Detect unused files, exports, and dependencies
 - `pnpm run dev` — Run CLI in dev mode (`node --experimental-strip-types src/cli.ts`)
 - `pnpm prettier` — Check formatting (CI)
 - `pnpm prettier:format` — Format all files with Prettier

@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { existsSync } from 'fs'
-import { parseSource, getOwnerRepo } from './source-parser.ts'
+import { parseSource } from './source-parser.ts'
 import { cloneRepo, cleanupTempDir } from './git.ts'
 import { discoverSkills, discoverMcpServers } from './skills.ts'
 import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
