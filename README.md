@@ -80,7 +80,7 @@ pnpm install
 pnpm run dev           # Run CLI in dev mode
 pnpm test              # Run tests (vitest, watch mode)
 npx vitest run         # Run tests once
-pnpm run type-check    # TypeScript type checking
+pnpm typecheck         # TypeScript type checking
 pnpm prettier          # Check formatting (used in CI)
 pnpm prettier:format   # Format all files with Prettier
 ```

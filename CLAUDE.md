@@ -21,7 +21,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `pnpm test` — Run tests (vitest)
 - `npx vitest run` — Run tests once (no watch)
 - `pnpm build` — Build with obuild
-- `pnpm run type-check` — TypeScript type checking (`tsc --noEmit`)
+- `pnpm typecheck` — TypeScript type checking (`tsc --noEmit`)
 - `pnpm run dev` — Run CLI in dev mode (`node --experimental-strip-types src/cli.ts`)
 - `pnpm prettier` — Check formatting (CI)
 - `pnpm prettier:format` — Format all files with Prettier
