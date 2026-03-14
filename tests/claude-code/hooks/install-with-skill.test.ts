@@ -1,24 +1,35 @@
 import { it, expect } from "vitest";
 import { describeConfai } from "../../test-utils.ts";
 
-describeConfai("claude-code / hooks alongside a skill", ({ givenSource, when, thenFile, thenFiles }) => {
-  it("installs both skill files and hooks config", async () => {
-    await givenSource({
-      skills: [{ name: "dev-tools" }],
-      hooks: {
-        "block-rm": {
-          "claude-code": {
-            "PreToolUse": [
-              { "matcher": "Bash", "hooks": [{ "type": "command", "command": ".claude/hooks/block-rm.sh" }] },
-            ],
+describeConfai(
+  "claude-code / hooks alongside a skill",
+  ({ givenSource, when, targetFile, targetFiles }) => {
+    it("installs both skill files and hooks config", async () => {
+      await givenSource({
+        skills: [{ name: "dev-tools" }],
+        hooks: {
+          "block-rm": {
+            "claude-code": {
+              PreToolUse: [
+                {
+                  matcher: "Bash",
+                  hooks: [
+                    { type: "command", command: ".claude/hooks/block-rm.sh" },
+                  ],
+                },
+              ],
+            },
           },
         },
-      },
-    });
+      });
 
-    await when({ hooks: ["block-rm"], skills: ["dev-tools"], agents: ["claude-code"] });
+      await when({
+        hooks: ["block-rm"],
+        skills: ["dev-tools"],
+        agents: ["claude-code"],
+      });
 
-    expect(await thenFiles()).toMatchInlineSnapshot(`
+      expect(await targetFiles()).toMatchInlineSnapshot(`
       [
         ".agents/skills/dev-tools/SKILL.md",
         ".claude/settings.json",
@@ -26,7 +37,7 @@ describeConfai("claude-code / hooks alongside a skill", ({ givenSource, when, th
       ]
     `);
 
-    expect(await thenFile(".claude/settings.json")).toMatchInlineSnapshot(`
+      expect(await targetFile(".claude/settings.json")).toMatchInlineSnapshot(`
       "{
         "hooks": {
           "PreToolUse": [
@@ -44,5 +55,6 @@ describeConfai("claude-code / hooks alongside a skill", ({ givenSource, when, th
       }
       "
     `);
-  });
-});
+    });
+  },
+);

@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai('claude-code / url with headers', ({ givenSource, sourceFiles, when, thenFile }) => {
+describeConfai('claude-code / url with headers', ({ givenSource, sourceFiles, when, targetFile }) => {
   it('keeps env vars bare in headers', async () => {
     await givenSource({
       mcps: {
@@ -15,7 +15,7 @@ describeConfai('claude-code / url with headers', ({ givenSource, sourceFiles, wh
       },
     })
 
-    expect(await sourceFiles()).toMatchInlineSnapshot(`
+      expect(await sourceFiles()).toMatchInlineSnapshot(`
       [
         "mcp.json",
       ]
@@ -23,7 +23,7 @@ describeConfai('claude-code / url with headers', ({ givenSource, sourceFiles, wh
 
     await when({ mcps: ['custom-api'], agents: ['claude-code'] })
 
-    expect(await thenFile('.mcp.json')).toMatchInlineSnapshot(`
+    expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{
         "mcpServers": {
           "custom-api": {

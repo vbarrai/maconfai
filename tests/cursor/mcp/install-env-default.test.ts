@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / env var with default value',
-  ({ givenSource, sourceFiles, when, thenFile }) => {
+  ({ givenSource, sourceFiles, when, targetFile }) => {
     it('translates ${VAR:-default} to ${env:VAR:-default}', async () => {
       await givenSource({
         mcps: {
@@ -25,7 +25,7 @@ describeConfai(
 
       await when({ mcps: ['postgres'], agents: ['cursor'] })
 
-      expect(await thenFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
+      expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{
         "mcpServers": {
           "postgres": {

@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai('cursor / install zero MCPs', ({ givenSource, sourceFiles, when, thenFiles }) => {
+describeConfai('cursor / install zero MCPs', ({ givenSource, sourceFiles, when, targetFiles }) => {
   it('installs nothing when mcps is empty', async () => {
     await givenSource({
       mcps: {
@@ -12,7 +12,7 @@ describeConfai('cursor / install zero MCPs', ({ givenSource, sourceFiles, when, 
       },
     })
 
-    expect(await sourceFiles()).toMatchInlineSnapshot(`
+      expect(await sourceFiles()).toMatchInlineSnapshot(`
       [
         "mcp.json",
       ]
@@ -20,6 +20,6 @@ describeConfai('cursor / install zero MCPs', ({ givenSource, sourceFiles, when, 
 
     await when({ mcps: [], agents: ['cursor'] })
 
-    expect(await thenFiles()).toMatchInlineSnapshot(`[]`)
+    expect(await targetFiles()).toMatchInlineSnapshot(`[]`)
   })
 })

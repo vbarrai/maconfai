@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai('cursor / env var translation', ({ givenSource, sourceFiles, when, thenFile }) => {
+describeConfai('cursor / env var translation', ({ givenSource, sourceFiles, when, targetFile }) => {
   it('translates ${VAR} to ${env:VAR} in env fields', async () => {
     await givenSource({
       mcps: {
@@ -16,7 +16,7 @@ describeConfai('cursor / env var translation', ({ givenSource, sourceFiles, when
       },
     })
 
-    expect(await sourceFiles()).toMatchInlineSnapshot(`
+      expect(await sourceFiles()).toMatchInlineSnapshot(`
       [
         "mcp.json",
       ]
@@ -24,7 +24,7 @@ describeConfai('cursor / env var translation', ({ givenSource, sourceFiles, when
 
     await when({ mcps: ['github'], agents: ['cursor'] })
 
-    expect(await thenFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
+    expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{
         "mcpServers": {
           "github": {

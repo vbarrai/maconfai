@@ -153,7 +153,7 @@ export function setupScenario() {
     return exists(join(targetDir, path))
   }
 
-  async function thenFiles(): Promise<string[]> {
+  async function targetFiles(): Promise<string[]> {
     const files: string[] = []
     async function walk(dir: string) {
       const entries = await readdir(dir, { withFileTypes: true })
@@ -170,7 +170,7 @@ export function setupScenario() {
     return files.sort()
   }
 
-  async function thenFile(path: string): Promise<string> {
+  async function targetFile(path: string): Promise<string> {
     return readFile(join(targetDir, path), 'utf-8')
   }
 
@@ -191,8 +191,8 @@ export function setupScenario() {
     when,
     then,
     thenExists,
-    thenFile,
-    thenFiles,
+    targetFile,
+    targetFiles,
     thenMcpConfig,
     getTargetDir,
   }
