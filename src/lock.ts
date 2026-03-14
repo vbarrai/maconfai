@@ -34,12 +34,12 @@ export async function readLock(): Promise<SkillLockFile> {
   }
 }
 
-async function writeLock(lock: SkillLockFile): Promise<void> {
+export async function writeLock(lock: SkillLockFile): Promise<void> {
   await mkdir(dirname(LOCK_PATH), { recursive: true })
   await writeFile(LOCK_PATH, JSON.stringify(lock, null, 2), 'utf-8')
 }
 
-async function addToLock(
+export async function addToLock(
   skillName: string,
   entry: Omit<SkillLockEntry, 'installedAt' | 'updatedAt'>,
 ): Promise<void> {
