@@ -1,15 +1,5 @@
 import { existsSync } from 'fs'
-import {
-  mkdir,
-  cp,
-  readdir,
-  rm,
-  stat,
-  lstat,
-  readlink,
-  symlink,
-  realpath,
-} from 'fs/promises'
+import { mkdir, cp, readdir, rm, stat, lstat, readlink, symlink, realpath } from 'fs/promises'
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path'
 import { homedir, platform } from 'os'
 import type { Skill, AgentType, McpServerConfig } from './types.ts'
