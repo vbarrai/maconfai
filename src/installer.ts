@@ -1,9 +1,11 @@
+import { existsSync } from 'fs';
 import { mkdir, cp, readdir, rm, access, stat, lstat, readlink, symlink, realpath } from 'fs/promises';
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path';
 import { homedir, platform } from 'os';
-import type { Skill, AgentType } from './types.ts';
+import type { Skill, AgentType, McpServerConfig } from './types.ts';
 import { agents } from './agents.ts';
 import { parseSkillMd } from './skills.ts';
+import { installMcpServers, uninstallMcpServers } from './mcp.ts';
 
 const AGENTS_DIR = '.agents';
 const SKILLS_SUBDIR = 'skills';
@@ -115,8 +117,8 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 export async function installSkill(
   skill: Skill,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
-): Promise<{ success: boolean; path: string; error?: string }> {
+  options: { global?: boolean; cwd?: string; mcpServers?: Record<string, McpServerConfig> } = {}
+): Promise<{ success: boolean; path: string; error?: string; mcpInstalled?: string[]; mcpSkipped?: string[] }> {
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
   const skillName = sanitizeName(skill.name || basename(skill.path));
@@ -134,27 +136,36 @@ export async function installSkill(
   }
 
   try {
-    // 1. Copy skill files to canonical location
-    await rm(canonicalDir, { recursive: true, force: true }).catch(() => {});
-    await mkdir(canonicalDir, { recursive: true });
-    await copyDirectory(skill.path, canonicalDir);
+    // 1-2. Copy skill files + symlink (only when SKILL.md exists)
+    if (existsSync(join(skill.path, 'SKILL.md'))) {
+      await rm(canonicalDir, { recursive: true, force: true }).catch(() => {});
+      await mkdir(canonicalDir, { recursive: true });
+      await copyDirectory(skill.path, canonicalDir);
 
-    // 2. Symlink from agent dir to canonical dir (skip if same path)
-    const realCanonical = await realpath(canonicalDir).catch(() => resolve(canonicalDir));
-    const realAgent = await resolveParentSymlinks(agentDir);
+      const realCanonical = await realpath(canonicalDir).catch(() => resolve(canonicalDir));
+      const realAgent = await resolveParentSymlinks(agentDir);
 
-    if (realCanonical !== realAgent) {
-      const symlinkCreated = await createSymlink(canonicalDir, agentDir);
+      if (realCanonical !== realAgent) {
+        const symlinkCreated = await createSymlink(canonicalDir, agentDir);
 
-      if (!symlinkCreated) {
-        // Fallback: copy to agent dir
-        await rm(agentDir, { recursive: true, force: true }).catch(() => {});
-        await mkdir(agentDir, { recursive: true });
-        await copyDirectory(skill.path, agentDir);
+        if (!symlinkCreated) {
+          await rm(agentDir, { recursive: true, force: true }).catch(() => {});
+          await mkdir(agentDir, { recursive: true });
+          await copyDirectory(skill.path, agentDir);
+        }
       }
     }
 
-    return { success: true, path: agentDir };
+    // 3. Install MCP servers if provided
+    let mcpInstalled: string[] = []
+    let mcpSkipped: string[] = []
+    if (options.mcpServers && Object.keys(options.mcpServers).length > 0) {
+      const mcpResult = await installMcpServers(options.mcpServers, agentType, { cwd: options.cwd })
+      mcpInstalled = mcpResult.installed
+      mcpSkipped = mcpResult.skipped
+    }
+
+    return { success: true, path: agentDir, mcpInstalled, mcpSkipped };
   } catch (error) {
     return {
       success: false,
@@ -167,7 +178,7 @@ export async function installSkill(
 export async function uninstallSkill(
   skillName: string,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {}
+  options: { global?: boolean; cwd?: string; mcpServerNames?: string[] } = {}
 ): Promise<boolean> {
   const isGlobal = options.global ?? false;
   const cwd = options.cwd || process.cwd();
@@ -185,6 +196,11 @@ export async function uninstallSkill(
   const canonicalDir = join(canonicalBase, sanitized);
   if (isPathSafe(canonicalBase, canonicalDir)) {
     await rm(canonicalDir, { recursive: true, force: true }).catch(() => {});
+  }
+
+  // Remove MCP servers if provided
+  if (options.mcpServerNames && options.mcpServerNames.length > 0) {
+    await uninstallMcpServers(options.mcpServerNames, agentType, { cwd });
   }
 
   return true;
@@ -218,14 +234,23 @@ export async function listInstalledSkills(
       for (const entry of entries) {
         if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
 
-        const skillMdPath = join(dir, entry.name, 'SKILL.md');
+        const skillDir = join(dir, entry.name);
+        const skillMdPath = join(skillDir, 'SKILL.md');
+        let skill: Skill | null = null;
+
         try {
           await stat(skillMdPath);
+          skill = await parseSkillMd(skillMdPath);
         } catch {
-          continue;
+          // No SKILL.md — check for mcp.json (MCP-only skill)
+          try {
+            await stat(join(skillDir, 'mcp.json'));
+            skill = { name: entry.name, description: '', path: skillDir };
+          } catch {
+            continue;
+          }
         }
 
-        const skill = await parseSkillMd(skillMdPath);
         if (!skill) continue;
 
         const key = skill.name;

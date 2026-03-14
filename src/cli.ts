@@ -21,6 +21,7 @@ ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
   --agents=claude,cursor,codex   Install to specific agents
   --skills=skill-a,skill-b      Install specific skills
+  --mcps=mcp1,mcp2              Install specific MCP servers
   --branch=<name>                Use a specific branch
 
 ${BOLD}Sources:${RESET}

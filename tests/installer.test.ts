@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, writeFile, mkdir, readFile, lstat, readlink } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts';
-import type { Skill } from './types.ts';
+import { installSkill, uninstallSkill, listInstalledSkills } from '../src/installer.ts';
+import type { Skill } from '../src/types.ts';
 
 async function createSkillFixture(baseDir: string, name: string, description: string): Promise<Skill> {
   const skillDir = join(baseDir, name);

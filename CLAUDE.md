@@ -35,10 +35,12 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `src/source-parser.ts` — Parses source arguments (GitHub URLs, owner/repo, local paths)
 - `src/lock.ts` — Lock file management
 - `src/check.ts` — Update checking
-- `src/test-utils.ts` — Test helpers (`setupScenario`, `skillFile`)
-- `src/install.test.ts` — E2E tests for install/uninstall
-- `src/installer.test.ts` — Unit tests for installer
-- `src/sanity.test.ts` — Sanity check tests
+- `src/mcp.ts` — MCP server config install/uninstall and env var translation
+- `tests/test-utils.ts` — Test helpers (`setupScenario`, `skillFile`)
+- `tests/install.test.ts` — E2E tests for install/uninstall
+- `tests/installer.test.ts` — Unit tests for installer
+- `tests/mcp.test.ts` — Unit tests for MCP module
+- `tests/sanity.test.ts` — Sanity check tests
 
 ## Key concepts
 
@@ -46,20 +48,84 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **Skills**: Identified by a `SKILL.md` file inside a `skills/` directory
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
-- **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents)
+- **MCP servers**: Defined in `mcp.json` alongside `SKILL.md`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor)
+- **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers)
 
 ## Testing conventions
 
-- Tests use `setupScenario()` from `test-utils.ts` which provides:
-  - `init()` / `cleanup()` — temp directory setup/teardown
-  - `givenSkill(...names)` — creates skill fixtures
-  - `when({ skills?, agents?, extraArgs? })` — runs the CLI with `-y` flag
-  - `then(fileTree)` — asserts file contents
-  - `thenExists(path)` — checks file existence
-  - `getTargetDir()` — returns the target directory path
+### Rules
+
+- **1 test per file**, between 30 and 100 lines — small, visual, focused
+- Use `describeConfai` from `tests/test-utils.ts` — it wraps `setupScenario()` + `beforeEach(init)` + `afterEach(cleanup)` automatically
+- Prefer **inline snapshots** (`toMatchInlineSnapshot`) over manual assertions — the test should read like a visual spec
+- Use `thenFiles()` to assert the full file tree, `thenFile(path)` to assert file content
 - Tests run the actual CLI via `node --experimental-strip-types` as a subprocess
 - Each test gets an isolated temp directory (source + target)
-- Test describe blocks: `basic installation`, `--skills filter`, `--agents filter`, `-y / --yes flag`, `uninstall skill`, `uninstall agent`
+
+### File tree
+
+Tests mirror the feature they cover: `tests/<agent>/<feature>/<case>.test.ts`
+
+```
+tests/
+  test-utils.ts                          # describeConfai, givenSource, when, thenFile, thenFiles
+  install.test.ts                        # E2E tests for install/uninstall flow
+  installer.test.ts                      # Unit tests for low-level installer
+  mcp.test.ts                            # Unit tests for MCP module
+  source-parser.test.ts                  # Unit tests for source parser
+  sanity.test.ts                         # Sanity checks
+  claude-code/
+    mcp/
+      install-single.test.ts             # Single MCP server
+      install-multiple.test.ts           # Multiple MCP servers
+      install-env.test.ts                # ${VAR} kept bare (no translation)
+      install-url.test.ts                # URL-based MCP (SSE transport)
+      install-headers.test.ts            # URL + headers, env vars kept bare
+      install-with-skill.test.ts         # MCP alongside a SKILL.md
+      install-merge.test.ts              # Sequential installs merge MCPs
+      install-skip-existing.test.ts      # Existing MCP name preserved
+  cursor/
+    mcp/
+      install-single.test.ts             # Single MCP server
+      install-multiple.test.ts           # Multiple MCP servers
+      install-env.test.ts                # ${VAR} → ${env:VAR} translation
+      install-env-default.test.ts        # ${VAR:-default} → ${env:VAR:-default}
+      install-url.test.ts                # URL-based MCP (SSE transport)
+      install-headers.test.ts            # URL + headers with env translation
+      install-with-skill.test.ts         # MCP alongside a SKILL.md
+      install-merge.test.ts              # Sequential installs merge MCPs
+      install-skip-existing.test.ts      # Existing MCP name preserved
+```
+
+### Test anatomy
+
+```typescript
+import { it, expect } from "vitest";
+import { describeConfai } from "../../test-utils.ts";
+
+describeConfai("cursor / install single MCP", ({ givenSource, when, thenFile, thenFiles }) => {
+  it("should install a simple mcp server", async () => {
+    await givenSource({ mcps: { ... } });           // given
+    await when({ skills: [...], agents: [...] });    // when
+    expect(await thenFiles()).toMatchInlineSnapshot(` // then — file tree
+      [...]
+    `);
+    expect(await thenFile("...")).toMatchInlineSnapshot(` // then — file content
+      "..."
+    `);
+  });
+});
+```
+
+### Helpers (`describeConfai` provides)
+
+- `givenSource({ skills?, mcps? })` — creates source fixtures (skills with SKILL.md, MCP-only with mcp.json)
+- `givenSkill(...names)` — shorthand for skills without MCP
+- `when({ skills?, agents?, mcps?, extraArgs? })` — runs the CLI with `-y` flag
+- `thenFiles()` — returns sorted list of all files in target dir
+- `thenFile(path)` — returns file content as string
+- `then(fileTree)` — asserts multiple file contents
+- `thenExists(path)` — checks file existence
 
 ## Knowledge base — Agent configuration reference
 

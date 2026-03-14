@@ -13,6 +13,7 @@ export interface SkillLockEntry {
   skillFolderHash: string;
   installedAt: string;
   updatedAt: string;
+  mcpServers?: string[];
 }
 
 export interface SkillLockFile {

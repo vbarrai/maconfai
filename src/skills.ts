@@ -1,17 +1,30 @@
 import { readdir, readFile, stat } from 'fs/promises';
 import { join, basename, dirname } from 'path';
 import matter from 'gray-matter';
-import type { Skill } from './types.ts';
+import type { Skill, McpServerConfig } from './types.ts';
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__']);
 
-async function hasSkillMd(dir: string): Promise<boolean> {
+async function hasFile(dir: string, filename: string): Promise<boolean> {
   try {
-    const s = await stat(join(dir, 'SKILL.md'));
+    const s = await stat(join(dir, filename));
     return s.isFile();
   } catch {
     return false;
   }
+}
+
+async function parseMcpJson(skillDir: string): Promise<Record<string, McpServerConfig> | undefined> {
+  try {
+    const content = await readFile(join(skillDir, 'mcp.json'), 'utf-8');
+    const parsed = JSON.parse(content) as { mcpServers?: Record<string, McpServerConfig> };
+    if (parsed.mcpServers && typeof parsed.mcpServers === 'object') {
+      return parsed.mcpServers;
+    }
+  } catch {
+    // No mcp.json or invalid — that's fine
+  }
+  return undefined;
 }
 
 export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
@@ -23,11 +36,15 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
       return null;
     }
 
+    const skillDir = dirname(skillMdPath);
+    const mcpServers = await parseMcpJson(skillDir);
+
     return {
       name: data.name,
       description: data.description,
-      path: dirname(skillMdPath),
+      path: skillDir,
       rawContent: content,
+      mcpServers,
     };
   } catch {
     return null;
@@ -35,7 +52,7 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
 }
 
 /**
- * Discovers skills only in the ./skills directory of a repository.
+ * Discovers skills in the ./skills directory of a repository.
  * Each subdirectory of ./skills that contains a SKILL.md is a skill.
  */
 export async function discoverSkills(basePath: string): Promise<Skill[]> {
@@ -49,7 +66,7 @@ export async function discoverSkills(basePath: string): Promise<Skill[]> {
       if (!entry.isDirectory() || SKIP_DIRS.has(entry.name)) continue;
 
       const skillDir = join(skillsDir, entry.name);
-      if (await hasSkillMd(skillDir)) {
+      if (await hasFile(skillDir, 'SKILL.md')) {
         const skill = await parseSkillMd(join(skillDir, 'SKILL.md'));
         if (skill) skills.push(skill);
       }
@@ -59,10 +76,18 @@ export async function discoverSkills(basePath: string): Promise<Skill[]> {
   }
 
   // Also check if basePath itself has a SKILL.md (single skill repo)
-  if (skills.length === 0 && (await hasSkillMd(basePath))) {
+  if (skills.length === 0 && (await hasFile(basePath, 'SKILL.md'))) {
     const skill = await parseSkillMd(join(basePath, 'SKILL.md'));
     if (skill) skills.push(skill);
   }
 
   return skills;
+}
+
+/**
+ * Discovers MCP servers from a root-level mcp.json in the repository.
+ * Separate from skills — MCP configs live at the repo root, not inside skill directories.
+ */
+export async function discoverMcpServers(basePath: string): Promise<Record<string, McpServerConfig>> {
+  return await parseMcpJson(basePath) ?? {};
 }

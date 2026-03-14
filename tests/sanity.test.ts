@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeName } from './installer.ts';
+import { sanitizeName } from '../src/installer.ts';
 
 describe('sanity', () => {
   it('sanitizes skill names', () => {

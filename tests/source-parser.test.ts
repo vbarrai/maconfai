@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSource, getOwnerRepo } from './source-parser.ts'
+import { parseSource, getOwnerRepo } from '../src/source-parser.ts'
 
 describe('parseSource', () => {
   describe('local paths', () => {

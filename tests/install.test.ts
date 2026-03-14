@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { setupScenario, skillFile } from './test-utils.ts';
-import { uninstallSkill, listInstalledSkills } from './installer.ts';
+import { uninstallSkill, listInstalledSkills } from '../src/installer.ts';
 
 describe('install', () => {
-  const { init, cleanup, givenSkill, when, then, thenExists, getTargetDir } = setupScenario();
+  const { init, cleanup, givenSkill, givenSkillWithMcp, when, then, thenExists, thenMcpConfig, getTargetDir } = setupScenario();
 
   beforeEach(() => init());
   afterEach(() => cleanup());
@@ -334,6 +334,91 @@ describe('install', () => {
       const result = await uninstallSkill('nope', 'codex', { global: false, cwd: getTargetDir() });
 
       expect(result).toBe(true);
+    });
+  });
+
+  describe('MCP installation', () => {
+    it('installs MCP servers to claude-code .mcp.json', async () => {
+      await givenSkillWithMcp('mcp-skill', {
+        github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
+      });
+
+      await when({ skills: ['mcp-skill'], agents: ['claude-code'] });
+
+      const config = await thenMcpConfig('.mcp.json');
+      expect(config.mcpServers.github.command).toBe('npx');
+      expect(config.mcpServers.github.env.TOKEN).toBe('${TOKEN}');
+    });
+
+    it('installs MCP servers to cursor with env-prefix translation', async () => {
+      await givenSkillWithMcp('mcp-skill', {
+        github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
+      });
+
+      await when({ skills: ['mcp-skill'], agents: ['cursor'] });
+
+      const config = await thenMcpConfig('.cursor/mcp.json');
+      expect(config.mcpServers.github.env.TOKEN).toBe('${env:TOKEN}');
+    });
+
+    it('installs MCP to both agents with correct translation', async () => {
+      await givenSkillWithMcp('dual-mcp', {
+        postgres: { command: 'npx', args: ['-y', '@mcp/pg'], env: { DB: '${DB_URL}' } },
+      });
+
+      await when({ skills: ['dual-mcp'], agents: ['claude-code', 'cursor'] });
+
+      const claudeConfig = await thenMcpConfig('.mcp.json');
+      expect(claudeConfig.mcpServers.postgres.env.DB).toBe('${DB_URL}');
+
+      const cursorConfig = await thenMcpConfig('.cursor/mcp.json');
+      expect(cursorConfig.mcpServers.postgres.env.DB).toBe('${env:DB_URL}');
+    });
+
+    it('installs multiple MCP servers from one skill', async () => {
+      await givenSkillWithMcp('multi-mcp', {
+        github: { command: 'npx', args: ['-y', '@mcp/github'] },
+        postgres: { command: 'npx', args: ['-y', '@mcp/pg'] },
+      });
+
+      await when({ skills: ['multi-mcp'], agents: ['claude-code'] });
+
+      const config = await thenMcpConfig('.mcp.json');
+      expect(config.mcpServers.github).toBeDefined();
+      expect(config.mcpServers.postgres).toBeDefined();
+    });
+
+    it('filters MCP servers with --mcps flag', async () => {
+      await givenSkillWithMcp('filter-mcp', {
+        github: { command: 'npx', args: ['-y', '@mcp/github'] },
+        postgres: { command: 'npx', args: ['-y', '@mcp/pg'] },
+      });
+
+      await when({ skills: ['filter-mcp'], agents: ['claude-code'], mcps: ['github'] });
+
+      const config = await thenMcpConfig('.mcp.json');
+      expect(config.mcpServers.github).toBeDefined();
+      expect(config.mcpServers.postgres).toBeUndefined();
+    });
+
+    it('does not create MCP config for codex', async () => {
+      await givenSkillWithMcp('codex-mcp', {
+        github: { command: 'npx', args: ['-y', '@mcp/github'] },
+      });
+
+      await when({ skills: ['codex-mcp'], agents: ['codex'] });
+
+      expect(await thenExists('.codex/skills/codex-mcp/SKILL.md')).toBe(true);
+      expect(await thenExists('.mcp.json')).toBe(false);
+    });
+
+    it('skill without mcp.json installs normally without MCP config', async () => {
+      await givenSkill('no-mcp');
+
+      await when({ skills: ['no-mcp'], agents: ['claude-code'] });
+
+      expect(await thenExists('.claude/skills/no-mcp/SKILL.md')).toBe(true);
+      expect(await thenExists('.mcp.json')).toBe(false);
     });
   });
 });
