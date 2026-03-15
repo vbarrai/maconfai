@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / merge MCP servers across installs',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('second install adds new MCPs without removing existing ones', async () => {
       await givenSource({
         mcps: {
@@ -20,7 +20,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['github'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['github'], agents: ['cursor'] })
 
       await givenSource({
         mcps: {
@@ -31,7 +31,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['linear'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['linear'], agents: ['cursor'] })
 
       expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{

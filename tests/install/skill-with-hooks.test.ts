@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / skill bundled with hooks',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should install skill files and hooks config together', async () => {
       await givenSource({
         skills: [{ name: 'safe-bash' }],
@@ -18,7 +18,7 @@ describeConfai(
         },
       })
 
-      await when({ skills: ['safe-bash'], hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['safe-bash'], hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

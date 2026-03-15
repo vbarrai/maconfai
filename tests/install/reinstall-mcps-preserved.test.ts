@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / reinstall preserves MCPs from previous install',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should keep MCPs on second install', async () => {
       await givenSource({
         mcps: {
@@ -11,7 +11,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [
@@ -21,7 +21,7 @@ describeConfai(
       `)
 
       // Second install — MCPs should still be there
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
         "{

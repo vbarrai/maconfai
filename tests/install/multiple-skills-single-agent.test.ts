@@ -1,13 +1,15 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../test-utils.ts'
 
-describeConfai('install / multiple skills to single agent', ({ givenSkill, when, targetFiles }) => {
-  it('should install two skills to cursor', async () => {
-    await givenSkill('lint', 'format')
+describeConfai(
+  'install / multiple skills to single agent',
+  ({ givenSkill, whenInstall, targetFiles }) => {
+    it('should install two skills to cursor', async () => {
+      await givenSkill('lint', 'format')
 
-    await when({ skills: ['lint', 'format'], agents: ['cursor'] })
+      await whenInstall({ skills: ['lint', 'format'], agents: ['cursor'] })
 
-    expect(await targetFiles()).toMatchInlineSnapshot(`
+      expect(await targetFiles()).toMatchInlineSnapshot(`
       [
         ".agents/skills/format/SKILL.md",
         ".agents/skills/lint/SKILL.md",
@@ -16,5 +18,6 @@ describeConfai('install / multiple skills to single agent', ({ givenSkill, when,
         "ai-lock.json",
       ]
     `)
-  })
-})
+    })
+  },
+)

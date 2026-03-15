@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / MCPs installed to multiple agents with env translation',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('should translate env vars for cursor but keep bare for claude-code', async () => {
       await givenSource({
         mcps: {
@@ -15,7 +15,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['github'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code', 'cursor'] })
 
       const claude = JSON.parse(await targetFile('.mcp.json'))
       expect(claude.mcpServers.github.env.TOKEN).toBe('${GITHUB_TOKEN}')

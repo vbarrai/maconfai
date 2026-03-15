@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / standalone hooks without skills',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should install only hooks config, no skill files', async () => {
       await givenSource({
         hooks: {
@@ -17,7 +17,7 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

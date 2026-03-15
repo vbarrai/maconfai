@@ -3,11 +3,11 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / deselected skill removed from all agents',
-  ({ givenSkill, when, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetFiles }) => {
     it('should remove skill from both agents even when --agents is narrowed', async () => {
       await givenSkill('keep', 'drop')
 
-      await when({ agents: ['claude-code', 'cursor'] })
+      await whenInstall({ agents: ['claude-code', 'cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [
@@ -21,7 +21,7 @@ describeConfai(
         ]
       `)
 
-      await when({ skills: ['keep'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / url with headers',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('keeps env vars bare in headers', async () => {
       await givenSource({
         mcps: {
@@ -23,7 +23,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['custom-api'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['custom-api'], agents: ['claude-code'] })
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

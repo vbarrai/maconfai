@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install multiple MCPs',
-  ({ givenSource, sourceFiles, when, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
     it('installs multiple MCP servers to .cursor/mcp.json with env-prefix syntax', async () => {
       await givenSource({
         mcps: {
@@ -25,7 +25,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['github', 'linear'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['github', 'linear'], agents: ['cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

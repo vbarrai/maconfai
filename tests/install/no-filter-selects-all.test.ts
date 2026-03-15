@@ -1,13 +1,15 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../test-utils.ts'
 
-describeConfai('install / no filter selects all skills', ({ givenSkill, when, targetFiles }) => {
-  it('should install all skills when no --skills filter is given', async () => {
-    await givenSkill('alpha', 'beta')
+describeConfai(
+  'install / no filter selects all skills',
+  ({ givenSkill, whenInstall, targetFiles }) => {
+    it('should install all skills when no --skills filter is given', async () => {
+      await givenSkill('alpha', 'beta')
 
-    await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
 
-    expect(await targetFiles()).toMatchInlineSnapshot(`
+      expect(await targetFiles()).toMatchInlineSnapshot(`
       [
         ".agents/skills/alpha/SKILL.md",
         ".agents/skills/beta/SKILL.md",
@@ -16,5 +18,6 @@ describeConfai('install / no filter selects all skills', ({ givenSkill, when, ta
         "ai-lock.json",
       ]
     `)
-  })
-})
+    })
+  },
+)

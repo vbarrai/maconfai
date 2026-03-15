@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / install single hook',
-  ({ givenSource, sourceFiles, when, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
     it('should install a simple hook into settings.json', async () => {
       await givenSource({
         hooks: {
@@ -26,7 +26,7 @@ describeConfai(
       ]
     `)
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

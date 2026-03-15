@@ -1,9 +1,10 @@
 import { it, expect } from 'vitest'
+import type { AgentType } from '../../src/types.ts'
 import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / reinstall of skills + MCPs + hooks is idempotent',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should produce identical state on second install', async () => {
       await givenSource({
         skills: [{ name: 'lint' }],
@@ -23,15 +24,15 @@ describeConfai(
         skills: ['lint'],
         mcps: ['github'],
         hooks: ['block-rm'],
-        agents: ['claude-code'] as const,
+        agents: ['claude-code'] as AgentType[],
       }
 
-      await when(opts)
+      await whenInstall(opts)
       const firstFiles = await targetFiles()
       const firstMcp = await targetFile('.mcp.json')
       const firstHooks = await targetFile('.claude/settings.json')
 
-      await when(opts)
+      await whenInstall(opts)
       const secondFiles = await targetFiles()
       const secondMcp = await targetFile('.mcp.json')
       const secondHooks = await targetFile('.claude/settings.json')

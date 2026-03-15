@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / sequential installs merge hooks from different providers',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('should merge hooks from two sequential installs', async () => {
       // First provider — block-rm hook
       await givenSource({
@@ -18,7 +18,7 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
       // Second provider — lint-on-edit hook
       await givenSource({
@@ -31,7 +31,7 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['lint-on-edit'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['lint-on-edit'], agents: ['claude-code'] })
 
       expect(await targetFile('.claude/settings.json')).toMatchInlineSnapshot(`
         "{

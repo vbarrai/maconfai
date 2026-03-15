@@ -1,8 +1,17 @@
-import { it, expect } from 'vitest'
+import { it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { addToLock } from '../../../src/lock.ts'
 import { setupLockTest } from '../lock-test-utils.ts'
 
 const { thenLockFile, getCwd } = setupLockTest()
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 it('preserves installedAt when updating an existing skill', async () => {
   await addToLock(
@@ -16,8 +25,7 @@ it('preserves installedAt when updating an existing skill', async () => {
     getCwd(),
   )
 
-  const firstLock = JSON.parse(await thenLockFile())
-  const originalInstalledAt = firstLock.skills['my-skill'].installedAt
+  vi.setSystemTime(new Date('2025-06-01T00:00:00.000Z'))
 
   await addToLock(
     'my-skill',
@@ -31,18 +39,14 @@ it('preserves installedAt when updating an existing skill', async () => {
   )
 
   const lock = JSON.parse(await thenLockFile())
-  expect(lock.skills['my-skill'].installedAt).toBe(originalInstalledAt)
-  lock.skills['my-skill'].installedAt = '<timestamp>'
-  lock.skills['my-skill'].updatedAt = '<timestamp>'
-
   expect(lock.skills['my-skill']).toMatchInlineSnapshot(`
     {
-      "installedAt": "<timestamp>",
+      "installedAt": "2025-01-01T00:00:00.000Z",
       "skillFolderHash": "hash-v2",
       "skillPath": "skills/my-skill/SKILL.md",
       "source": "owner/repo",
       "sourceUrl": "https://github.com/owner/repo",
-      "updatedAt": "<timestamp>",
+      "updatedAt": "2025-06-01T00:00:00.000Z",
     }
   `)
 })

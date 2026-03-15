@@ -3,11 +3,11 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / deselecting all skills removes everything',
-  ({ givenSkill, when, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetFiles }) => {
     it('should remove all skills when none are selected', async () => {
       await givenSkill('old-a', 'old-b', 'new-c')
 
-      await when({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [
@@ -19,7 +19,7 @@ describeConfai(
         ]
       `)
 
-      await when({ skills: ['new-c'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['new-c'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

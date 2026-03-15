@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / skip duplicate hook handlers',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('does not duplicate identical handlers on reinstall', async () => {
       await givenSource({
         hooks: {
@@ -20,8 +20,8 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFile('.claude/settings.json')).toMatchInlineSnapshot(`
       "{

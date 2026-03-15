@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / hooks alongside a skill',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('installs both skill files and hooks config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -21,7 +21,7 @@ describeConfai(
         },
       })
 
-      await when({
+      await whenInstall({
         hooks: ['block-rm'],
         skills: ['dev-tools'],
         agents: ['claude-code'],

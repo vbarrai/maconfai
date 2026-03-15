@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / url-based MCP (SSE transport)',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('installs MCP with url instead of command', async () => {
       await givenSource({
         mcps: {
@@ -19,7 +19,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['linear'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['linear'], agents: ['cursor'] })
 
       expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{

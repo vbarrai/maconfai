@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / lock file tracks installed hooks',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('should write hook entries to ai-lock.json', async () => {
       await givenSource({
         hooks: {
@@ -17,7 +17,7 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
       const lock = JSON.parse(await targetFile('ai-lock.json'))
       const hookNames = Object.keys(lock.hooks)

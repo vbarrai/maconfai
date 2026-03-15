@@ -1,8 +1,17 @@
-import { it, expect } from 'vitest'
+import { it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { addToLock } from '../../../src/lock.ts'
 import { setupLockTest } from '../lock-test-utils.ts'
 
 const { thenLockFile, getCwd } = setupLockTest()
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'))
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 it('persists the lock entry to disk as formatted JSON', async () => {
   await addToLock(
@@ -16,22 +25,18 @@ it('persists the lock entry to disk as formatted JSON', async () => {
     getCwd(),
   )
 
-  const lock = JSON.parse(await thenLockFile())
-  lock.skills['disk-skill'].installedAt = '<timestamp>'
-  lock.skills['disk-skill'].updatedAt = '<timestamp>'
-
-  expect(lock).toMatchInlineSnapshot(`
+  expect(JSON.parse(await thenLockFile())).toMatchInlineSnapshot(`
     {
       "hooks": {},
       "mcpServers": {},
       "skills": {
         "disk-skill": {
-          "installedAt": "<timestamp>",
+          "installedAt": "2025-01-01T00:00:00.000Z",
           "skillFolderHash": "xyz789",
           "skillPath": "skills/disk-skill/SKILL.md",
           "source": "owner/repo",
           "sourceUrl": "https://github.com/owner/repo",
-          "updatedAt": "<timestamp>",
+          "updatedAt": "2025-01-01T00:00:00.000Z",
         },
       },
       "version": 1,

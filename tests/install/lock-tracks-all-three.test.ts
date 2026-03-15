@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / lock file tracks skills + MCPs + hooks together',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('should write all three sections to ai-lock.json', async () => {
       await givenSource({
         skills: [{ name: 'lint' }],
@@ -19,7 +19,7 @@ describeConfai(
         },
       })
 
-      await when({
+      await whenInstall({
         skills: ['lint'],
         mcps: ['github'],
         hooks: ['block-rm'],
