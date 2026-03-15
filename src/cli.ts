@@ -21,6 +21,7 @@ ${BOLD}Install Options:${RESET}
   --agents=claude,cursor,codex   Install to specific agents
   --skills=skill-a,skill-b      Install specific skills
   --mcps=mcp1,mcp2              Install specific MCP servers
+  --hooks=hook1,hook2           Install specific hooks
   --branch=<name>                Use a specific branch
 
 ${BOLD}Sources:${RESET}

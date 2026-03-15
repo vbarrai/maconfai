@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / MCP alongside a skill',
-  ({ givenSource, sourceFiles, when, thenFile, thenFiles }) => {
+  ({ givenSource, sourceFiles, when, targetFile, targetFiles }) => {
     it('installs both skill files and MCP config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -25,7 +25,7 @@ describeConfai(
 
       await when({ mcps: ['github'], skills: ['dev-tools'], agents: ['claude-code'] })
 
-      expect(await thenFiles()).toMatchInlineSnapshot(`
+      expect(await targetFiles()).toMatchInlineSnapshot(`
       [
         ".agents/skills/dev-tools/SKILL.md",
         ".claude/skills/dev-tools",
@@ -33,7 +33,7 @@ describeConfai(
       ]
     `)
 
-      expect(await thenFile('.mcp.json')).toMatchInlineSnapshot(`
+      expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{
         "mcpServers": {
           "github": {

@@ -43,6 +43,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `src/lock.ts` — Lock file management
 - `src/check.ts` — Update checking
 - `src/mcp.ts` — MCP server config install/uninstall and env var translation
+- `src/hooks.ts` — Hooks config install/uninstall (agent-specific event handlers)
 - `tests/test-utils.ts` — Test helpers (`setupScenario`, `skillFile`)
 - `tests/install.test.ts` — E2E tests for install/uninstall
 - `tests/installer.test.ts` — Unit tests for installer
@@ -56,7 +57,8 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
 - **MCP servers**: Defined in `mcp.json` alongside `SKILL.md`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor)
-- **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers)
+- **Hooks**: Defined in `hooks.json` with named groups containing agent-specific event handlers, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor)
+- **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks)
 
 ## Testing conventions
 
@@ -65,7 +67,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **1 test per file**, between 30 and 100 lines — small, visual, focused
 - Use `describeConfai` from `tests/test-utils.ts` — it wraps `setupScenario()` + `beforeEach(init)` + `afterEach(cleanup)` automatically
 - Prefer **inline snapshots** (`toMatchInlineSnapshot`) over manual assertions — the test should read like a visual spec
-- Use `thenFiles()` to assert the full file tree, `thenFile(path)` to assert file content
+- Use `targetFiles()` to assert the full file tree, `targetFile(path)` to assert file content
 - Tests run the actual CLI via `node --experimental-strip-types` as a subprocess
 - Each test gets an isolated temp directory (source + target)
 
@@ -75,7 +77,7 @@ Tests mirror the feature they cover: `tests/<agent>/<feature>/<case>.test.ts`
 
 ```
 tests/
-  test-utils.ts                          # describeConfai, givenSource, when, thenFile, thenFiles
+  test-utils.ts                          # describeConfai, givenSource, when, targetFile, targetFiles
   install.test.ts                        # E2E tests for install/uninstall flow
   installer.test.ts                      # Unit tests for low-level installer
   mcp.test.ts                            # Unit tests for MCP module
@@ -91,6 +93,12 @@ tests/
       install-with-skill.test.ts         # MCP alongside a SKILL.md
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
+    hooks/
+      install-single.test.ts             # Single hook group
+      install-multiple.test.ts           # Multiple hook groups
+      install-with-skill.test.ts         # Hooks alongside a SKILL.md
+      install-merge.test.ts              # Sequential installs merge hooks
+      install-skip-duplicate.test.ts     # Duplicate handlers not added twice
   cursor/
     mcp/
       install-single.test.ts             # Single MCP server
@@ -102,6 +110,12 @@ tests/
       install-with-skill.test.ts         # MCP alongside a SKILL.md
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
+    hooks/
+      install-single.test.ts             # Single hook group
+      install-multiple.test.ts           # Multiple hook groups
+      install-with-skill.test.ts         # Hooks alongside a SKILL.md
+      install-merge.test.ts              # Sequential installs merge hooks
+      install-skip-duplicate.test.ts     # Duplicate handlers not added twice
 ```
 
 ### Test anatomy
@@ -110,14 +124,14 @@ tests/
 import { it, expect } from "vitest";
 import { describeConfai } from "../../test-utils.ts";
 
-describeConfai("cursor / install single MCP", ({ givenSource, when, thenFile, thenFiles }) => {
+describeConfai("cursor / install single MCP", ({ givenSource, when, targetFile, targetFiles }) => {
   it("should install a simple mcp server", async () => {
     await givenSource({ mcps: { ... } });           // given
     await when({ skills: [...], agents: [...] });    // when
-    expect(await thenFiles()).toMatchInlineSnapshot(` // then — file tree
+    expect(await targetFiles()).toMatchInlineSnapshot(` // then — file tree
       [...]
     `);
-    expect(await thenFile("...")).toMatchInlineSnapshot(` // then — file content
+    expect(await targetFile("...")).toMatchInlineSnapshot(` // then — file content
       "..."
     `);
   });
@@ -126,11 +140,11 @@ describeConfai("cursor / install single MCP", ({ givenSource, when, thenFile, th
 
 ### Helpers (`describeConfai` provides)
 
-- `givenSource({ skills?, mcps? })` — creates source fixtures (skills with SKILL.md, MCP-only with mcp.json)
+- `givenSource({ skills?, mcps?, hooks? })` — creates source fixtures (skills with SKILL.md, MCP-only with mcp.json, hooks with hooks.json)
 - `givenSkill(...names)` — shorthand for skills without MCP
-- `when({ skills?, agents?, mcps?, extraArgs? })` — runs the CLI with `-y` flag
-- `thenFiles()` — returns sorted list of all files in target dir
-- `thenFile(path)` — returns file content as string
+- `when({ skills?, agents?, mcps?, hooks?, extraArgs? })` — runs the CLI with `-y` flag
+- `targetFiles()` — returns sorted list of all files in target dir
+- `targetFile(path)` — returns file content as string
 - `then(fileTree)` — asserts multiple file contents
 - `thenExists(path)` — checks file existence
 
@@ -144,8 +158,8 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 
 | Agent           | skills        | hooks         | mcp           | context       | Other           |
 | :-------------- | :------------ | :------------ | :------------ | :------------ | :-------------- |
-| **Claude Code** | Supported     | Not supported | Not supported | Not supported | `sub-agents.md` |
-| **Cursor**      | Supported     | Not supported | Not supported | Not supported | `rules.md`      |
+| **Claude Code** | Supported     | Supported     | Not supported | Not supported | `sub-agents.md` |
+| **Cursor**      | Supported     | Supported     | Not supported | Not supported | `rules.md`      |
 | **Codex**       | Supported     | Not supported | Not supported | Not supported | —               |
 | **Gemini CLI**  | Not supported | —             | Not supported | Not supported | —               |
 | **Amp Code**    | Not supported | —             | Not supported | Not supported | —               |

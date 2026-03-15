@@ -3,12 +3,13 @@ import pc from 'picocolors'
 import { existsSync } from 'fs'
 import { parseSource } from './source-parser.ts'
 import { cloneRepo, cleanupTempDir } from './git.ts'
-import { discoverSkills, discoverMcpServers } from './skills.ts'
+import { discoverSkills, discoverMcpServers, discoverHooks } from './skills.ts'
 import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
 import { agents, detectInstalledAgents } from './agents.ts'
 import { readLock, removeFromLock } from './lock.ts'
 import { installMcpServers, listInstalledMcpServerNames } from './mcp.ts'
-import type { Skill, AgentType, McpServerConfig } from './types.ts'
+import { installHooks } from './hooks.ts'
+import type { Skill, AgentType, McpServerConfig, HookGroup } from './types.ts'
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex']
 
@@ -53,6 +54,7 @@ export async function runInstall(args: string[]): Promise<void> {
   const argAgents = parseAgentsArg(args)
   const argSkills = parseListArg(args, 'skills')
   const argMcps = parseListArg(args, 'mcps')
+  const argHooks = parseListArg(args, 'hooks')
   const argBranch = parseListArg(args, 'branch')?.[0]
 
   console.log()
@@ -87,15 +89,17 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop('Repository cloned')
     }
 
-    // Discover skills and MCP servers
-    spinner.start('Discovering skills and MCP servers...')
+    // Discover skills, MCP servers, and hooks
+    spinner.start('Discovering skills, MCP servers, and hooks...')
     const skills = await discoverSkills(skillsDir)
     const rootMcpServers = await discoverMcpServers(skillsDir)
+    const rootHooks = await discoverHooks(skillsDir)
     const hasRootMcp = Object.keys(rootMcpServers).length > 0
+    const hasRootHooks = Object.keys(rootHooks).length > 0
 
-    if (skills.length === 0 && !hasRootMcp) {
+    if (skills.length === 0 && !hasRootMcp && !hasRootHooks) {
       spinner.stop(pc.red('Nothing found'))
-      p.log.error('No skills or MCP servers found.')
+      p.log.error('No skills, MCP servers, or hooks found.')
       await cleanup(tempDir)
       process.exit(1)
     }
@@ -103,6 +107,7 @@ export async function runInstall(args: string[]): Promise<void> {
     const parts: string[] = []
     if (skills.length > 0) parts.push(`${skills.length} skill(s)`)
     if (hasRootMcp) parts.push(`${Object.keys(rootMcpServers).length} MCP server(s)`)
+    if (hasRootHooks) parts.push(`${Object.keys(rootHooks).length} hook(s)`)
     spinner.stop(`Found ${pc.green(parts.join(' + '))}`)
 
     // Check which skills are already installed
@@ -208,6 +213,55 @@ export async function runInstall(args: string[]): Promise<void> {
       }
     }
 
+    // Collect hook groups from selected skills + root hooks.json
+    interface HookEntry {
+      groupName: string
+      source: string
+      group: HookGroup
+    }
+    const allHookEntries: HookEntry[] = []
+    for (const skill of selectedSkills) {
+      if (skill.hookGroups) {
+        for (const [groupName, group] of Object.entries(skill.hookGroups)) {
+          allHookEntries.push({ groupName, source: skill.name, group })
+        }
+      }
+    }
+    for (const [groupName, group] of Object.entries(rootHooks)) {
+      allHookEntries.push({ groupName, source: 'hooks.json', group })
+    }
+
+    // Select hooks
+    let selectedHookNames: Set<string> = new Set()
+
+    if (allHookEntries.length > 0) {
+      if (argHooks) {
+        selectedHookNames = new Set(argHooks)
+      } else if (skipPrompts) {
+        selectedHookNames = new Set(allHookEntries.map((e) => e.groupName))
+      } else {
+        const hookChoices = allHookEntries.map((e) => ({
+          value: e.groupName,
+          label: `${e.groupName} ${pc.dim(`(from: ${e.source})`)}${e.group.description ? ` ${pc.dim(`— ${e.group.description}`)}` : ''}`,
+        }))
+
+        const selectedHook = await p.multiselect({
+          message: `Select hooks to install ${pc.dim('(space to toggle)')}`,
+          options: hookChoices as any,
+          initialValues: [] as string[],
+          required: false,
+        })
+
+        if (p.isCancel(selectedHook)) {
+          p.cancel('Cancelled')
+          await cleanup(tempDir)
+          process.exit(0)
+        }
+
+        selectedHookNames = new Set(selectedHook as string[])
+      }
+    }
+
     // Determine which agents previously had skills installed
     const previousAgents = new Set<AgentType>()
     for (const s of installed) {
@@ -273,11 +327,18 @@ export async function runInstall(args: string[]): Promise<void> {
     }
     const hasStandaloneMcps = Object.keys(standaloneMcps).length > 0
 
+    // Build selected hooks map
+    const selectedHookGroups: HookEntry[] = allHookEntries.filter((e) =>
+      selectedHookNames.has(e.groupName),
+    )
+    const hasSelectedHooks = selectedHookGroups.length > 0
+
     if (
       toInstall.length === 0 &&
       toUninstall.length === 0 &&
       removedAgents.length === 0 &&
-      !hasStandaloneMcps
+      !hasStandaloneMcps &&
+      !hasSelectedHooks
     ) {
       p.log.info('Nothing to do.')
       await cleanup(tempDir)
@@ -292,6 +353,9 @@ export async function runInstall(args: string[]): Promise<void> {
       }
       if (selectedMcpNames.size > 0) {
         p.log.info(`MCP servers: ${[...selectedMcpNames].map((n) => pc.cyan(n)).join(', ')}`)
+      }
+      if (selectedHookNames.size > 0) {
+        p.log.info(`Hooks: ${[...selectedHookNames].map((n) => pc.cyan(n)).join(', ')}`)
       }
       if (toUninstall.length > 0) {
         p.log.info(`Remove skills: ${toUninstall.map((s) => pc.red(s.name)).join(', ')}`)
@@ -376,6 +440,21 @@ export async function runInstall(args: string[]): Promise<void> {
         await installMcpServers(standaloneMcps, agent)
       }
       spinner.stop(`Installed ${Object.keys(standaloneMcps).length} MCP server(s)`)
+    }
+
+    // Install hooks
+    if (hasSelectedHooks) {
+      spinner.start('Installing hooks...')
+      for (const entry of selectedHookGroups) {
+        for (const agent of targetAgents) {
+          const agentKey = agent as keyof HookGroup
+          const hookEvents = entry.group[agentKey]
+          if (hookEvents && typeof hookEvents === 'object' && !Array.isArray(hookEvents)) {
+            await installHooks(hookEvents as Record<string, unknown[]>, agent)
+          }
+        }
+      }
+      spinner.stop(`Installed ${selectedHookGroups.length} hook(s)`)
     }
   } catch (error) {
     spinner.stop(pc.red('Error'))

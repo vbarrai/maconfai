@@ -10,12 +10,22 @@ export interface McpServerConfig {
   headers?: Record<string, string>
 }
 
+// Hook events are agent-specific JSON (different formats per agent)
+export type HookEvents = Record<string, unknown[]>
+
+export interface HookGroup {
+  description?: string
+  'claude-code'?: HookEvents
+  cursor?: HookEvents
+}
+
 export interface Skill {
   name: string
   description: string
   path: string
   rawContent?: string
   mcpServers?: Record<string, McpServerConfig>
+  hookGroups?: Record<string, HookGroup>
 }
 
 export interface AgentConfig {
@@ -25,4 +35,6 @@ export interface AgentConfig {
   globalSkillsDir: string
   mcpConfigPath?: string
   mcpEnvSyntax?: McpEnvSyntax
+  hooksConfigPath?: string
+  hooksConfigFormat?: 'settings' | 'dedicated'
 }

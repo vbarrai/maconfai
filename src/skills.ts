@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, dirname } from 'path'
 import matter from 'gray-matter'
-import type { Skill, McpServerConfig } from './types.ts'
+import type { Skill, McpServerConfig, HookGroup } from './types.ts'
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__'])
 
@@ -29,6 +29,19 @@ async function parseMcpJson(
   return undefined
 }
 
+async function parseHooksJson(dir: string): Promise<Record<string, HookGroup> | undefined> {
+  try {
+    const content = await readFile(join(dir, 'hooks.json'), 'utf-8')
+    const parsed = JSON.parse(content) as { hooks?: Record<string, HookGroup> }
+    if (parsed.hooks && typeof parsed.hooks === 'object') {
+      return parsed.hooks
+    }
+  } catch {
+    // No hooks.json or invalid — that's fine
+  }
+  return undefined
+}
+
 export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
   try {
     const content = await readFile(skillMdPath, 'utf-8')
@@ -40,6 +53,7 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
 
     const skillDir = dirname(skillMdPath)
     const mcpServers = await parseMcpJson(skillDir)
+    const hookGroups = await parseHooksJson(skillDir)
 
     return {
       name: data.name,
@@ -47,6 +61,7 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
       path: skillDir,
       rawContent: content,
       mcpServers,
+      hookGroups,
     }
   } catch {
     return null
@@ -94,4 +109,12 @@ export async function discoverMcpServers(
   basePath: string,
 ): Promise<Record<string, McpServerConfig>> {
   return (await parseMcpJson(basePath)) ?? {}
+}
+
+/**
+ * Discovers hook groups from a root-level hooks.json in the repository.
+ * Each hook group has a name and agent-specific event definitions.
+ */
+export async function discoverHooks(basePath: string): Promise<Record<string, HookGroup>> {
+  return (await parseHooksJson(basePath)) ?? {}
 }

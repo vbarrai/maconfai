@@ -4,7 +4,7 @@ import { join, relative } from 'path'
 import { tmpdir } from 'os'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import type { AgentType, McpServerConfig } from '../src/types.ts'
+import type { AgentType, McpServerConfig, HookGroup } from '../src/types.ts'
 
 const execFileAsync = promisify(execFile)
 const CLI_PATH = join(import.meta.dirname, '..', 'src', 'cli.ts')
@@ -58,6 +58,7 @@ export function setupScenario() {
   async function givenSource(opts: {
     skills?: SkillFixture[]
     mcps?: Record<string, McpServerConfig>
+    hooks?: Record<string, HookGroup>
   }) {
     const files: FileTree = {}
 
@@ -74,6 +75,10 @@ export function setupScenario() {
 
     if (opts.mcps) {
       files['./mcp.json'] = JSON.stringify({ mcpServers: opts.mcps }, null, 2)
+    }
+
+    if (opts.hooks) {
+      files['./hooks.json'] = JSON.stringify({ hooks: opts.hooks }, null, 2)
     }
 
     await given(files)
@@ -108,6 +113,7 @@ export function setupScenario() {
     skills?: string[]
     agents?: AgentType[]
     mcps?: string[]
+    hooks?: string[]
     extraArgs?: string[]
   }) {
     const args = ['--experimental-strip-types', CLI_PATH, 'install', sourceDir, '-y']
@@ -120,6 +126,9 @@ export function setupScenario() {
     }
     if (opts.mcps !== undefined) {
       args.push(`--mcps=${opts.mcps.join(',')}`)
+    }
+    if (opts.hooks !== undefined) {
+      args.push(`--hooks=${opts.hooks.join(',')}`)
     }
     if (opts.extraArgs?.length) {
       args.push(...opts.extraArgs)
@@ -144,7 +153,7 @@ export function setupScenario() {
     return exists(join(targetDir, path))
   }
 
-  async function thenFiles(): Promise<string[]> {
+  async function targetFiles(): Promise<string[]> {
     const files: string[] = []
     async function walk(dir: string) {
       const entries = await readdir(dir, { withFileTypes: true })
@@ -161,7 +170,7 @@ export function setupScenario() {
     return files.sort()
   }
 
-  async function thenFile(path: string): Promise<string> {
+  async function targetFile(path: string): Promise<string> {
     return readFile(join(targetDir, path), 'utf-8')
   }
 
@@ -182,8 +191,8 @@ export function setupScenario() {
     when,
     then,
     thenExists,
-    thenFile,
-    thenFiles,
+    targetFile,
+    targetFiles,
     thenMcpConfig,
     getTargetDir,
   }

@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / install zero MCPs',
-  ({ givenSource, sourceFiles, when, thenFiles }) => {
+  ({ givenSource, sourceFiles, when, targetFiles }) => {
     it('installs nothing when mcps is empty', async () => {
       await givenSource({
         mcps: {
@@ -22,7 +22,7 @@ describeConfai(
 
       await when({ mcps: [], agents: ['claude-code'] })
 
-      expect(await thenFiles()).toMatchInlineSnapshot(`[]`)
+      expect(await targetFiles()).toMatchInlineSnapshot(`[]`)
     })
   },
 )

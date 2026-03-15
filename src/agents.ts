@@ -15,6 +15,8 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(claudeHome, 'skills'),
     mcpConfigPath: '.mcp.json',
     mcpEnvSyntax: 'bare',
+    hooksConfigPath: '.claude/settings.json',
+    hooksConfigFormat: 'settings',
   },
   cursor: {
     name: 'cursor',
@@ -23,6 +25,8 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(home, '.cursor/skills'),
     mcpConfigPath: '.cursor/mcp.json',
     mcpEnvSyntax: 'env-prefix',
+    hooksConfigPath: '.cursor/hooks.json',
+    hooksConfigFormat: 'dedicated',
   },
   codex: {
     name: 'codex',

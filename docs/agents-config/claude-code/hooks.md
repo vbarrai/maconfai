@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — Hooks are not managed by maconfai. Reference only.
+> **maconfai support: Supported** — Hooks can be installed via `hooks.json` in the source repository.
 
 # Claude Code — Hooks Guide
 
