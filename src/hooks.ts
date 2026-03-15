@@ -3,12 +3,6 @@ import { join, dirname } from 'path'
 import type { AgentType, HookEvents } from './types.ts'
 import { agents } from './agents.ts'
 
-interface DedicatedHooksFile {
-  version?: number
-  hooks?: Record<string, unknown[]>
-  [key: string]: unknown
-}
-
 async function readJsonFile(filePath: string): Promise<Record<string, unknown>> {
   try {
     const content = await readFile(filePath, 'utf-8')
