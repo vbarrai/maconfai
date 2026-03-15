@@ -53,11 +53,11 @@ Gemini CLI does **not** support frontmatter-based invocation control (no `disabl
 
 However, Gemini CLI provides **runtime skill management** via CLI commands:
 
-| Command             | Description                                        |
-| :------------------ | :------------------------------------------------- |
-| `/skills`           | List all available skills and their current status  |
-| `/skills disable <name>` | Disable a skill for the current session        |
-| `/skills enable <name>`  | Re-enable a previously disabled skill          |
+| Command                  | Description                                        |
+| :----------------------- | :------------------------------------------------- |
+| `/skills`                | List all available skills and their current status |
+| `/skills disable <name>` | Disable a skill for the current session            |
+| `/skills enable <name>`  | Re-enable a previously disabled skill              |
 
 Additionally, all skill activations require **explicit user consent** via the policy engine — Gemini always prompts for confirmation before activating a skill.
 

@@ -30,14 +30,14 @@ description: What the skill does and when to use it.
 
 ### Frontmatter fields
 
-| Field                      | Required    | Description                                                                                                                    |
-| :------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | Yes         | Skill name (lowercase, digits, hyphens). Must match parent folder name. Max 64 chars.                                          |
-| `description`              | Yes         | What the Skill does and when to use it. Max 1024 chars.                                                                        |
-| `disable-model-invocation` | No          | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`. |
-| `license`                  | No          | License name or reference to a bundled license file.                                                                           |
-| `compatibility`            | No          | Environment requirements (system packages, network access, etc.).                                                              |
-| `metadata`                 | No          | Arbitrary key-value mapping for additional metadata.                                                                           |
+| Field                      | Required | Description                                                                                                                            |
+| :------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | Yes      | Skill name (lowercase, digits, hyphens). Must match parent folder name. Max 64 chars.                                                  |
+| `description`              | Yes      | What the Skill does and when to use it. Max 1024 chars.                                                                                |
+| `disable-model-invocation` | No       | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`. |
+| `license`                  | No       | License name or reference to a bundled license file.                                                                                   |
+| `compatibility`            | No       | Environment requirements (system packages, network access, etc.).                                                                      |
+| `metadata`                 | No       | Arbitrary key-value mapping for additional metadata.                                                                                   |
 
 ## Where to store Skills
 
