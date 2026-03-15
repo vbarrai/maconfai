@@ -84,7 +84,7 @@ export async function installHooks(
   return { installed, skipped }
 }
 
-export async function listInstalledHookEventNames(
+async function listInstalledHookEventNames(
   options: { cwd?: string } = {},
 ): Promise<Set<string>> {
   const cwd = options.cwd || process.cwd()
@@ -104,7 +104,7 @@ export async function listInstalledHookEventNames(
   return names
 }
 
-export async function uninstallHooks(
+async function uninstallHooks(
   hookGroupEvents: HookEvents,
   agentType: AgentType,
   options: { cwd?: string } = {},
