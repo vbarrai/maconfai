@@ -1,18 +1,29 @@
-name: CI
+name: Publish
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags: ['v*']
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tag matches package.json version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
   lint-and-format:
     runs-on: ubuntu-latest
+    needs: [preflight]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -27,6 +38,7 @@ jobs:
 
   typecheck:
     runs-on: ubuntu-latest
+    needs: [preflight]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,16 +47,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Restore tsbuildinfo cache
-        uses: actions/cache@v4
-        with:
-          path: .tsbuildinfo
-          key: tsbuildinfo-${{ hashFiles('src/**/*.ts', 'tsconfig.json') }}
-          restore-keys: tsbuildinfo-
       - run: pnpm typecheck
 
   test:
     runs-on: ubuntu-latest
+    needs: [preflight]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -55,9 +62,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test -- --run
 
-  build:
+  publish:
     runs-on: ubuntu-latest
     needs: [lint-and-format, typecheck, test]
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -65,19 +75,11 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-
-  version-check:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check version availability on npm
-        run: |
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if npm view "maconfai@$PKG_VERSION" version 2>/dev/null; then
-            echo "::error::Version $PKG_VERSION is already published on npm — bump the version in package.json before merging"
-            exit 1
-          fi
-          echo "Version $PKG_VERSION is available on npm"
+      - run: npm publish --provenance --access public
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes
