@@ -3,11 +3,11 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / switch from one agent to another',
-  ({ givenSkill, when, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetFiles }) => {
     it('should add codex while keeping claude-code files', async () => {
       await givenSkill('portable')
 
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [
@@ -17,7 +17,7 @@ describeConfai(
       ]
     `)
 
-      await when({ agents: ['codex'] })
+      await whenInstall({ agents: ['codex'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

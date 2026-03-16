@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / skip existing MCP server',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('preserves existing MCP config when same name is reinstalled', async () => {
       await givenSource({
         mcps: {
@@ -21,7 +21,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       await givenSource({
         mcps: {
@@ -33,7 +33,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

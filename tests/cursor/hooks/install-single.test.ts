@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install single hook',
-  ({ givenSource, sourceFiles, when, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
     it('should install a simple hook into hooks.json', async () => {
       await givenSource({
         hooks: {
@@ -21,7 +21,7 @@ describeConfai(
       ]
     `)
 
-      await when({ hooks: ['block-rm'], agents: ['cursor'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

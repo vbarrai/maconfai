@@ -15,7 +15,7 @@ vi.mock('../../src/lock.ts', () => ({
   fetchSkillFolderHash: async () => 'new-hash',
 }))
 
-const mockSpawnSync = vi.fn(() => ({ status: 0 }))
+const mockSpawnSync = vi.fn((..._args: any[]) => ({ status: 0 }))
 vi.mock('child_process', () => ({
   spawnSync: (...args: any[]) => mockSpawnSync(...args),
 }))
@@ -23,7 +23,7 @@ vi.mock('child_process', () => ({
 it('should skip updates when user cancels', async () => {
   const cancelSymbol = Symbol('cancel')
   mocks.confirm.mockResolvedValueOnce(cancelSymbol as any)
-  mocks.isCancel.mockImplementation((v: unknown) => v === cancelSymbol)
+  ;(mocks.isCancel as any).mockImplementation((v: unknown) => v === cancelSymbol)
 
   const { runCheck } = await import('../../src/check.ts')
   await runCheck()

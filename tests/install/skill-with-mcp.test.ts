@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / skill bundled with MCP',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should install skill files and MCP config together', async () => {
       await givenSource({
         skills: [
@@ -14,7 +14,7 @@ describeConfai(
         ],
       })
 
-      await when({ skills: ['github-skill'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['github-skill'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

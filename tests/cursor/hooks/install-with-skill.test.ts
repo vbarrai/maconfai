@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / hooks alongside a skill',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('installs both skill files and hooks config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -16,7 +16,7 @@ describeConfai(
         },
       })
 
-      await when({
+      await whenInstall({
         hooks: ['format-on-edit'],
         skills: ['dev-tools'],
         agents: ['cursor'],

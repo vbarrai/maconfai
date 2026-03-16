@@ -3,14 +3,14 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / nothing to do when no resources selected',
-  ({ givenSource, when, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFiles }) => {
     it('should produce no files when skills, mcps, and hooks are all empty', async () => {
       await givenSource({
         skills: [{ name: 'lint' }],
         mcps: { github: { command: 'npx', args: ['-y', '@mcp/github'] } },
       })
 
-      await when({ skills: [], mcps: [], hooks: [], agents: ['claude-code'] })
+      await whenInstall({ skills: [], mcps: [], hooks: [], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

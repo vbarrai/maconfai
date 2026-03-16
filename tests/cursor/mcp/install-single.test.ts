@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install single MCP',
-  ({ givenSource, sourceFiles, when, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
     it('should install a simple mcp server', async () => {
       await givenSource({
         mcps: {
@@ -20,7 +20,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['linear'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['linear'], agents: ['cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

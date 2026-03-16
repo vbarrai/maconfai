@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / env vars kept bare',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('preserves ${VAR} syntax without translation', async () => {
       await givenSource({
         mcps: {
@@ -24,7 +24,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

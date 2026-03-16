@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / url with headers and env translation',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('translates env vars in headers', async () => {
       await givenSource({
         mcps: {
@@ -23,7 +23,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['custom-api'], agents: ['cursor'] })
+      await whenInstall({ mcps: ['custom-api'], agents: ['cursor'] })
 
       expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{

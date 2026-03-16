@@ -3,11 +3,11 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / multiple skills to multiple agents',
-  ({ givenSkill, when, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetFiles }) => {
     it('should install two skills to claude-code and cursor', async () => {
       await givenSkill('lint', 'format')
 
-      await when({ skills: ['lint', 'format'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ skills: ['lint', 'format'], agents: ['claude-code', 'cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

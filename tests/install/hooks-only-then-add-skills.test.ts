@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / hooks first, then add skills on second install',
-  ({ givenSource, when, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFiles }) => {
     it('should keep hooks when adding skills', async () => {
       await givenSource({
         skills: [{ name: 'lint' }],
@@ -19,7 +19,7 @@ describeConfai(
       })
 
       // First install — hooks only, no skills
-      await when({ skills: [], hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ skills: [], hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [
@@ -31,7 +31,7 @@ describeConfai(
       `)
 
       // Second install — add skills + keep hooks
-      await when({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

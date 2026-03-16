@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / lock file tracks installed MCP servers',
-  ({ givenSource, when, targetFile }) => {
+  ({ givenSource, whenInstall, targetFile }) => {
     it('should write MCP entries to ai-lock.json', async () => {
       await givenSource({
         mcps: {
@@ -12,7 +12,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['github', 'sentry'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github', 'sentry'], agents: ['claude-code'] })
 
       const lock = JSON.parse(await targetFile('ai-lock.json'))
       const mcpNames = Object.keys(lock.mcpServers).sort()

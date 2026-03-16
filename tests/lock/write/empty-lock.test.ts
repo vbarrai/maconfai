@@ -5,12 +5,14 @@ import { setupLockTest } from '../lock-test-utils.ts'
 const { thenLockFile, getCwd } = setupLockTest()
 
 it('writes an empty lock file to disk', async () => {
-  await writeLock({ version: 1, skills: {} }, getCwd())
+  await writeLock({ version: 1, skills: {}, mcpServers: {}, hooks: {} }, getCwd())
 
   expect(await thenLockFile()).toMatchInlineSnapshot(`
     "{
       "version": 1,
-      "skills": {}
+      "skills": {},
+      "mcpServers": {},
+      "hooks": {}
     }"
   `)
 })

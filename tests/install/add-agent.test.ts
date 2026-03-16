@@ -1,11 +1,11 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../test-utils.ts'
 
-describeConfai('install / add a new agent', ({ givenSkill, when, targetFiles }) => {
+describeConfai('install / add a new agent', ({ givenSkill, whenInstall, targetFiles }) => {
   it('should add cursor without losing claude-code files', async () => {
     await givenSkill('shared')
 
-    await when({ agents: ['claude-code'] })
+    await whenInstall({ agents: ['claude-code'] })
 
     expect(await targetFiles()).toMatchInlineSnapshot(`
       [
@@ -15,7 +15,7 @@ describeConfai('install / add a new agent', ({ givenSkill, when, targetFiles }) 
       ]
     `)
 
-    await when({ agents: ['claude-code', 'cursor'] })
+    await whenInstall({ agents: ['claude-code', 'cursor'] })
 
     expect(await targetFiles()).toMatchInlineSnapshot(`
       [

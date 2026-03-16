@@ -25,6 +25,11 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+export interface SkillFixture {
+  name: string
+  mcpServers?: Record<string, McpServerConfig>
+}
+
 export function setupScenario() {
   let tempDir: string
   let sourceDir: string
@@ -48,11 +53,6 @@ export function setupScenario() {
       await mkdir(join(fullPath, '..'), { recursive: true })
       await writeFile(fullPath, content)
     }
-  }
-
-  interface SkillFixture {
-    name: string
-    mcpServers?: Record<string, McpServerConfig>
   }
 
   async function givenSource(opts: {
@@ -109,7 +109,7 @@ export function setupScenario() {
     await givenSource({ skills: [{ name, mcpServers }] })
   }
 
-  async function when(opts: {
+  async function whenInstall(opts: {
     skills?: string[]
     agents?: AgentType[]
     mcps?: string[]
@@ -188,7 +188,7 @@ export function setupScenario() {
     givenSkill,
     givenSkillWithMcp,
     sourceFiles,
-    when,
+    whenInstall,
     then,
     thenExists,
     targetFile,

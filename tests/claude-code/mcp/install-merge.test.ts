@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / merge MCP servers across installs',
-  ({ givenSource, sourceFiles, when, targetFile }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
     it('second install adds new MCPs without removing existing ones', async () => {
       await givenSource({
         mcps: {
@@ -20,7 +20,7 @@ describeConfai(
       ]
     `)
 
-      await when({ mcps: ['github'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
       await givenSource({
         mcps: {
@@ -31,7 +31,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['linear'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['linear'], agents: ['claude-code'] })
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

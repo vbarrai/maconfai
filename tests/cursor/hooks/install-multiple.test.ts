@@ -1,7 +1,7 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai('cursor / install multiple hooks', ({ givenSource, when, targetFile }) => {
+describeConfai('cursor / install multiple hooks', ({ givenSource, whenInstall, targetFile }) => {
   it('should install multiple hook groups into hooks.json', async () => {
     await givenSource({
       hooks: {
@@ -18,7 +18,7 @@ describeConfai('cursor / install multiple hooks', ({ givenSource, when, targetFi
       },
     })
 
-    await when({ hooks: ['block-rm', 'format-on-edit'], agents: ['cursor'] })
+    await whenInstall({ hooks: ['block-rm', 'format-on-edit'], agents: ['cursor'] })
 
     expect(await targetFile('.cursor/hooks.json')).toMatchInlineSnapshot(`
       "{

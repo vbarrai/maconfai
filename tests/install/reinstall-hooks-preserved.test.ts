@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / reinstall preserves hooks from previous install',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should keep hooks on second install', async () => {
       await givenSource({
         skills: [{ name: 'lint' }],
@@ -18,7 +18,7 @@ describeConfai(
         },
       })
 
-      await when({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [
@@ -30,7 +30,7 @@ describeConfai(
       `)
 
       // Second install — same source, hooks should still be there
-      await when({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['lint'], hooks: ['block-rm'], agents: ['claude-code'] })
 
       expect(await targetFile('.claude/settings.json')).toMatchInlineSnapshot(`
         "{

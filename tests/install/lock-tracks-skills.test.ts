@@ -3,11 +3,11 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / lock file tracks installed skills',
-  ({ givenSkill, when, targetFile }) => {
+  ({ givenSkill, whenInstall, targetFile }) => {
     it('should write skill entries to ai-lock.json', async () => {
       await givenSkill('alpha', 'beta')
 
-      await when({ skills: ['alpha', 'beta'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['alpha', 'beta'], agents: ['claude-code'] })
 
       const lock = JSON.parse(await targetFile('ai-lock.json'))
       const skillNames = Object.keys(lock.skills).sort()

@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / hooks installed to multiple agents',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should install agent-specific hooks to each agent', async () => {
       await givenSource({
         hooks: {
@@ -22,7 +22,7 @@ describeConfai(
         },
       })
 
-      await when({ hooks: ['block-rm'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ hooks: ['block-rm'], agents: ['claude-code', 'cursor'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
         [

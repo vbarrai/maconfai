@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / standalone MCP without skills',
-  ({ givenSource, when, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
     it('should install only MCP config, no skill files', async () => {
       await givenSource({
         mcps: {
@@ -14,7 +14,7 @@ describeConfai(
         },
       })
 
-      await when({ mcps: ['linear'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['linear'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

@@ -10,7 +10,7 @@ describe('install', () => {
     cleanup,
     givenSkill,
     givenSkillWithMcp,
-    when,
+    whenInstall,
     then,
     thenExists,
     thenMcpConfig,
@@ -24,7 +24,7 @@ describe('install', () => {
     it('installs a skill to claude', async () => {
       await givenSkill('my-skill')
 
-      await when({ skills: ['my-skill'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['my-skill'], agents: ['claude-code'] })
 
       await then({ './.claude/skills/my-skill/SKILL.md': skillFile('my-skill') })
     })
@@ -32,7 +32,7 @@ describe('install', () => {
     it('installs multiple skills to multiple agents', async () => {
       await givenSkill('skill-a', 'skill-b')
 
-      await when({ skills: ['skill-a', 'skill-b'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ skills: ['skill-a', 'skill-b'], agents: ['claude-code', 'cursor'] })
 
       await then({
         './.claude/skills/skill-a/SKILL.md': skillFile('skill-a'),
@@ -45,7 +45,7 @@ describe('install', () => {
     it('installs a skill to all agents', async () => {
       await givenSkill('shared')
 
-      await when({ skills: ['shared'], agents: ['claude-code', 'cursor', 'codex'] })
+      await whenInstall({ skills: ['shared'], agents: ['claude-code', 'cursor', 'codex'] })
 
       await then({
         './.claude/skills/shared/SKILL.md': skillFile('shared'),
@@ -59,7 +59,7 @@ describe('install', () => {
     it('only installs specified skills', async () => {
       await givenSkill('wanted', 'unwanted')
 
-      await when({ skills: ['wanted'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['wanted'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/wanted/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/unwanted/SKILL.md')).toBe(false)
@@ -68,7 +68,7 @@ describe('install', () => {
     it('auto-selects all skills when no --skills filter', async () => {
       await givenSkill('alpha', 'beta')
 
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
 
       const alphaContent = await readFile(
         join(getTargetDir(), '.claude/skills/alpha/SKILL.md'),
@@ -87,12 +87,12 @@ describe('install', () => {
       await givenSkill('keep', 'drop')
 
       // First install both
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
 
       // Re-install with only 'keep' — 'drop' should be removed
-      await when({ skills: ['keep'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
@@ -101,12 +101,12 @@ describe('install', () => {
     it('removes all skills when --skills lists none of the installed', async () => {
       await givenSkill('old-a', 'old-b', 'new-c')
 
-      await when({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(true)
 
       // Re-install with only 'new-c' — old skills should be removed
-      await when({ skills: ['new-c'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['new-c'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/new-c/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(false)
@@ -116,12 +116,12 @@ describe('install', () => {
     it('removes skills across all agents when --skills changes', async () => {
       await givenSkill('stays', 'goes')
 
-      await when({ agents: ['claude-code', 'cursor'] })
+      await whenInstall({ agents: ['claude-code', 'cursor'] })
       expect(await thenExists('.claude/skills/goes/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/goes/SKILL.md')).toBe(true)
 
       // Re-install with only 'stays'
-      await when({ skills: ['stays'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ skills: ['stays'], agents: ['claude-code', 'cursor'] })
 
       expect(await thenExists('.claude/skills/stays/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/stays/SKILL.md')).toBe(true)
@@ -134,7 +134,7 @@ describe('install', () => {
     it('only installs to specified agents', async () => {
       await givenSkill('targeted')
 
-      await when({ agents: ['cursor'] })
+      await whenInstall({ agents: ['cursor'] })
 
       expect(await thenExists('.cursor/skills/targeted/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/targeted/SKILL.md')).toBe(false)
@@ -144,7 +144,7 @@ describe('install', () => {
     it('auto-selects all agents when no --agents filter', async () => {
       await givenSkill('everywhere')
 
-      await when({})
+      await whenInstall({})
 
       expect(await thenExists('.claude/skills/everywhere/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/everywhere/SKILL.md')).toBe(true)
@@ -155,12 +155,12 @@ describe('install', () => {
       await givenSkill('my-skill')
 
       // First install to claude-code only
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/my-skill/SKILL.md')).toBe(false)
 
       // Re-install to cursor only — claude-code keeps its skill
-      await when({ agents: ['cursor'] })
+      await whenInstall({ agents: ['cursor'] })
       expect(await thenExists('.cursor/skills/my-skill/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true)
     })
@@ -169,13 +169,13 @@ describe('install', () => {
       await givenSkill('keep', 'drop')
 
       // Install both skills to both agents
-      await when({ agents: ['claude-code', 'cursor'] })
+      await whenInstall({ agents: ['claude-code', 'cursor'] })
       expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(true)
 
       // Re-install with only 'keep' and only claude-code
       // 'drop' should be removed from ALL agents (not just claude-code)
-      await when({ skills: ['keep'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
@@ -186,11 +186,11 @@ describe('install', () => {
       await givenSkill('shared')
 
       // Install to claude-code
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/shared/SKILL.md')).toBe(true)
 
       // Now add cursor — both should have the skill
-      await when({ agents: ['claude-code', 'cursor'] })
+      await whenInstall({ agents: ['claude-code', 'cursor'] })
       expect(await thenExists('.claude/skills/shared/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/shared/SKILL.md')).toBe(true)
     })
@@ -198,12 +198,12 @@ describe('install', () => {
     it('switches from one agent to another keeping skills intact', async () => {
       await givenSkill('portable')
 
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/portable/SKILL.md')).toBe(true)
       expect(await thenExists('.codex/skills/portable/SKILL.md')).toBe(false)
 
       // Switch to codex only — claude-code keeps its existing skill
-      await when({ agents: ['codex'] })
+      await whenInstall({ agents: ['codex'] })
       expect(await thenExists('.codex/skills/portable/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/portable/SKILL.md')).toBe(true)
     })
@@ -213,7 +213,7 @@ describe('install', () => {
     it('--yes long form works the same as -y', async () => {
       await givenSkill('long-form')
 
-      await when({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
 
       const content = await readFile(
         join(getTargetDir(), '.claude/skills/long-form/SKILL.md'),
@@ -225,7 +225,7 @@ describe('install', () => {
     it('skips confirmation and installs without interaction', async () => {
       await givenSkill('no-confirm')
 
-      const { stdout } = await when({ agents: ['claude-code'] })
+      const { stdout } = await whenInstall({ agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/no-confirm/SKILL.md')).toBe(true)
       expect(stdout).toContain('Done')
@@ -234,7 +234,7 @@ describe('install', () => {
     it('installs all skills to all agents when no filters given', async () => {
       await givenSkill('skill-x', 'skill-y')
 
-      await when({})
+      await whenInstall({})
 
       for (const agent of ['.claude', '.cursor', '.codex']) {
         for (const skill of ['skill-x', 'skill-y']) {
@@ -247,7 +247,7 @@ describe('install', () => {
   describe('uninstall skill', () => {
     it('removes a skill from an agent', async () => {
       await givenSkill('to-remove')
-      await when({ skills: ['to-remove'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['to-remove'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/to-remove/SKILL.md')).toBe(true)
 
@@ -258,7 +258,7 @@ describe('install', () => {
 
     it('removes the canonical directory', async () => {
       await givenSkill('canonical-check')
-      await when({ skills: ['canonical-check'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['canonical-check'], agents: ['claude-code'] })
 
       expect(await thenExists('.agents/skills/canonical-check/SKILL.md')).toBe(true)
 
@@ -269,7 +269,7 @@ describe('install', () => {
 
     it('removes from one agent and also removes the canonical dir', async () => {
       await givenSkill('shared')
-      await when({ skills: ['shared'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ skills: ['shared'], agents: ['claude-code', 'cursor'] })
 
       await uninstallSkill('shared', 'claude-code', { global: false, cwd: getTargetDir() })
 
@@ -289,7 +289,7 @@ describe('install', () => {
 
     it('skill no longer appears in listInstalledSkills after uninstall', async () => {
       await givenSkill('listed')
-      await when({ skills: ['listed'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['listed'], agents: ['claude-code'] })
 
       const before = await listInstalledSkills({ global: false, cwd: getTargetDir() })
       expect(before.find((s) => s.name === 'listed')).toBeDefined()
@@ -304,7 +304,7 @@ describe('install', () => {
   describe('uninstall agent', () => {
     it('removes a skill from claude-code only', async () => {
       await givenSkill('per-agent')
-      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
+      await whenInstall({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
 
       await uninstallSkill('per-agent', 'claude-code', { global: false, cwd: getTargetDir() })
 
@@ -313,7 +313,7 @@ describe('install', () => {
 
     it('removes a skill from cursor only', async () => {
       await givenSkill('per-agent')
-      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
+      await whenInstall({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
 
       await uninstallSkill('per-agent', 'cursor', { global: false, cwd: getTargetDir() })
 
@@ -322,7 +322,7 @@ describe('install', () => {
 
     it('removes a skill from codex only', async () => {
       await givenSkill('per-agent')
-      await when({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
+      await whenInstall({ skills: ['per-agent'], agents: ['claude-code', 'cursor', 'codex'] })
 
       await uninstallSkill('per-agent', 'codex', { global: false, cwd: getTargetDir() })
 
@@ -331,7 +331,7 @@ describe('install', () => {
 
     it('removes all skills from a single agent', async () => {
       await givenSkill('skill-a', 'skill-b', 'skill-c')
-      await when({ agents: ['claude-code', 'cursor'] })
+      await whenInstall({ agents: ['claude-code', 'cursor'] })
 
       const opts = { global: false, cwd: getTargetDir() }
       await uninstallSkill('skill-a', 'claude-code', opts)
@@ -356,7 +356,7 @@ describe('install', () => {
         github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
       })
 
-      await when({ skills: ['mcp-skill'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['mcp-skill'], agents: ['claude-code'] })
 
       const config = await thenMcpConfig('.mcp.json')
       expect(config.mcpServers.github.command).toBe('npx')
@@ -368,7 +368,7 @@ describe('install', () => {
         github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
       })
 
-      await when({ skills: ['mcp-skill'], agents: ['cursor'] })
+      await whenInstall({ skills: ['mcp-skill'], agents: ['cursor'] })
 
       const config = await thenMcpConfig('.cursor/mcp.json')
       expect(config.mcpServers.github.env.TOKEN).toBe('${env:TOKEN}')
@@ -379,7 +379,7 @@ describe('install', () => {
         postgres: { command: 'npx', args: ['-y', '@mcp/pg'], env: { DB: '${DB_URL}' } },
       })
 
-      await when({ skills: ['dual-mcp'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({ skills: ['dual-mcp'], agents: ['claude-code', 'cursor'] })
 
       const claudeConfig = await thenMcpConfig('.mcp.json')
       expect(claudeConfig.mcpServers.postgres.env.DB).toBe('${DB_URL}')
@@ -394,7 +394,7 @@ describe('install', () => {
         postgres: { command: 'npx', args: ['-y', '@mcp/pg'] },
       })
 
-      await when({ skills: ['multi-mcp'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['multi-mcp'], agents: ['claude-code'] })
 
       const config = await thenMcpConfig('.mcp.json')
       expect(config.mcpServers.github).toBeDefined()
@@ -407,7 +407,7 @@ describe('install', () => {
         postgres: { command: 'npx', args: ['-y', '@mcp/pg'] },
       })
 
-      await when({ skills: ['filter-mcp'], agents: ['claude-code'], mcps: ['github'] })
+      await whenInstall({ skills: ['filter-mcp'], agents: ['claude-code'], mcps: ['github'] })
 
       const config = await thenMcpConfig('.mcp.json')
       expect(config.mcpServers.github).toBeDefined()
@@ -419,7 +419,7 @@ describe('install', () => {
         github: { command: 'npx', args: ['-y', '@mcp/github'] },
       })
 
-      await when({ skills: ['codex-mcp'], agents: ['codex'] })
+      await whenInstall({ skills: ['codex-mcp'], agents: ['codex'] })
 
       expect(await thenExists('.codex/skills/codex-mcp/SKILL.md')).toBe(true)
       expect(await thenExists('.mcp.json')).toBe(false)
@@ -428,7 +428,7 @@ describe('install', () => {
     it('skill without mcp.json installs normally without MCP config', async () => {
       await givenSkill('no-mcp')
 
-      await when({ skills: ['no-mcp'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['no-mcp'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/no-mcp/SKILL.md')).toBe(true)
       expect(await thenExists('.mcp.json')).toBe(false)

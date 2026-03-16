@@ -3,11 +3,11 @@ import { describeConfai, skillFile } from '../test-utils.ts'
 
 describeConfai(
   'install / single skill to single agent',
-  ({ givenSkill, when, targetFile, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetFile, targetFiles }) => {
     it('should install one skill to claude-code', async () => {
       await givenSkill('my-skill')
 
-      await when({ skills: ['my-skill'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['my-skill'], agents: ['claude-code'] })
 
       expect(await targetFiles()).toMatchInlineSnapshot(`
       [

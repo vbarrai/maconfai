@@ -1,9 +1,25 @@
-import { vi } from 'vitest'
-import type { SkillLockEntry, SkillLockFile } from '../../src/lock.ts'
+import { type Mock, vi } from 'vitest'
+import type { SkillLockEntry } from '../../src/lock.ts'
 
 export type LogCall = { method: string; args: string[] }
 
-export function setupCheckMocks() {
+export function setupCheckMocks(): {
+  mocks: {
+    intro: Mock
+    outro: Mock
+    spinner: () => { start: Mock; stop: Mock }
+    log: {
+      info: Mock
+      success: Mock
+      message: Mock
+      warn: Mock
+      error: Mock
+    }
+    confirm: Mock
+    isCancel: Mock
+  }
+  getLogs: () => string
+} {
   const logs: LogCall[] = []
 
   const mockLog = (method: string) =>
@@ -33,7 +49,10 @@ export function setupCheckMocks() {
   return { mocks, getLogs }
 }
 
-export function lockWith(skills: Record<string, Partial<SkillLockEntry>>): SkillLockFile {
+export function lockWith(skills: Record<string, Partial<SkillLockEntry>>): {
+  version: number
+  skills: Record<string, SkillLockEntry>
+} {
   return { version: 1, skills: skills as Record<string, SkillLockEntry> }
 }
 

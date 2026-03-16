@@ -24,7 +24,7 @@ vi.mock('../../src/lock.ts', () => ({
   fetchSkillFolderHash: async () => 'new-hash',
 }))
 
-const mockSpawnSync = vi.fn(() => ({ status: 0 }))
+const mockSpawnSync = vi.fn((..._args: any[]) => ({ status: 0 }))
 vi.mock('child_process', () => ({
   spawnSync: (...args: any[]) => mockSpawnSync(...args),
 }))

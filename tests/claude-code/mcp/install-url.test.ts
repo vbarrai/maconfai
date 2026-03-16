@@ -1,25 +1,27 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai('claude-code / url-based MCP', ({ givenSource, sourceFiles, when, targetFile }) => {
-  it('installs MCP with url instead of command', async () => {
-    await givenSource({
-      mcps: {
-        linear: {
-          url: 'https://mcp.linear.app/sse',
+describeConfai(
+  'claude-code / url-based MCP',
+  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
+    it('installs MCP with url instead of command', async () => {
+      await givenSource({
+        mcps: {
+          linear: {
+            url: 'https://mcp.linear.app/sse',
+          },
         },
-      },
-    })
+      })
 
-    expect(await sourceFiles()).toMatchInlineSnapshot(`
+      expect(await sourceFiles()).toMatchInlineSnapshot(`
       [
         "mcp.json",
       ]
     `)
 
-    await when({ mcps: ['linear'], agents: ['claude-code'] })
+      await whenInstall({ mcps: ['linear'], agents: ['claude-code'] })
 
-    expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
+      expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{
         "mcpServers": {
           "linear": {
@@ -29,5 +31,6 @@ describeConfai('claude-code / url-based MCP', ({ givenSource, sourceFiles, when,
       }
       "
     `)
-  })
-})
+    })
+  },
+)
