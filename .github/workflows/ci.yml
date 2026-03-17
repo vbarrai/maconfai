@@ -66,7 +66,29 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - name: Build and extract size
+        id: build
+        run: |
+          BUILD_OUTPUT=$(pnpm build 2>&1)
+          echo "$BUILD_OUTPUT"
+          SIZE=$(echo "$BUILD_OUTPUT" | grep -oP '[\d.]+ kB min\+gzipped' | head -1)
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+      - name: Update build size badge in README
+        if: github.ref == 'refs/heads/main'
+        env:
+          SIZE: ${{ steps.build.outputs.size }}
+        run: |
+          ENCODED_SIZE=$(echo "$SIZE" | sed 's/ /%20/g; s/+/%2B/g')
+          sed -i "s|img.shields.io/badge/build%20size-.*-blue|img.shields.io/badge/build%20size-${ENCODED_SIZE}-blue|" README.md
+          if git diff --quiet README.md; then
+            echo "Badge is already up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "Update build size badge to ${SIZE}"
+            git push
+          fi
 
   version-check:
     if: github.ref == 'refs/heads/main'
