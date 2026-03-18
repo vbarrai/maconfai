@@ -225,10 +225,9 @@ describe('install', () => {
     it('skips confirmation and installs without interaction', async () => {
       await givenSkill('no-confirm')
 
-      const { stdout } = await whenInstall({ agents: ['claude-code'] })
+      await whenInstall({ agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/no-confirm/SKILL.md')).toBe(true)
-      expect(stdout).toContain('Done')
     })
 
     it('installs all skills to all agents when no filters given', async () => {

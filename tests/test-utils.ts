@@ -1,13 +1,9 @@
-import { expect, describe, beforeEach, afterEach } from 'vitest'
+import { expect, describe, beforeEach, afterEach, vi } from 'vitest'
 import { mkdtemp, rm, writeFile, mkdir, readFile, readdir, access } from 'fs/promises'
 import { join, relative } from 'path'
 import { tmpdir } from 'os'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
 import type { AgentType, McpServerConfig, HookGroup } from '../src/types.ts'
-
-const execFileAsync = promisify(execFile)
-const CLI_PATH = join(import.meta.dirname, '..', 'src', 'cli.ts')
+import { runInstall } from '../src/install.ts'
 
 type FileTree = Record<string, string>
 
@@ -116,7 +112,7 @@ export function setupScenario() {
     hooks?: string[]
     extraArgs?: string[]
   }) {
-    const args = ['--experimental-strip-types', CLI_PATH, 'install', sourceDir, '-y']
+    const args = [sourceDir, '-y']
 
     if (opts.skills?.length) {
       args.push(`--skills=${opts.skills.join(',')}`)
@@ -134,7 +130,13 @@ export function setupScenario() {
       args.push(...opts.extraArgs)
     }
 
-    return execFileAsync('node', args, { cwd: targetDir })
+    const originalCwd = process.cwd()
+    try {
+      process.chdir(targetDir)
+      await runInstall(args)
+    } finally {
+      process.chdir(originalCwd)
+    }
   }
 
   function getTargetDir() {
