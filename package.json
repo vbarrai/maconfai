@@ -14,6 +14,7 @@
     "build": "obuild",
     "dev": "node --experimental-strip-types src/cli.ts",
     "test": "vitest",
+    "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "knip": "knip",
     "lint": "oxlint src/",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@clack/prompts": "^0.11.0",
     "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "gray-matter": "^4.0.3",
     "knip": "^5.86.0",
     "obuild": "^0.4.22",

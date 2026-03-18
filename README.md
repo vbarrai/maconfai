@@ -1,6 +1,7 @@
 # maconfai
 
 ![Build Size](https://img.shields.io/badge/build%20size-90.8%20kB%20min%2Bgzip-blue)
+![Coverage](https://img.shields.io/badge/coverage-41.94%25-yellow)
 
 Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), and [Codex](https://openai.com/index/introducing-codex/).
 
