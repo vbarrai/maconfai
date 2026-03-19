@@ -2,7 +2,7 @@ import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { existsSync } from 'fs'
 import { parseSource } from './source-parser.ts'
-import { cloneRepo, cleanupTempDir } from './git.ts'
+import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
 import { discoverSkills, discoverMcpServers, discoverHooks } from './skills.ts'
 import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
 import { agents, detectInstalledAgents } from './agents.ts'
@@ -442,14 +442,19 @@ export async function runInstall(args: string[]): Promise<void> {
 
         if (skillSuccess) {
           const mcpNames = skillMcpServers ? Object.keys(skillMcpServers) : undefined
+          const skillRelPath = parsed.subpath
+            ? `${parsed.subpath}/skills/${skill.name}`
+            : `skills/${skill.name}`
+          let skillFolderHash = ''
+          try {
+            skillFolderHash = await getTreeHash(skillsDir, skillRelPath)
+          } catch {}
           await addToLock(skill.name, {
             source: ownerRepo || source,
             sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
-            skillPath: parsed.subpath
-              ? `${parsed.subpath}/skills/${skill.name}`
-              : `skills/${skill.name}`,
+            skillPath: skillRelPath,
             ref: parsed.ref,
-            skillFolderHash: '',
+            skillFolderHash,
             ...(mcpNames && mcpNames.length > 0 ? { mcpServers: mcpNames } : {}),
           })
         }
