@@ -44,6 +44,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `src/check.ts` — Update checking
 - `src/mcp.ts` — MCP server config install/uninstall and env var translation
 - `src/hooks.ts` — Hooks config install/uninstall (agent-specific event handlers)
+- `src/create.ts` — Interactive create command (skill, MCP server, or hook scaffolding)
 - `tests/test-utils.ts` — Test helpers (`setupScenario`, `skillFile`)
 - `tests/install.test.ts` — E2E tests for install/uninstall
 - `tests/installer.test.ts` — Unit tests for installer
@@ -59,6 +60,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor)
 - **Hooks**: Defined in `hooks/<name>/hooks.json` directories or root `hooks.json`, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor)
 - **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks)
+- **Create command**: `maconfai create` — interactive wizard to scaffold a skill, MCP server, or hook config
 
 ## Testing conventions
 
@@ -83,6 +85,13 @@ tests/
   mcp.test.ts                            # Unit tests for MCP module
   source-parser.test.ts                  # Unit tests for source parser
   sanity.test.ts                         # Sanity checks
+  create/
+    create-skill.test.ts                 # Create a skill with SKILL.md
+    create-mcp-stdio.test.ts             # Create a stdio MCP server in root mcp.json
+    create-mcp-url.test.ts               # Create a URL MCP server in dedicated dir
+    create-mcp-env.test.ts               # Create an MCP server with env vars
+    create-hook.test.ts                  # Create a hook in dedicated directory
+    create-hook-root.test.ts             # Create a multi-agent hook in root hooks.json
   claude-code/
     mcp/
       install-single.test.ts             # Single MCP server
