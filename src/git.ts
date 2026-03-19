@@ -1,4 +1,4 @@
-import { simpleGit } from 'simple-git'
+import { execFile } from 'child_process'
 import { join, normalize, resolve, sep } from 'path'
 import { mkdtemp, rm } from 'fs/promises'
 import { tmpdir } from 'os'
@@ -22,15 +22,24 @@ function injectToken(url: string): string {
   return url
 }
 
+function gitExec(args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = execFile('git', args, { timeout: CLONE_TIMEOUT_MS }, (error) => {
+      if (error) reject(error)
+      else resolve()
+    })
+    child.unref?.()
+  })
+}
+
 export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'maconfai-'))
-  const git = simpleGit({
-    timeout: { block: CLONE_TIMEOUT_MS },
-  })
 
   try {
-    const opts = ref ? ['--depth', '1', '--branch', ref] : ['--depth', '1']
-    await git.clone(injectToken(url), tempDir, opts)
+    const args = ['clone', '--depth', '1']
+    if (ref) args.push('--branch', ref)
+    args.push(injectToken(url), tempDir)
+    await gitExec(args)
     return tempDir
   } catch (error) {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {})
@@ -39,11 +48,14 @@ export async function cloneRepo(url: string, ref?: string): Promise<string> {
   }
 }
 
-export async function getTreeHash(repoDir: string, folderPath: string): Promise<string> {
-  const git = simpleGit(repoDir)
+export function getTreeHash(repoDir: string, folderPath: string): Promise<string> {
   const treePath = folderPath.replace(/\\/g, '/').replace(/\/$/, '')
-  const result = await git.revparse([`HEAD:${treePath}`])
-  return result.trim()
+  return new Promise((resolve, reject) => {
+    execFile('git', ['rev-parse', `HEAD:${treePath}`], { cwd: repoDir }, (error, stdout) => {
+      if (error) reject(error)
+      else resolve(stdout.trim())
+    })
+  })
 }
 
 export async function cleanupTempDir(dir: string): Promise<void> {

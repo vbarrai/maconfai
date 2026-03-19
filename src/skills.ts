@@ -1,7 +1,20 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, dirname } from 'path'
-import matter from 'gray-matter'
 import type { Skill, McpServerConfig, HookGroup } from './types.ts'
+
+function parseFrontmatter(content: string): { data: Record<string, string> } {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (!match) return { data: {} }
+  const data: Record<string, string> = {}
+  for (const line of match[1].split('\n')) {
+    const sep = line.indexOf(':')
+    if (sep === -1) continue
+    const key = line.slice(0, sep).trim()
+    const val = line.slice(sep + 1).trim()
+    if (key) data[key] = val.replace(/^['"]|['"]$/g, '')
+  }
+  return { data }
+}
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '__pycache__'])
 
@@ -45,7 +58,7 @@ async function parseHooksJson(dir: string): Promise<Record<string, HookGroup> | 
 export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
   try {
     const content = await readFile(skillMdPath, 'utf-8')
-    const { data } = matter(content)
+    const { data } = parseFrontmatter(content)
 
     if (typeof data.name !== 'string' || typeof data.description !== 'string') {
       return null

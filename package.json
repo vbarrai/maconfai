@@ -27,13 +27,11 @@
     "@clack/prompts": "^0.11.0",
     "@types/node": "^22.10.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "gray-matter": "^4.0.3",
     "knip": "^5.86.0",
     "obuild": "^0.4.22",
     "oxlint": "^1.55.0",
     "picocolors": "^1.1.1",
     "prettier": "^3.8.1",
-    "simple-git": "^3.27.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },
