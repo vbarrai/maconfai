@@ -2,6 +2,7 @@
 
 import { runInstall } from './install.ts'
 import { runCheck } from './check.ts'
+import { runCreate } from './create.ts'
 
 const RESET = '\x1b[0m'
 const BOLD = '\x1b[1m'
@@ -14,6 +15,7 @@ ${BOLD}maconfai${RESET} - Minimal skills manager
 ${BOLD}Usage:${RESET}
   maconfai install <source> [options]   Install skills from a GitHub repo
   maconfai install                      Interactive uninstall
+  maconfai create                       Create a skill, MCP server, or hook
   maconfai check                        Check for updates and install them
 
 ${BOLD}Install Options:${RESET}
@@ -59,6 +61,11 @@ async function main(): Promise<void> {
     case 'add':
     case 'a':
       await runInstall(restArgs)
+      break
+
+    case 'create':
+    case 'new':
+      await runCreate()
       break
 
     case 'check':
