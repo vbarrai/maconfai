@@ -210,7 +210,7 @@ export async function listInstalledSkills(
 ): Promise<InstalledSkill[]> {
   const cwd = options.cwd || process.cwd()
   const isGlobal = options.global ?? false
-  const allAgents: AgentType[] = ['claude-code', 'cursor', 'codex']
+  const allAgents: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
   const skillsMap = new Map<string, InstalledSkill>()
 
   // Scan canonical dir + each agent dir
