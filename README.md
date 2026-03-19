@@ -1,7 +1,7 @@
 # maconfai
 
 ![Build Size](https://img.shields.io/badge/build%20size-90.8%20kB%20min%2Bgzip-blue)
-[![codecov](https://codecov.io/gh/vbarrai/maconfai/graph/badge.svg)](https://codecov.io/gh/vbarrai/maconfai)
+![Coverage](https://img.shields.io/badge/coverage-0%25-red)
 
 Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), and [Codex](https://openai.com/index/introducing-codex/).
 

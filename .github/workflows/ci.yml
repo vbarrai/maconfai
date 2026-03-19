@@ -38,13 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pnpm
-      - run: pnpm coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage/cobertura-coverage.xml
-          fail_ci_if_error: false
+      - run: pnpm test -- --run
 
   build:
     runs-on: ubuntu-latest
