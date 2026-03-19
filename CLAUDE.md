@@ -2,7 +2,7 @@
 
 ## Project
 
-maconfai — Universal configuration installer for AI coding agents (Claude Code, Cursor, Codex, Gemini CLI, Amp Code).
+maconfai — Universal configuration installer for AI coding agents (Claude Code, Cursor, Codex, Gemini CLI, Amp Code, Open Code).
 CLI tool to install, update, and uninstall any type of agent configuration from GitHub repos or local directories, using a single source of truth.
 
 ## Stack
@@ -52,11 +52,11 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 
 ## Key concepts
 
-- **Agents**: `claude-code`, `cursor`, `codex`, `gemini-cli`, `amp-code` (type `AgentType`)
+- **Agents**: `claude-code`, `cursor`, `codex`, `gemini-cli`, `amp-code`, `open-code` (type `AgentType`)
 - **Skills**: Identified by a `SKILL.md` file inside a `skills/` directory
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
-- **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor)
+- **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor, `opencode.json` for Open Code)
 - **Hooks**: Defined in `hooks/<name>/hooks.json` directories or root `hooks.json`, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor)
 - **CLI flags**: `-y`/`--yes` (skip prompts), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks)
 
@@ -120,6 +120,14 @@ tests/
       install-from-dir.test.ts           # Hook from hooks/<name>/hooks.json
       install-merge.test.ts              # Sequential installs merge hooks
       install-skip-duplicate.test.ts     # Duplicate handlers not added twice
+  open-code/
+    mcp/
+      install-single.test.ts             # Single MCP with opencode.json format
+      install-env.test.ts                # ${VAR} kept bare in opencode.json
+      install-url.test.ts                # URL-based MCP (remote type)
+      install-with-skill.test.ts         # MCP alongside a skill
+      install-merge.test.ts              # Sequential installs merge MCPs
+      install-skip-existing.test.ts      # Existing MCP name preserved
 ```
 
 ### Test anatomy
@@ -167,16 +175,18 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 | **Codex**       | Supported     | Not supported | Not supported | Not supported | —               |
 | **Gemini CLI**  | Not supported | —             | Not supported | Not supported | —               |
 | **Amp Code**    | Not supported | —             | Not supported | Not supported | —               |
+| **Open Code**   | Supported     | Not supported | Supported     | Not supported | —               |
 
 ### Agent skills directory mapping
 
-| Agent       | Project skills dir       | User skills dir                   | Canonical dir            |
-| :---------- | :----------------------- | :-------------------------------- | :----------------------- |
-| Claude Code | `.claude/skills/<name>/` | `~/.claude/skills/<name>/`        | `.agents/skills/<name>/` |
-| Cursor      | `.cursor/skills/<name>/` | `~/.cursor/skills/<name>/`        | `.agents/skills/<name>/` |
-| Codex       | `.agents/skills/<name>/` | `~/.codex/skills/<name>/`         | `.agents/skills/<name>/` |
-| Gemini CLI  | `.gemini/skills/<name>/` | `~/.gemini/skills/<name>/`        | `.agents/skills/<name>/` |
-| Amp Code    | `.agents/skills/<name>/` | `~/.config/agents/skills/<name>/` | `.agents/skills/<name>/` |
+| Agent       | Project skills dir         | User skills dir                     | Canonical dir            |
+| :---------- | :------------------------- | :---------------------------------- | :----------------------- |
+| Claude Code | `.claude/skills/<name>/`   | `~/.claude/skills/<name>/`          | `.agents/skills/<name>/` |
+| Cursor      | `.cursor/skills/<name>/`   | `~/.cursor/skills/<name>/`          | `.agents/skills/<name>/` |
+| Codex       | `.agents/skills/<name>/`   | `~/.codex/skills/<name>/`           | `.agents/skills/<name>/` |
+| Gemini CLI  | `.gemini/skills/<name>/`   | `~/.gemini/skills/<name>/`          | `.agents/skills/<name>/` |
+| Amp Code    | `.agents/skills/<name>/`   | `~/.config/agents/skills/<name>/`   | `.agents/skills/<name>/` |
+| Open Code   | `.opencode/skills/<name>/` | `~/.config/opencode/skills/<name>/` | `.agents/skills/<name>/` |
 
 ### Agent instruction files
 
@@ -187,6 +197,7 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 | Codex       | `AGENTS.md` (+ `AGENTS.override.md`) | `config.toml`   | TOML          |
 | Gemini CLI  | `GEMINI.md` (configurable name)      | `settings.json` | JSON          |
 | Amp Code    | `AGENTS.md` (fallback `CLAUDE.md`)   | `settings.json` | JSON          |
+| Open Code   | `AGENTS.md` (fallback `CLAUDE.md`)   | `opencode.json` | JSON          |
 
 ### SKILL.md frontmatter (universal)
 
@@ -204,6 +215,7 @@ Agent-specific extras:
 - **Codex**: `agents/openai.yaml` (interface, policy.allow_implicit_invocation, dependencies.tools)
 - **Gemini CLI**: only `name` + `description` recognized; runtime control via `/skills enable|disable` (no agents/google.yaml)
 - **Amp Code**: only `name` + `description` recognized (no invocation control)
+- **Open Code**: frontmatter supports `name`, `description`, `license`, `allowed-tools`, `compatibility`, `metadata`
 
 ## Code style
 

@@ -18,13 +18,15 @@ import { installMcpServers, listInstalledMcpServerNames } from './mcp.ts'
 import { installHooks } from './hooks.ts'
 import type { Skill, AgentType, McpServerConfig, HookGroup } from './types.ts'
 
-const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex']
+const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
 
 const AGENT_ALIASES: Record<string, AgentType> = {
   'claude-code': 'claude-code',
   claude: 'claude-code',
   cursor: 'cursor',
   codex: 'codex',
+  'open-code': 'open-code',
+  opencode: 'open-code',
 }
 
 function parseListArg(args: string[], name: string): string[] | undefined {

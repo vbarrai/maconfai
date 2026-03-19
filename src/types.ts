@@ -1,4 +1,4 @@
-export type AgentType = 'claude-code' | 'cursor' | 'codex'
+export type AgentType = 'claude-code' | 'cursor' | 'codex' | 'open-code'
 
 export type McpEnvSyntax = 'bare' | 'env-prefix'
 
@@ -33,6 +33,7 @@ export interface AgentConfig {
   globalSkillsDir: string
   mcpConfigPath?: string
   mcpEnvSyntax?: McpEnvSyntax
+  mcpConfigFormat?: 'standard' | 'opencode'
   hooksConfigPath?: string
   hooksConfigFormat?: 'settings' | 'dedicated'
 }

@@ -34,6 +34,15 @@ export const agents: Record<AgentType, AgentConfig> = {
     skillsDir: '.codex/skills',
     globalSkillsDir: join(codexHome, 'skills'),
   },
+  'open-code': {
+    name: 'open-code',
+    displayName: 'Open Code',
+    skillsDir: '.opencode/skills',
+    globalSkillsDir: join(home, '.config/opencode/skills'),
+    mcpConfigPath: 'opencode.json',
+    mcpEnvSyntax: 'bare',
+    mcpConfigFormat: 'opencode',
+  },
 }
 
 export function detectInstalledAgents(): AgentType[] {
@@ -41,5 +50,6 @@ export function detectInstalledAgents(): AgentType[] {
   if (existsSync(claudeHome)) result.push('claude-code')
   if (existsSync(join(home, '.cursor'))) result.push('cursor')
   if (existsSync(codexHome) || existsSync('/etc/codex')) result.push('codex')
+  if (existsSync(join(home, '.config/opencode'))) result.push('open-code')
   return result
 }
