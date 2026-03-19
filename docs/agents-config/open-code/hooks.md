@@ -10,9 +10,9 @@ Open Code uses a plugin system instead of declarative hook configuration files. 
 
 ## Plugin Locations
 
-| Scope   | Path                                |
-| :------ | :---------------------------------- |
-| Project | `.opencode/plugins/<name>.ts`       |
+| Scope   | Path                                   |
+| :------ | :------------------------------------- |
+| Project | `.opencode/plugins/<name>.ts`          |
 | Global  | `~/.config/opencode/plugins/<name>.ts` |
 
 Plugins can also be loaded from npm packages via the `plugin` option in `opencode.json`.
@@ -34,10 +34,10 @@ Plugins can also be loaded from npm packages via the `plugin` option in `opencod
 
 ## Common Hook Events
 
-| Event                  | Description                         |
-| :--------------------- | :---------------------------------- |
-| `tool.execute.before`  | Intercept tool execution arguments  |
-| `tool.execute.after`   | Access results after execution      |
+| Event                 | Description                        |
+| :-------------------- | :--------------------------------- |
+| `tool.execute.before` | Intercept tool execution arguments |
+| `tool.execute.after`  | Access results after execution     |
 
 ## Why Not Supported by maconfai
 

@@ -37,7 +37,6 @@ function toOpenCodeServer(server: McpServerConfig): OpenCodeMcpServer {
   return result
 }
 
-
 export function translateEnvVar(value: string, syntax: McpEnvSyntax): string {
   if (syntax === 'bare') return value
   // Convert ${VAR} and ${VAR:-default} to ${env:VAR} and ${env:VAR:-default}

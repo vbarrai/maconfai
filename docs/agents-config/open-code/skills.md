@@ -8,22 +8,22 @@
 
 Open Code supports the open Agent Skills standard with progressive disclosure:
 
-| Level          | When Loaded                          | Content                       |
-| :------------- | :----------------------------------- | :---------------------------- |
-| **Discovery**  | At startup                           | `name` and `description` only |
+| Level          | When Loaded                           | Content                       |
+| :------------- | :------------------------------------ | :---------------------------- |
+| **Discovery**  | At startup                            | `name` and `description` only |
 | **Activation** | When relevant (via native skill tool) | Full SKILL.md body            |
-| **Execution**  | On demand                            | Scripts, resources, assets    |
+| **Execution**  | On demand                             | Scripts, resources, assets    |
 
 ## Locations
 
-| Scope              | Path                                     | Compatibility |
-| :----------------- | :--------------------------------------- | :------------ |
-| Project            | `.opencode/skills/<name>/SKILL.md`       | Open Code     |
-| Project (compat)   | `.claude/skills/<name>/SKILL.md`         | Claude Code   |
-| Project (standard) | `.agents/skills/<name>/SKILL.md`         | Standard      |
-| User               | `~/.config/opencode/skills/<name>/SKILL.md` | Open Code  |
-| User (compat)      | `~/.claude/skills/<name>/SKILL.md`       | Claude Code   |
-| User (standard)    | `~/.agents/skills/<name>/SKILL.md`       | Standard      |
+| Scope              | Path                                        | Compatibility |
+| :----------------- | :------------------------------------------ | :------------ |
+| Project            | `.opencode/skills/<name>/SKILL.md`          | Open Code     |
+| Project (compat)   | `.claude/skills/<name>/SKILL.md`            | Claude Code   |
+| Project (standard) | `.agents/skills/<name>/SKILL.md`            | Standard      |
+| User               | `~/.config/opencode/skills/<name>/SKILL.md` | Open Code     |
+| User (compat)      | `~/.claude/skills/<name>/SKILL.md`          | Claude Code   |
+| User (standard)    | `~/.agents/skills/<name>/SKILL.md`          | Standard      |
 
 **Priority**: Project > User > Built-in.
 
@@ -41,14 +41,14 @@ Instructions for the agent...
 
 **Frontmatter fields:**
 
-| Field              | Required | Description                                |
-| :----------------- | :------- | :----------------------------------------- |
-| `name`             | Yes      | Skill identifier (must match directory name) |
-| `description`      | Yes      | 1-1024 characters, triggers discovery       |
-| `license`          | No       | License identifier                          |
-| `allowed-tools`    | No       | List of allowed tools                       |
-| `compatibility`    | No       | Agent compatibility list                    |
-| `metadata`         | No       | Additional metadata (version, internal)     |
+| Field           | Required | Description                                  |
+| :-------------- | :------- | :------------------------------------------- |
+| `name`          | Yes      | Skill identifier (must match directory name) |
+| `description`   | Yes      | 1-1024 characters, triggers discovery        |
+| `license`       | No       | License identifier                           |
+| `allowed-tools` | No       | List of allowed tools                        |
+| `compatibility` | No       | Agent compatibility list                     |
+| `metadata`      | No       | Additional metadata (version, internal)      |
 
 ## Invocation Control
 

@@ -1,26 +1,24 @@
 import { it, expect } from 'vitest'
 import { describeConfai } from '../../test-utils.ts'
 
-describeConfai(
-  'open-code / env var kept bare',
-  ({ givenSource, whenInstall, targetFile }) => {
-    it('keeps ${VAR} bare in opencode.json (no translation)', async () => {
-      await givenSource({
-        mcps: {
-          github: {
-            command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-github'],
-            env: {
-              GITHUB_TOKEN: '${GITHUB_TOKEN}',
-              GITHUB_ORG: '${GITHUB_ORG}',
-            },
+describeConfai('open-code / env var kept bare', ({ givenSource, whenInstall, targetFile }) => {
+  it('keeps ${VAR} bare in opencode.json (no translation)', async () => {
+    await givenSource({
+      mcps: {
+        github: {
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-github'],
+          env: {
+            GITHUB_TOKEN: '${GITHUB_TOKEN}',
+            GITHUB_ORG: '${GITHUB_ORG}',
           },
         },
-      })
+      },
+    })
 
-      await whenInstall({ mcps: ['github'], agents: ['open-code'] })
+    await whenInstall({ mcps: ['github'], agents: ['open-code'] })
 
-      expect(await targetFile('opencode.json')).toMatchInlineSnapshot(`
+    expect(await targetFile('opencode.json')).toMatchInlineSnapshot(`
       "{
         "mcp": {
           "github": {
@@ -39,6 +37,5 @@ describeConfai(
       }
       "
     `)
-    })
-  },
-)
+  })
+})

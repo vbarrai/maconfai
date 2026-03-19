@@ -179,25 +179,25 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 
 ### Agent skills directory mapping
 
-| Agent       | Project skills dir          | User skills dir                      | Canonical dir            |
-| :---------- | :-------------------------- | :----------------------------------- | :----------------------- |
-| Claude Code | `.claude/skills/<name>/`    | `~/.claude/skills/<name>/`           | `.agents/skills/<name>/` |
-| Cursor      | `.cursor/skills/<name>/`    | `~/.cursor/skills/<name>/`           | `.agents/skills/<name>/` |
-| Codex       | `.agents/skills/<name>/`    | `~/.codex/skills/<name>/`            | `.agents/skills/<name>/` |
-| Gemini CLI  | `.gemini/skills/<name>/`    | `~/.gemini/skills/<name>/`           | `.agents/skills/<name>/` |
-| Amp Code    | `.agents/skills/<name>/`    | `~/.config/agents/skills/<name>/`    | `.agents/skills/<name>/` |
-| Open Code   | `.opencode/skills/<name>/`  | `~/.config/opencode/skills/<name>/`  | `.agents/skills/<name>/` |
+| Agent       | Project skills dir         | User skills dir                     | Canonical dir            |
+| :---------- | :------------------------- | :---------------------------------- | :----------------------- |
+| Claude Code | `.claude/skills/<name>/`   | `~/.claude/skills/<name>/`          | `.agents/skills/<name>/` |
+| Cursor      | `.cursor/skills/<name>/`   | `~/.cursor/skills/<name>/`          | `.agents/skills/<name>/` |
+| Codex       | `.agents/skills/<name>/`   | `~/.codex/skills/<name>/`           | `.agents/skills/<name>/` |
+| Gemini CLI  | `.gemini/skills/<name>/`   | `~/.gemini/skills/<name>/`          | `.agents/skills/<name>/` |
+| Amp Code    | `.agents/skills/<name>/`   | `~/.config/agents/skills/<name>/`   | `.agents/skills/<name>/` |
+| Open Code   | `.opencode/skills/<name>/` | `~/.config/opencode/skills/<name>/` | `.agents/skills/<name>/` |
 
 ### Agent instruction files
 
-| Agent       | Instruction file                     | Config file      | Config format |
-| :---------- | :----------------------------------- | :--------------- | :------------ |
-| Claude Code | `CLAUDE.md`                          | `settings.json`  | JSON          |
-| Cursor      | `.cursor/rules/*.mdc` + `AGENTS.md`  | Settings UI      | —             |
-| Codex       | `AGENTS.md` (+ `AGENTS.override.md`) | `config.toml`    | TOML          |
-| Gemini CLI  | `GEMINI.md` (configurable name)      | `settings.json`  | JSON          |
-| Amp Code    | `AGENTS.md` (fallback `CLAUDE.md`)   | `settings.json`  | JSON          |
-| Open Code   | `AGENTS.md` (fallback `CLAUDE.md`)   | `opencode.json`  | JSON          |
+| Agent       | Instruction file                     | Config file     | Config format |
+| :---------- | :----------------------------------- | :-------------- | :------------ |
+| Claude Code | `CLAUDE.md`                          | `settings.json` | JSON          |
+| Cursor      | `.cursor/rules/*.mdc` + `AGENTS.md`  | Settings UI     | —             |
+| Codex       | `AGENTS.md` (+ `AGENTS.override.md`) | `config.toml`   | TOML          |
+| Gemini CLI  | `GEMINI.md` (configurable name)      | `settings.json` | JSON          |
+| Amp Code    | `AGENTS.md` (fallback `CLAUDE.md`)   | `settings.json` | JSON          |
+| Open Code   | `AGENTS.md` (fallback `CLAUDE.md`)   | `opencode.json` | JSON          |
 
 ### SKILL.md frontmatter (universal)
 

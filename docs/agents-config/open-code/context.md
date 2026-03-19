@@ -10,12 +10,12 @@
 
 ## Locations and Discovery
 
-| Scope              | Path                                | Loading          |
-| :----------------- | :---------------------------------- | :--------------- |
-| Project            | `./AGENTS.md`                       | Highest priority |
-| Parent directories | Walk up to git worktree             | Merged           |
-| Global             | `~/.config/opencode/AGENTS.md`      | Always included  |
-| Fallback           | `~/.claude/CLAUDE.md`               | Unless disabled  |
+| Scope              | Path                           | Loading          |
+| :----------------- | :----------------------------- | :--------------- |
+| Project            | `./AGENTS.md`                  | Highest priority |
+| Parent directories | Walk up to git worktree        | Merged           |
+| Global             | `~/.config/opencode/AGENTS.md` | Always included  |
+| Fallback           | `~/.claude/CLAUDE.md`          | Unless disabled  |
 
 ## Fallback File Names
 

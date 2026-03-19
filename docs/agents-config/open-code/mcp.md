@@ -63,13 +63,13 @@ Configurations merge — later configs override earlier ones only for conflictin
 
 ## Format Differences from Other Agents
 
-| Feature           | Open Code (`opencode.json`)         | Claude Code (`.mcp.json`)        |
-| :---------------- | :---------------------------------- | :------------------------------- |
-| Config key        | `mcp`                               | `mcpServers`                     |
-| Command format    | `command: ["npx", "-y", "pkg"]`     | `command: "npx"`, `args: [...]`  |
-| Env vars key      | `environment`                       | `env`                            |
-| Type field        | Required (`local` / `remote`)       | Implicit                         |
-| Env var syntax    | `${VAR}` (bare)                     | `${VAR}` (bare)                  |
+| Feature        | Open Code (`opencode.json`)     | Claude Code (`.mcp.json`)       |
+| :------------- | :------------------------------ | :------------------------------ |
+| Config key     | `mcp`                           | `mcpServers`                    |
+| Command format | `command: ["npx", "-y", "pkg"]` | `command: "npx"`, `args: [...]` |
+| Env vars key   | `environment`                   | `env`                           |
+| Type field     | Required (`local` / `remote`)   | Implicit                        |
+| Env var syntax | `${VAR}` (bare)                 | `${VAR}` (bare)                 |
 
 maconfai handles format translation automatically — the source `mcp.json` uses the standard format and is converted to Open Code's format during installation.
 
