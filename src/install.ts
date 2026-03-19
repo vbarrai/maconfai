@@ -189,7 +189,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
         const mcpChoices = allMcpEntries.map((e) => ({
           value: e.serverName,
-          label: `${e.serverName} ${pc.dim(`(from: ${e.source})`)}`,
+          label: e.serverName,
         }))
 
         const initialMcpValues = allMcpEntries
@@ -238,7 +238,7 @@ export async function runInstall(args: string[]): Promise<void> {
       } else {
         const hookChoices = allHookEntries.map((e) => ({
           value: e.groupName,
-          label: `${e.groupName} ${pc.dim(`(from: ${e.source})`)}${e.group.description ? ` ${pc.dim(`— ${e.group.description}`)}` : ''}`,
+          label: `${e.groupName}${e.group.description ? ` ${pc.dim(`— ${e.group.description}`)}` : ''}`,
         }))
 
         const lock = await readLock()
