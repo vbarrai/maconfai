@@ -19,6 +19,8 @@ describeConfai(
         ".codex/skills/skill-y",
         ".cursor/skills/skill-x",
         ".cursor/skills/skill-y",
+        ".opencode/skills/skill-x",
+        ".opencode/skills/skill-y",
         "ai-lock.json",
       ]
     `)

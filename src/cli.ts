@@ -18,7 +18,7 @@ ${BOLD}Usage:${RESET}
 
 ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
-  --agents=claude,cursor,codex   Install to specific agents
+  --agents=claude,cursor,codex,open-code  Install to specific agents
   --skills=skill-a,skill-b      Install specific skills
   --mcps=mcp1,mcp2              Install specific MCP servers
   --hooks=hook1,hook2           Install specific hooks

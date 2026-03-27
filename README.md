@@ -3,7 +3,7 @@
 ![Build Size](https://img.shields.io/badge/build%20size-91.4%20kB%20min%2Bgzip-blue)
 ![Coverage](https://img.shields.io/badge/coverage-73%25-green)
 
-Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), and [Codex](https://openai.com/index/introducing-codex/).
+Minimal skills manager for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://cursor.com), [Codex](https://openai.com/index/introducing-codex/), and [Open Code](https://opencode.ai).
 
 Install, update, and uninstall agent skills from GitHub repos or local directories.
 
@@ -68,13 +68,16 @@ npx maconfai install
 
 ## Supported agents
 
-| Agent       | Project dir       |
-| ----------- | ----------------- |
-| Claude Code | `.claude/skills/` |
-| Cursor      | `.cursor/skills/` |
-| Codex       | `.codex/skills/`  |
+| Agent       | Skills | MCP servers | Hooks | Skills dir          | MCP config         |
+| :---------- | :----: | :---------: | :---: | :------------------ | :----------------- |
+| Claude Code |   ✅   |     ✅      |  ✅   | `.claude/skills/`   | `.mcp.json`        |
+| Cursor      |   ✅   |     ✅      |  ✅   | `.cursor/skills/`   | `.cursor/mcp.json` |
+| Codex       |   ✅   |      —      |   —   | `.codex/skills/`    | —                  |
+| Open Code   |   ✅   |     ✅      |   —   | `.opencode/skills/` | `opencode.json`    |
 
 Canonical location: `.agents/skills/` (agent dirs are symlinked to this).
+
+MCP format translation is handled automatically — a single `mcp.json` source is converted to each agent's native format (e.g. Open Code uses `mcp` key with array `command` and `environment` instead of `mcpServers`/`env`).
 
 ## Development
 
