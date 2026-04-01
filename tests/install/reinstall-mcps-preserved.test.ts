@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / reinstall preserves MCPs from previous install',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('should keep MCPs on second install', async () => {
       await givenSource({
         mcps: {
@@ -13,12 +13,7 @@ describeConfai(
 
       await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".mcp.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles('.mcp.json', 'ai-lock.json')
 
       // Second install — MCPs should still be there
       await whenInstall({ mcps: ['github'], agents: ['claude-code'] })

@@ -1,9 +1,9 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpLinear } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / install multiple MCPs',
-  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetHasFiles }) => {
     it('installs multiple MCP servers to .mcp.json', async () => {
       await givenSource({
         mcps: {
@@ -12,10 +12,7 @@ describeConfai(
             args: ['-y', '@modelcontextprotocol/server-github'],
             env: { GITHUB_TOKEN: '${GITHUB_TOKEN}' },
           },
-          linear: {
-            command: 'npx',
-            args: ['-y', 'mcp-remote', 'https://mcp.linear.app/mcp'],
-          },
+          linear: mcpLinear,
         },
       })
 
@@ -27,12 +24,7 @@ describeConfai(
 
       await whenInstall({ mcps: ['github', 'linear'], agents: ['claude-code'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".mcp.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles('.mcp.json', 'ai-lock.json')
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

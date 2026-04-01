@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpGithub, mcpLinear } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / merge MCP servers across installs',
@@ -7,10 +7,7 @@ describeConfai(
     it('second install adds new MCPs without removing existing ones', async () => {
       await givenSource({
         mcps: {
-          github: {
-            command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-github'],
-          },
+          github: mcpGithub,
         },
       })
 
@@ -24,10 +21,7 @@ describeConfai(
 
       await givenSource({
         mcps: {
-          linear: {
-            command: 'npx',
-            args: ['-y', 'mcp-remote', 'https://mcp.linear.app/mcp'],
-          },
+          linear: mcpLinear,
         },
       })
 

@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpCustomApi } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / url with headers and env translation',
@@ -7,13 +7,7 @@ describeConfai(
     it('translates env vars in headers', async () => {
       await givenSource({
         mcps: {
-          'custom-api': {
-            url: 'https://api.example.com/mcp',
-            headers: {
-              Authorization: 'Bearer ${API_TOKEN}',
-              'X-Team-Id': '${TEAM_ID}',
-            },
-          },
+          'custom-api': mcpCustomApi,
         },
       })
 

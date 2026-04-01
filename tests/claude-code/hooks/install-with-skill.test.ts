@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / hooks alongside a skill',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('installs both skill files and hooks config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -27,14 +27,12 @@ describeConfai(
         agents: ['claude-code'],
       })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/skills/dev-tools/SKILL.md",
-          ".claude/settings.json",
-          ".claude/skills/dev-tools",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles(
+        '.agents/skills/dev-tools/SKILL.md',
+        '.claude/settings.json',
+        '.claude/skills/dev-tools',
+        'ai-lock.json',
+      )
 
       expect(await targetFile('.claude/settings.json')).toMatchInlineSnapshot(`
       "{

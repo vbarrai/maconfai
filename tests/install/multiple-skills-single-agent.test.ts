@@ -3,21 +3,19 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / multiple skills to single agent',
-  ({ givenSkill, whenInstall, targetFiles }) => {
+  ({ givenSkill, whenInstall, targetHasFiles }) => {
     it('should install two skills to cursor', async () => {
       await givenSkill('lint', 'format')
 
       await whenInstall({ skills: ['lint', 'format'], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-      [
-        ".agents/skills/format/SKILL.md",
-        ".agents/skills/lint/SKILL.md",
-        ".cursor/skills/format",
-        ".cursor/skills/lint",
-        "ai-lock.json",
-      ]
-    `)
+      await targetHasFiles(
+        '.agents/skills/format/SKILL.md',
+        '.agents/skills/lint/SKILL.md',
+        '.cursor/skills/format',
+        '.cursor/skills/lint',
+        'ai-lock.json',
+      )
     })
   },
 )

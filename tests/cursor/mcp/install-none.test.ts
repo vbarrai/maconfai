@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpGithub } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install zero MCPs',
@@ -7,10 +7,7 @@ describeConfai(
     it('installs nothing when mcps is empty', async () => {
       await givenSource({
         mcps: {
-          github: {
-            command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-github'],
-          },
+          github: mcpGithub,
         },
       })
 
@@ -22,7 +19,7 @@ describeConfai(
 
       await whenInstall({ mcps: [], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`[]`)
+      expect(await targetFiles()).toHaveLength(0)
     })
   },
 )

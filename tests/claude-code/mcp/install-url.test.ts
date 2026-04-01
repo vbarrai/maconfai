@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpLinearUrl } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / url-based MCP',
@@ -7,9 +7,7 @@ describeConfai(
     it('installs MCP with url instead of command', async () => {
       await givenSource({
         mcps: {
-          linear: {
-            url: 'https://mcp.linear.app/sse',
-          },
+          linear: mcpLinearUrl,
         },
       })
 

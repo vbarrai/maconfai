@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install hook from hooks/ directory',
-  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetHasFiles }) => {
     it('should install a hook from hooks/<name>/hooks.json', async () => {
       await givenSource({
         hookDirs: {
@@ -23,12 +23,7 @@ describeConfai(
 
       await whenInstall({ hooks: ['format-on-edit'], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".cursor/hooks.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles('.cursor/hooks.json', 'ai-lock.json')
 
       expect(await targetFile('.cursor/hooks.json')).toMatchInlineSnapshot(`
         "{

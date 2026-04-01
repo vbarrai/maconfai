@@ -12,6 +12,59 @@ export function skillFile(name: string): string {
   return `---\nname: ${name}\ndescription: ${description}\n---\n${description}`
 }
 
+// ── MCP fixtures ────────────────────────────────────────────
+
+export const mcpGithub: McpServerConfig = {
+  command: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-github'],
+}
+
+export const mcpGithubWithEnv: McpServerConfig = {
+  command: 'npx',
+  args: ['-y', '@modelcontextprotocol/server-github'],
+  env: { GITHUB_TOKEN: '${GITHUB_TOKEN}', GITHUB_ORG: '${GITHUB_ORG}' },
+}
+
+export const mcpLinear: McpServerConfig = {
+  command: 'npx',
+  args: ['-y', 'mcp-remote', 'https://mcp.linear.app/mcp'],
+}
+
+export const mcpLinearUrl: McpServerConfig = {
+  url: 'https://mcp.linear.app/sse',
+}
+
+export const mcpCustomApi: McpServerConfig = {
+  url: 'https://api.example.com/mcp',
+  headers: { Authorization: 'Bearer ${API_TOKEN}', 'X-Team-Id': '${TEAM_ID}' },
+}
+
+// ── Hook fixtures ───────────────────────────────────────────
+
+export const hookBlockRm: Record<string, HookGroup> = {
+  'block-rm': {
+    'claude-code': {
+      PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'block-rm.sh' }] }],
+    },
+  },
+}
+
+export const hookBlockRmCursor: Record<string, HookGroup> = {
+  'block-rm': {
+    cursor: {
+      beforeShellExecution: [{ command: '.cursor/hooks/block-rm.sh', matcher: '^rm ' }],
+    },
+  },
+}
+
+export const hookLintOnEdit: Record<string, HookGroup> = {
+  'lint-on-edit': {
+    'claude-code': {
+      PostToolUse: [{ matcher: 'Edit', hooks: [{ type: 'command', command: 'lint.sh' }] }],
+    },
+  },
+}
+
 async function exists(path: string): Promise<boolean> {
   try {
     await access(path)
@@ -205,6 +258,20 @@ export function setupScenario() {
     return JSON.parse(content)
   }
 
+  async function targetHasFiles(...expected: string[]) {
+    const files = await targetFiles()
+    for (const f of expected) {
+      expect(files).toContain(f)
+    }
+  }
+
+  async function targetHasNoFiles(...excluded: string[]) {
+    const files = await targetFiles()
+    for (const f of excluded) {
+      expect(files).not.toContain(f)
+    }
+  }
+
   return {
     init,
     cleanup,
@@ -218,6 +285,8 @@ export function setupScenario() {
     thenExists,
     targetFile,
     targetFiles,
+    targetHasFiles,
+    targetHasNoFiles,
     thenMcpConfig,
     getSourceDir,
     getTargetDir,

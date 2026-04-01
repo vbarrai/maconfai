@@ -1,14 +1,11 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpLinear } from '../../test-utils.ts'
 
 describeConfai('open-code / skip existing MCP', ({ givenSource, whenInstall, targetFile }) => {
   it('should preserve existing MCP server and not overwrite', async () => {
     await givenSource({
       mcps: {
-        linear: {
-          command: 'npx',
-          args: ['-y', 'mcp-remote', 'https://mcp.linear.app/mcp'],
-        },
+        linear: mcpLinear,
       },
     })
 

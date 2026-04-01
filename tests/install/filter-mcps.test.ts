@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / --mcps filter',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('should only install the selected MCP server', async () => {
       await givenSource({
         mcps: {
@@ -14,12 +14,7 @@ describeConfai(
 
       await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-      [
-        ".mcp.json",
-        "ai-lock.json",
-      ]
-    `)
+      await targetHasFiles('.mcp.json', 'ai-lock.json')
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
       "{

@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / hooks alongside a skill',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('installs both skill files and hooks config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -22,14 +22,12 @@ describeConfai(
         agents: ['cursor'],
       })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/skills/dev-tools/SKILL.md",
-          ".cursor/hooks.json",
-          ".cursor/skills/dev-tools",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles(
+        '.agents/skills/dev-tools/SKILL.md',
+        '.cursor/hooks.json',
+        '.cursor/skills/dev-tools',
+        'ai-lock.json',
+      )
 
       expect(await targetFile('.cursor/hooks.json')).toMatchInlineSnapshot(`
       "{

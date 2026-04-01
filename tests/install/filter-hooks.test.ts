@@ -1,19 +1,13 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../test-utils.ts'
+import { describeConfai, hookBlockRm } from '../test-utils.ts'
 
 describeConfai(
   'install / --hooks filter',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('should only install the selected hook group', async () => {
       await givenSource({
         hooks: {
-          'block-rm': {
-            'claude-code': {
-              PreToolUse: [
-                { matcher: 'Bash', hooks: [{ type: 'command', command: 'block-rm.sh' }] },
-              ],
-            },
-          },
+          ...hookBlockRm,
           'lint-on-edit': {
             'claude-code': {
               PreToolUse: [{ matcher: 'Edit', hooks: [{ type: 'command', command: 'lint.sh' }] }],
@@ -24,12 +18,7 @@ describeConfai(
 
       await whenInstall({ hooks: ['block-rm'], agents: ['claude-code'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-      [
-        ".claude/settings.json",
-        "ai-lock.json",
-      ]
-    `)
+      await targetHasFiles('.claude/settings.json', 'ai-lock.json')
 
       expect(await targetFile('.claude/settings.json')).toMatchInlineSnapshot(`
       "{

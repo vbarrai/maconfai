@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install hook dir with companion files',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('should copy companion files to .agents/hooks/<name>/', async () => {
       await givenSource({
         hookDirs: {
@@ -27,13 +27,11 @@ describeConfai(
 
       await whenInstall({ hooks: ['security-guard'], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/hooks/security-guard/security-guard.sh",
-          ".cursor/hooks.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles(
+        '.agents/hooks/security-guard/security-guard.sh',
+        '.cursor/hooks.json',
+        'ai-lock.json',
+      )
 
       expect(await targetFile('.cursor/hooks.json')).toMatchInlineSnapshot(`
         "{

@@ -3,7 +3,7 @@ import { describeConfai } from '../test-utils.ts'
 
 describeConfai(
   'install / MCP not created for codex',
-  ({ givenSource, whenInstall, targetFiles }) => {
+  ({ givenSource, whenInstall, targetHasFiles, targetHasNoFiles }) => {
     it('should install skill but skip MCP config for codex', async () => {
       await givenSource({
         skills: [{ name: 'with-mcp' }],
@@ -14,13 +14,8 @@ describeConfai(
 
       await whenInstall({ skills: ['with-mcp'], mcps: ['github'], agents: ['codex'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/skills/with-mcp/SKILL.md",
-          ".codex/skills/with-mcp",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles('.agents/skills/with-mcp/SKILL.md', '.codex/skills/with-mcp')
+      await targetHasNoFiles('.mcp.json')
     })
   },
 )

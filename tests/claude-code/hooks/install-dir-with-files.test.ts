@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / install hook dir with companion files',
-  ({ givenSource, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
     it('should copy companion files to .agents/hooks/<name>/', async () => {
       await givenSource({
         hookDirs: {
@@ -33,14 +33,12 @@ describeConfai(
 
       await whenInstall({ hooks: ['security-guard'], agents: ['claude-code'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/hooks/security-guard/rules.txt",
-          ".agents/hooks/security-guard/security-guard.sh",
-          ".claude/settings.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles(
+        '.agents/hooks/security-guard/rules.txt',
+        '.agents/hooks/security-guard/security-guard.sh',
+        '.claude/settings.json',
+        'ai-lock.json',
+      )
 
       expect(await targetFile('.agents/hooks/security-guard/security-guard.sh'))
         .toMatchInlineSnapshot(`

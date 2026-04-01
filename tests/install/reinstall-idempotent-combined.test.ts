@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest'
 import type { AgentType } from '../../src/types.ts'
-import { describeConfai } from '../test-utils.ts'
+import { describeConfai, hookBlockRm } from '../test-utils.ts'
 
 describeConfai(
   'install / reinstall of skills + MCPs + hooks is idempotent',
@@ -9,15 +9,7 @@ describeConfai(
       await givenSource({
         skills: [{ name: 'lint' }],
         mcps: { github: { command: 'npx', args: ['-y', '@mcp/github'] } },
-        hooks: {
-          'block-rm': {
-            'claude-code': {
-              PreToolUse: [
-                { matcher: 'Bash', hooks: [{ type: 'command', command: 'block-rm.sh' }] },
-              ],
-            },
-          },
-        },
+        hooks: hookBlockRm,
       })
 
       const opts = {

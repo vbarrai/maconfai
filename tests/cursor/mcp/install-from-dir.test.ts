@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / install MCP from mcps/ directory',
-  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetHasFiles }) => {
     it('should install an MCP server from mcps/<name>/mcp.json', async () => {
       await givenSource({
         mcpDirs: {
@@ -23,12 +23,7 @@ describeConfai(
 
       await whenInstall({ mcps: ['github'], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".cursor/mcp.json",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles('.cursor/mcp.json', 'ai-lock.json')
 
       expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
         "{

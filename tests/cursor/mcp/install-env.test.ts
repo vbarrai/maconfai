@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../../test-utils.ts'
+import { describeConfai, mcpGithubWithEnv } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / env var translation',
@@ -7,14 +7,7 @@ describeConfai(
     it('translates ${VAR} to ${env:VAR} in env fields', async () => {
       await givenSource({
         mcps: {
-          github: {
-            command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-github'],
-            env: {
-              GITHUB_TOKEN: '${GITHUB_TOKEN}',
-              GITHUB_ORG: '${GITHUB_ORG}',
-            },
-          },
+          github: mcpGithubWithEnv,
         },
       })
 

@@ -3,7 +3,7 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'cursor / MCP alongside a skill',
-  ({ givenSource, sourceFiles, whenInstall, targetFile, targetFiles }) => {
+  ({ givenSource, sourceFiles, whenInstall, targetFile, targetHasFiles }) => {
     it('installs both skill files and MCP config', async () => {
       await givenSource({
         skills: [{ name: 'dev-tools' }],
@@ -25,14 +25,12 @@ describeConfai(
 
       await whenInstall({ mcps: ['github'], skills: ['dev-tools'], agents: ['cursor'] })
 
-      expect(await targetFiles()).toMatchInlineSnapshot(`
-        [
-          ".agents/skills/dev-tools/SKILL.md",
-          ".cursor/mcp.json",
-          ".cursor/skills/dev-tools",
-          "ai-lock.json",
-        ]
-      `)
+      await targetHasFiles(
+        '.agents/skills/dev-tools/SKILL.md',
+        '.cursor/mcp.json',
+        '.cursor/skills/dev-tools',
+        'ai-lock.json',
+      )
 
       expect(await targetFile('.cursor/mcp.json')).toMatchInlineSnapshot(`
       "{
