@@ -14,6 +14,7 @@ export interface SkillLockEntry {
   skillPath?: string
   ref?: string
   skillFolderHash: string
+  agents?: string[]
   installedAt: string
   updatedAt: string
 }

@@ -83,50 +83,19 @@ describe('install', () => {
       expect(betaContent).toContain('beta')
     })
 
-    it('removes previously installed skills not in --skills', async () => {
-      await givenSkill('keep', 'drop')
+    it('--skills is additive and does not remove other skills', async () => {
+      await givenSkill('keep', 'other')
 
       // First install both
       await whenInstall({ agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
+      expect(await thenExists('.claude/skills/other/SKILL.md')).toBe(true)
 
-      // Re-install with only 'keep' — 'drop' should be removed
+      // Re-install with only 'keep' — 'other' should still be there
       await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
-    })
-
-    it('removes all skills when --skills lists none of the installed', async () => {
-      await givenSkill('old-a', 'old-b', 'new-c')
-
-      await whenInstall({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
-      expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(true)
-
-      // Re-install with only 'new-c' — old skills should be removed
-      await whenInstall({ skills: ['new-c'], agents: ['claude-code'] })
-
-      expect(await thenExists('.claude/skills/new-c/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(false)
-      expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(false)
-    })
-
-    it('removes skills across all agents when --skills changes', async () => {
-      await givenSkill('stays', 'goes')
-
-      await whenInstall({ agents: ['claude-code', 'cursor'] })
-      expect(await thenExists('.claude/skills/goes/SKILL.md')).toBe(true)
-      expect(await thenExists('.cursor/skills/goes/SKILL.md')).toBe(true)
-
-      // Re-install with only 'stays'
-      await whenInstall({ skills: ['stays'], agents: ['claude-code', 'cursor'] })
-
-      expect(await thenExists('.claude/skills/stays/SKILL.md')).toBe(true)
-      expect(await thenExists('.cursor/skills/stays/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/goes/SKILL.md')).toBe(false)
-      expect(await thenExists('.cursor/skills/goes/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/other/SKILL.md')).toBe(true)
     })
   })
 
@@ -165,21 +134,20 @@ describe('install', () => {
       expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true)
     })
 
-    it('removes unselected skills from all agents even when --agents is narrowed', async () => {
-      await givenSkill('keep', 'drop')
+    it('--skills does not remove skills from other agents', async () => {
+      await givenSkill('keep', 'other')
 
       // Install both skills to both agents
       await whenInstall({ agents: ['claude-code', 'cursor'] })
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
-      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(true)
+      expect(await thenExists('.claude/skills/other/SKILL.md')).toBe(true)
+      expect(await thenExists('.cursor/skills/other/SKILL.md')).toBe(true)
 
-      // Re-install with only 'keep' and only claude-code
-      // 'drop' should be removed from ALL agents (not just claude-code)
+      // Re-install with only 'keep' — 'other' should stay in all agents
       await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
-      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/other/SKILL.md')).toBe(true)
+      expect(await thenExists('.cursor/skills/other/SKILL.md')).toBe(true)
     })
 
     it('installs to a single new agent without affecting others', async () => {

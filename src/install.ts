@@ -133,6 +133,8 @@ export async function runInstall(args: string[]): Promise<void> {
     let selectedSkills: Skill[]
     let allSkills = skills
 
+    let userDeselected = false
+
     if (skills.length === 0) {
       selectedSkills = []
     } else if (argSkills) {
@@ -162,7 +164,10 @@ export async function runInstall(args: string[]): Promise<void> {
       }
 
       selectedSkills = selected as Skill[]
+      userDeselected = true
     }
+
+    const updateOnly = args.includes('--update-only')
 
     // Collect MCP servers from root mcp.json + mcps/ directories
     interface McpEntry {
@@ -181,7 +186,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Select MCP servers
     let selectedMcpNames: Set<string> = new Set()
 
-    if (allMcpEntries.length > 0) {
+    if (allMcpEntries.length > 0 && !updateOnly) {
       if (argMcps) {
         selectedMcpNames = new Set(argMcps)
       } else if (skipPrompts) {
@@ -233,7 +238,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Select hooks
     let selectedHookNames: Set<string> = new Set()
 
-    if (allHookEntries.length > 0) {
+    if (allHookEntries.length > 0 && !updateOnly) {
       if (argHooks) {
         selectedHookNames = new Set(argHooks)
       } else if (skipPrompts) {
@@ -327,9 +332,9 @@ export async function runInstall(args: string[]): Promise<void> {
     // Determine skills to install and uninstall
     const selectedNames = new Set(selectedSkills.map((s) => s.name))
     const toInstall = selectedSkills
-    const toUninstall = allSkills.filter(
-      (s) => installedNames.has(s.name) && !selectedNames.has(s.name),
-    )
+    const toUninstall = userDeselected
+      ? allSkills.filter((s) => installedNames.has(s.name) && !selectedNames.has(s.name))
+      : []
 
     // Build standalone MCP map (root-level or mcps/ dir, not tied to any skill)
     const standaloneMcps: Record<string, McpServerConfig> = {}
@@ -450,6 +455,7 @@ export async function runInstall(args: string[]): Promise<void> {
             skillPath: skillRelPath,
             ref: parsed.ref,
             skillFolderHash,
+            agents: targetAgents,
           })
         }
       }

@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'module'
 import { runInstall } from './install.ts'
 import { runCheck } from './check.ts'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 
 const RESET = '\x1b[0m'
 const BOLD = '\x1b[1m'
@@ -63,12 +67,12 @@ async function main(): Promise<void> {
 
     case 'check':
     case 'update':
-      await runCheck()
+      await runCheck(restArgs)
       break
 
     case '--version':
     case '-v':
-      console.log('0.1.0')
+      console.log(version)
       break
 
     default:

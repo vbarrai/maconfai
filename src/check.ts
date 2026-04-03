@@ -1,10 +1,21 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
+import { existsSync } from 'fs'
+import { join } from 'path'
 import { spawnSync } from 'child_process'
 import { readLock, fetchSkillFolderHash, getGitHubToken } from './lock.ts'
+import { agents } from './agents.ts'
 import type { SkillLockEntry } from './lock.ts'
+import type { AgentType } from './types.ts'
 
-export async function runCheck(): Promise<void> {
+const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
+
+function detectAgentsForSkill(skillName: string): AgentType[] {
+  return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, skillName)))
+}
+
+export async function runCheck(args: string[] = []): Promise<void> {
+  const skipPrompts = args.includes('-y') || args.includes('--yes')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
 
@@ -73,15 +84,17 @@ export async function runCheck(): Promise<void> {
       p.log.message(`  ${pc.yellow('*')} ${u.name} ${pc.dim(`(${u.entry.source})`)}`)
     }
 
-    console.log()
-    const confirmed = await p.confirm({
-      message: `Install ${updates.length} update(s)?`,
-    })
+    if (!skipPrompts) {
+      console.log()
+      const confirmed = await p.confirm({
+        message: `Install ${updates.length} update(s)?`,
+      })
 
-    if (p.isCancel(confirmed) || !confirmed) {
-      p.log.info('Skipped updates.')
-      p.outro('')
-      return
+      if (p.isCancel(confirmed) || !confirmed) {
+        p.log.info('Skipped updates.')
+        p.outro('')
+        return
+      }
     }
 
     // Update each skill
@@ -107,8 +120,18 @@ export async function runCheck(): Promise<void> {
       }
 
       // Re-run install for this skill
-      const installArgs = [process.argv[1]!, 'install', installUrl, '-g', '-y', `--skills=${name}`]
+      const installArgs = [
+        process.argv[1]!,
+        'install',
+        installUrl,
+        '-g',
+        '-y',
+        `--skills=${name}`,
+        '--update-only',
+      ]
       if (entry.ref) installArgs.push(`--branch=${entry.ref}`)
+      const skillAgents = entry.agents?.length ? entry.agents : detectAgentsForSkill(name)
+      if (skillAgents.length > 0) installArgs.push(`--agents=${skillAgents.join(',')}`)
 
       const result = spawnSync(process.execPath, installArgs, {
         stdio: ['inherit', 'pipe', 'pipe'],
