@@ -18,7 +18,8 @@ ${BOLD}maconfai${RESET} - Minimal skills manager
 ${BOLD}Usage:${RESET}
   maconfai install <source> [options]   Install skills from a GitHub repo
   maconfai install                      Interactive uninstall
-  maconfai check                        Check for updates and install them
+  maconfai check                        Check for updates (prompts before installing)
+  maconfai update                       Check and install updates automatically
 
 ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
@@ -67,7 +68,7 @@ async function main(): Promise<void> {
 
     case 'check':
     case 'update':
-      await runCheck(restArgs)
+      await runCheck(restArgs, { autoUpdate: command === 'update' })
       break
 
     case '--version':

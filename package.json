@@ -1,6 +1,6 @@
 {
   "name": "maconfai",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Minimal skills manager for Claude Code, Cursor, and Codex",
   "type": "module",
   "bin": {

@@ -17,8 +17,8 @@ function detectAgentsForSkill(skillName: string): AgentType[] {
   return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, skillName)))
 }
 
-export async function runCheck(args: string[] = []): Promise<void> {
-  const skipPrompts = args.includes('-y') || args.includes('--yes')
+export async function runCheck(args: string[] = [], opts: { autoUpdate?: boolean } = {}): Promise<void> {
+  const skipPrompts = opts.autoUpdate || args.includes('-y') || args.includes('--yes')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
 
