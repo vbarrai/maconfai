@@ -1,5 +1,15 @@
 import { vi } from 'vitest'
-import { mocks, mockCloneRepo, mockCleanupTempDir, mockGetTreeHash, mockDiscoverSkills, mockInstallSkill, mockAddToLock, mockParseSource, mockGetOwnerRepo } from './check-test-utils.ts'
+import {
+  mocks,
+  mockCloneRepo,
+  mockCleanupTempDir,
+  mockGetTreeHash,
+  mockDiscoverSkills,
+  mockInstallSkill,
+  mockAddToLock,
+  mockParseSource,
+  mockGetOwnerRepo,
+} from './check-test-utils.ts'
 
 vi.mock('picocolors')
 vi.mock('@clack/prompts', () => mocks)
@@ -16,5 +26,6 @@ vi.mock('../../src/skills.ts', () => ({
   discoverSkills: (basePath: string) => mockDiscoverSkills(basePath),
 }))
 vi.mock('../../src/installer.ts', () => ({
-  installSkill: (skill: unknown, agent: unknown, opts: unknown) => mockInstallSkill(skill, agent, opts),
+  installSkill: (skill: unknown, agent: unknown, opts: unknown) =>
+    mockInstallSkill(skill, agent, opts),
 }))

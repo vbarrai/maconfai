@@ -1,5 +1,13 @@
 import { it, expect, vi } from 'vitest'
-import { mocks, mockCloneRepo, mockDiscoverSkills, mockInstallSkill, mockAddToLock, lockWith, skill } from './check-test-utils.ts'
+import {
+  mocks,
+  mockCloneRepo,
+  mockDiscoverSkills,
+  mockInstallSkill,
+  mockAddToLock,
+  lockWith,
+  skill,
+} from './check-test-utils.ts'
 
 vi.mock('../../src/lock.ts', () => ({
   readLock: async () =>

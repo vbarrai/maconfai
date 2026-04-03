@@ -54,13 +54,11 @@ export const mockDiscoverSkills = vi.fn(async (_basePath: string) => [
   { name: 'my-skill', description: 'A test skill', dir: '/tmp/maconfai-mock/skills/my-skill' },
 ])
 
-export const mockInstallSkill = vi.fn(
-  async (_skill: unknown, _agent: unknown, _opts: unknown) => ({ success: true as boolean }),
-)
+export const mockInstallSkill = vi.fn(async (_skill: unknown, _agent: unknown, _opts: unknown) => ({
+  success: true as boolean,
+}))
 
-export const mockAddToLock = vi.fn(
-  async (_name: string, _entry: unknown, _cwd?: string) => {},
-)
+export const mockAddToLock = vi.fn(async (_name: string, _entry: unknown, _cwd?: string) => {})
 
 export function getLogs(): string {
   return logs.map((l) => `${l.method}: ${l.args.join(' ')}`).join('\n')
