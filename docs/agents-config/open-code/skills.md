@@ -39,14 +39,14 @@ Instructions for the agent...
 
 **Frontmatter fields:**
 
-| Field           | Required | Description                                                               |
-| :-------------- | :------- | :------------------------------------------------------------------------ |
-| `name`          | Yes      | Skill identifier (must match directory name)                              |
-| `description`   | Yes      | 1-1024 characters, triggers discovery                                     |
-| `license`       | No       | License identifier                                                        |
-| `allowed-tools` | No       | List of allowed tools                                                     |
-| `compatibility` | No       | Agent compatibility list                                                  |
-| `metadata`      | No       | Additional metadata — recognized sub-fields include `audience`, `version` |
+| Field           | Required | Description                                                                                              |
+| :-------------- | :------- | :------------------------------------------------------------------------------------------------------- |
+| `name`          | Yes      | Skill identifier — regex `^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars, must match the parent directory name    |
+| `description`   | Yes      | 1-1024 characters, triggers discovery                                                                    |
+| `license`       | No       | License identifier                                                                                       |
+| `allowed-tools` | No       | List of allowed tools — _unverified; possibly inherited from Claude Code, not in current Open Code docs_ |
+| `compatibility` | No       | Agent compatibility list                                                                                 |
+| `metadata`      | No       | Arbitrary string-to-string pairs for skill-specific metadata (e.g., `audience`, `workflow`)              |
 
 > Unknown frontmatter fields are ignored, so skills can carry agent-specific metadata without breaking discovery.
 
@@ -56,12 +56,12 @@ Open Code discovers skills on-demand via the native skill tool — agents see av
 
 ## Permissions
 
-Skill invocations can be gated in `opencode.json` with glob-style patterns:
+Skill invocations can be gated in `opencode.json` with glob-style patterns under `permission.skill`:
 
 ```json
 {
-  "permissions": {
-    "skills": {
+  "permission": {
+    "skill": {
       "*": "allow",
       "internal-*": "deny",
       "experimental-*": "ask"
@@ -71,6 +71,26 @@ Skill invocations can be gated in `opencode.json` with glob-style patterns:
 ```
 
 Values: `allow`, `deny`, `ask`. Patterns are matched against the skill name; later, more specific patterns take precedence over broader ones.
+
+### Agent-Level Overrides
+
+Custom agent frontmatter can set its own `permission.skill` block, and `opencode.json` supports per-agent overrides via `agent.<name>.permission.skill`:
+
+```json
+{
+  "agent": {
+    "build": {
+      "permission": {
+        "skill": {
+          "experimental-*": "deny"
+        }
+      }
+    }
+  }
+}
+```
+
+To disable the skill tool entirely for an agent, set `tools: { skill: false }` in the agent configuration.
 
 ## MCP in Skills
 

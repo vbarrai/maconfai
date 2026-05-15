@@ -21,8 +21,9 @@ Gemini CLI supports the open Agent Skills standard with progressive disclosure:
 | Workspace | `.gemini/skills/<name>/SKILL.md`      | `.agents/skills/<name>/SKILL.md`   |
 | User      | `~/.gemini/skills/<name>/SKILL.md`    | `~/.agents/skills/<name>/SKILL.md` |
 | Extension | Bundled inside an installed extension | —                                  |
+| Built-in  | Shipped with the CLI binary           | —                                  |
 
-**Priority**: Workspace > User > Extension. The `.agents/skills/` alias takes priority over `.gemini/skills/` within the same tier.
+**Priority**: Workspace > User > Extension > Built-in. The `.agents/skills/` alias takes priority over `.gemini/skills/` within the same tier.
 
 **Compatibility**: the `.agents/skills/` directory is shared with Claude Code without modification.
 
@@ -48,6 +49,8 @@ Instructions for the agent...
 
 > **Security**: All skill and extension activations require explicit user consent via the policy engine.
 
+> **Note**: The model activates a skill via an explicit `activate_skill` tool call.
+
 ## Invocation Control
 
 Gemini CLI does **not** support frontmatter-based invocation control (no `disable-model-invocation`, `user-invocable`, or `allowed-tools` fields). The only recognized frontmatter fields are `name` and `description`.
@@ -57,11 +60,11 @@ However, Gemini CLI provides **runtime skill management** via slash commands:
 | Command                  | Description                                        |
 | :----------------------- | :------------------------------------------------- |
 | `/skills`                | List all available skills and their current status |
-| `/skills list`           | List skills (explicit form)                        |
+| `/skills list [all] [nodesc]` | List skills (explicit form; `all` includes disabled, `nodesc` omits descriptions) |
 | `/skills disable <name>` | Disable a skill for the current session            |
 | `/skills enable <name>`  | Re-enable a previously disabled skill              |
 | `/skills link <path>`    | Symlink a skill from a local directory             |
-| `/skills reload`         | Refresh skill discovery                            |
+| `/skills reload` (alias: `/skills refresh`) | Refresh skill discovery                 |
 
 And via terminal commands:
 
@@ -69,10 +72,10 @@ And via terminal commands:
 | :----------------------------------- | :------------------------------------------- |
 | `gemini skills list`                 | List all installed skills                    |
 | `gemini skills link <path> --scope ` | Symlink a local skill (`workspace` / `user`) |
-| `gemini skills install <src>`        | Install from URL, path, or `.skill` bundle   |
-| `gemini skills uninstall <name>`     | Uninstall a skill                            |
-| `gemini skills enable <name>`        | Enable a skill                               |
-| `gemini skills disable <name>`       | Disable a skill                              |
+| `gemini skills install <src> [--consent]` | Install from URL, path, or `.skill` bundle (`--consent` pre-approves activation) |
+| `gemini skills uninstall <name> [--scope user\|workspace]` | Uninstall a skill from the given scope |
+| `gemini skills enable <name>`        | Enable a skill — needs verification: not visible in current upstream terminal-command listing; may only exist as a slash command |
+| `gemini skills disable <name>`       | Disable a skill — needs verification: not visible in current upstream terminal-command listing; may only exist as a slash command |
 
 All skill activations require **explicit user consent** via the policy engine — Gemini always prompts for confirmation before injecting a skill.
 

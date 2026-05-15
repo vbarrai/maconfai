@@ -8,19 +8,22 @@
 
 Codex supports the open Agent Skills standard with progressive disclosure:
 
-| Level               | When Loaded                 | Tokens                    |
-| :------------------ | :-------------------------- | :------------------------ |
-| **1. Metadata**     | At startup                  | ~30-50 tokens/skill       |
-| **2. Instructions** | When the skill is triggered | SKILL.md body             |
-| **3. Resources**    | On demand                   | Referenced files, scripts |
+| Level               | When Loaded                 | Budget                                                       |
+| :------------------ | :-------------------------- | :----------------------------------------------------------- |
+| **1. Metadata**     | At startup                  | ~8,000 characters total when the context window is unknown   |
+| **2. Instructions** | When the skill is triggered | SKILL.md body                                                |
+| **3. Resources**    | On demand                   | Referenced files, scripts                                    |
 
 ## Locations
 
-| Scope   | Path                                             |
-| :------ | :----------------------------------------------- |
-| Project | `.agents/skills/<name>/SKILL.md`                 |
-| User    | `~/.codex/skills/<name>/SKILL.md`                |
-| System  | `~/.codex/skills/.system/` (plan, skill-creator) |
+| Scope  | Path                                                                                                |
+| :----- | :-------------------------------------------------------------------------------------------------- |
+| REPO   | `.agents/skills` (cwd), `../.agents/skills` (parent), `$REPO_ROOT/.agents/skills`                   |
+| USER   | `$HOME/.agents/skills` (note: upstream is NOT `~/.codex/skills`)                                    |
+| ADMIN  | `/etc/codex/skills`                                                                                 |
+| SYSTEM | Bundled with Codex                                                                                  |
+
+> **Note:** The maconfai `CLAUDE.md` mapping listing "Codex user dir = `~/.codex/skills/<name>/`" appears to conflict with upstream `$HOME/.agents/skills/` — TBD pending source verification.
 
 ## Skill Structure
 
@@ -58,7 +61,8 @@ This optional file configures UI behavior, invocation policy, and dependencies:
 interface:
   display_name: 'My Skill'
   short_description: 'Short description for the UI'
-  icon: '🔧'
+  icon_small: 'icons/small.png'
+  icon_large: 'icons/large.png'
   brand_color: '#FF6B35'
   default_prompt: 'Use my-skill to...'
 
@@ -66,13 +70,14 @@ interface:
 policy:
   allow_implicit_invocation: true # true (default) — false = explicit invocation only
 
-# Tool dependencies (MCP auto-installed)
+# Tool dependencies
 dependencies:
   tools:
-    - name: 'github'
-      server: '@modelcontextprotocol/server-github'
-      env:
-        GITHUB_TOKEN: 'required'
+    - type: 'mcp'
+      value: 'github'
+      description: 'GitHub MCP server for issue/PR management'
+      transport: 'streamable-http'
+      url: 'https://mcp.example.com/github'
 ```
 
 | Section                  | Description                                                                           |

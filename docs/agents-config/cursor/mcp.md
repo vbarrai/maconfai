@@ -2,7 +2,7 @@
 
 # Cursor — MCP Servers Guide
 
-> Official source: [docs.cursor.com/context/model-context-protocol](https://docs.cursor.com/context/model-context-protocol)
+> Official source: [cursor.com/docs/context/mcp](https://cursor.com/docs/context/mcp)
 
 ## What is MCP in Cursor?
 
@@ -62,15 +62,20 @@ Project-level configuration, committable to the repo:
 {
   "mcpServers": {
     "my-server": {
+      "type": "stdio",
       "command": "node",
       "args": ["path/to/server.js"],
       "env": {
         "API_KEY": "my-key"
-      }
+      },
+      "envFile": ".env"
     }
   }
 }
 ```
+
+- `type: "stdio"` is required (not implicit) for stdio servers.
+- `envFile` (stdio-only): path to a `.env` file whose variables are loaded into the server's environment.
 
 ### Remote server (SSE / Streamable HTTP)
 
@@ -90,6 +95,33 @@ Project-level configuration, committable to the repo:
   }
 }
 ```
+
+#### OAuth
+
+Remote MCP servers can authenticate via OAuth using an `auth` object:
+
+```json
+{
+  "mcpServers": {
+    "remote-oauth": {
+      "url": "https://my-server.com/mcp",
+      "auth": {
+        "CLIENT_ID": "your-client-id",
+        "CLIENT_SECRET": "your-client-secret",
+        "scopes": ["read", "write"]
+      }
+    }
+  }
+}
+```
+
+| Field           | Description                              |
+| :-------------- | :--------------------------------------- |
+| `CLIENT_ID`     | OAuth client identifier                  |
+| `CLIENT_SECRET` | OAuth client secret                      |
+| `scopes`        | List of OAuth scopes to request          |
+
+The OAuth redirect URL is fixed to `cursor://anysphere.cursor-mcp/oauth/callback`.
 
 ### Environment variables
 
@@ -113,6 +145,11 @@ Supported syntax:
 
 - `${env:VAR}` — variable value
 - `${env:VAR:-default}` — default value if undefined
+- `${userHome}` — current user's home directory
+- `${workspaceFolder}` — absolute path to the workspace root
+- `${workspaceFolderBasename}` — basename of the workspace folder
+- `${pathSeparator}` — OS-specific path separator
+- `${/}` — alias for `${pathSeparator}`
 
 > **Note**: Cursor uses `${env:VAR}` syntax, unlike Claude Code which uses `${VAR}`. maconfai handles this translation automatically when installing MCP servers.
 
@@ -219,6 +256,16 @@ Beyond **~40 MCP tools** loaded simultaneously, the agent loses accuracy. Unlike
 2. **Secrets**: use `env` variables for tokens, do not put them in `args`
 3. **Scope**: keep global servers for personal tools, project-level for shared tools
 4. **Performance**: only add the servers you need -- each server consumes resources
+
+## Programmatic registration
+
+Cursor extensions can register MCP servers programmatically via the Extension API:
+
+```ts
+vscode.cursor.mcp.registerServer(/* server config */)
+```
+
+This lets extensions contribute MCP servers dynamically rather than relying on static `mcp.json` files.
 
 ## Sources
 

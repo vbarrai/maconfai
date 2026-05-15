@@ -35,8 +35,10 @@ description: What the skill does and when to use it.
 | `name`                     | Yes      | Skill name (lowercase, digits, hyphens). Must match parent folder name. Max 64 chars.                                                  |
 | `description`              | Yes      | What the Skill does and when to use it. Max 1024 chars.                                                                                |
 | `disable-model-invocation` | No       | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`. |
-| `license`                  | No       | License name or reference to a bundled license file.                                                                                   |
-| `compatibility`            | No       | Environment requirements (system packages, network access, etc.).                                                                      |
+| `paths`                    | No       | Optional list of glob patterns. Scopes the skill so it is only considered when matching files are in context.                          |
+| `globs`                    | No       | Legacy alias for `paths` (same semantics).                                                                                              |
+| `license`                  | No       | License name or reference to a bundled license file. *Note: not currently documented upstream; may not be enforced.*                    |
+| `compatibility`            | No       | Environment requirements (system packages, network access, etc.). *Note: not currently documented upstream; may not be enforced.*       |
 | `metadata`                 | No       | Arbitrary key-value mapping for additional metadata.                                                                                   |
 
 ## Where to store Skills
@@ -45,6 +47,14 @@ description: What the skill does and when to use it.
 | :------ | :--------------------------------- |
 | Project | `.cursor/skills/<name>/SKILL.md`   |
 | User    | `~/.cursor/skills/<name>/SKILL.md` |
+| Project | `.agents/skills/<name>/SKILL.md`   |
+| User    | `~/.agents/skills/<name>/SKILL.md` |
+
+Cursor also recognizes the following legacy/compat paths (used for cross-tool interop): `.claude/skills/`, `.codex/skills/`, `~/.claude/skills/`, `~/.codex/skills/`.
+
+### Nested skills
+
+Skills placed in subdirectories of a project (rather than at a top-level skills directory) are automatically scoped to that subdirectory — they are only considered when the agent is working within that subtree, without requiring explicit `paths`/`globs` patterns.
 
 ## Skill structure
 
@@ -113,6 +123,10 @@ Scripts that run before or after agent actions.
 ### Specialized knowledge
 
 Instructions for domain-specific tasks.
+
+## Migration
+
+Cursor v2.4 ships with a built-in `/migrate-to-skills` skill that helps convert existing Rules (`.mdc`) and ad-hoc instructions into the Agent Skills format.
 
 ## Full example
 

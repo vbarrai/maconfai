@@ -17,7 +17,7 @@ MCP servers are configured in `opencode.json` under the `mcp` key:
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-github"],
       "environment": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+        "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
       }
     }
   }
@@ -33,33 +33,39 @@ MCP servers are configured in `opencode.json` under the `mcp` key:
       "type": "remote",
       "url": "https://my-server.com/mcp",
       "headers": {
-        "Authorization": "Bearer ${MY_API_TOKEN}"
+        "Authorization": "Bearer {env:MY_API_TOKEN}"
       }
     }
   }
 }
 ```
 
+## Environment Variable Interpolation
+
+> **Important**: Open Code uses `{env:VARIABLE_NAME}` interpolation syntax for environment variables — NOT bare `${VAR}` as in Claude Code or shell scripts. This applies to values inside `environment`, `headers`, and any other interpolated fields.
+
 ## Configuration Locations
 
-| Scope   | Path                                    | Priority |
-| :------ | :-------------------------------------- | :------- |
-| Remote  | `.well-known/opencode` (organizational) | Lowest   |
-| Global  | `~/.config/opencode/opencode.json`      | Medium   |
-| Project | `./opencode.json`                       | Highest  |
+| Scope   | Path                                                        | Priority |
+| :------ | :---------------------------------------------------------- | :------- |
+| Remote  | `.well-known/opencode` (organizational) — _needs verification_ | Lowest   |
+| Global  | `~/.config/opencode/opencode.json`                          | Medium   |
+| Project | `./opencode.json`                                           | Highest  |
 
 Configurations merge — later configs override earlier ones only for conflicting keys.
 
 ## Per-Server Options
 
-| Option        | Type     | Description               |
-| :------------ | :------- | :------------------------ |
-| `type`        | string   | `local` or `remote`       |
-| `command`     | string[] | Command + args as array   |
-| `url`         | string   | Remote server URL         |
-| `headers`     | object   | HTTP headers              |
-| `environment` | object   | Environment variables     |
-| `enabled`     | boolean  | Enable/disable the server |
+| Option        | Type            | Description                                                              |
+| :------------ | :-------------- | :----------------------------------------------------------------------- |
+| `type`        | string          | `local` or `remote`                                                      |
+| `command`     | string[]        | Command + args as array                                                  |
+| `url`         | string          | Remote server URL                                                        |
+| `headers`     | object          | HTTP headers                                                             |
+| `environment` | object          | Environment variables                                                    |
+| `enabled`     | boolean         | Enable/disable the server                                                |
+| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)              |
+| `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth |
 
 ## Format Differences from Other Agents
 
@@ -69,17 +75,41 @@ Configurations merge — later configs override earlier ones only for conflictin
 | Command format | `command: ["npx", "-y", "pkg"]` | `command: "npx"`, `args: [...]` |
 | Env vars key   | `environment`                   | `env`                           |
 | Type field     | Required (`local` / `remote`)   | Implicit                        |
-| Env var syntax | `${VAR}` (bare)                 | `${VAR}` (bare)                 |
+| Env var syntax | `{env:VAR}`                     | `${VAR}` (bare)                 |
 
 maconfai handles format translation automatically — the source `mcp.json` uses the standard format and is converted to Open Code's format during installation.
+
+## Tool Management
+
+A top-level `tools` object can enable or disable MCP tools globally using glob patterns. Per-agent overrides are supported via `agent.<name>.tools`:
+
+```json
+{
+  "tools": {
+    "my-mcp*": false
+  },
+  "agent": {
+    "build": {
+      "tools": {
+        "my-mcp*": true
+      }
+    }
+  }
+}
+```
+
+Glob patterns match tool names; later, more specific patterns take precedence.
 
 ## CLI
 
 ```bash
-opencode mcp add     # Interactive add (local or remote)
-opencode mcp auth    # Browser-based OAuth flow for a remote server
-opencode mcp         # List configured servers and connection status
+opencode mcp auth <server>     # Browser-based OAuth flow for a remote server
+opencode mcp list              # List configured servers and connection status
+opencode mcp logout <server>   # Revoke stored credentials for a server
+opencode mcp debug <server>    # Inspect connection details / troubleshoot
 ```
+
+> Note: `opencode mcp add` is not currently documented in the upstream MCP page — flagged for verification.
 
 ## OAuth Support
 
@@ -95,7 +125,7 @@ To opt out (for example, API-key-only servers that would otherwise trigger OAuth
       "url": "https://my-server.com/mcp",
       "oauth": false,
       "headers": {
-        "Authorization": "Bearer ${MY_API_TOKEN}"
+        "Authorization": "Bearer {env:MY_API_TOKEN}"
       }
     }
   }

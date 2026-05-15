@@ -12,13 +12,16 @@ Hooks are shell commands, HTTP endpoints, or LLM prompts defined by the user tha
 
 | Event                | When it triggers                                        | Can block? |
 | :------------------- | :------------------------------------------------------ | :--------- |
+| `Setup`              | Fires for `--init-only`, `--init`, `--maintenance` runs | No         |
 | `SessionStart`       | At startup or when resuming a session                   | No         |
 | `UserPromptSubmit`   | When a prompt is submitted, before processing by Claude | Yes        |
+| `UserPromptExpansion`| When a slash command is expanded into the prompt        | Yes        |
 | `PreToolUse`         | Before a tool executes. Can block it                    | Yes        |
 | `PermissionRequest`  | When a permission dialog appears                        | Yes        |
 | `PermissionDenied`   | When a permission is denied (supports `retry: true`)    | No         |
 | `PostToolUse`        | After a tool has succeeded                              | No         |
 | `PostToolUseFailure` | After a tool has failed                                 | No         |
+| `PostToolBatch`      | After a parallel batch of tool calls completes          | No         |
 | `Notification`       | When Claude Code sends a notification                   | No         |
 | `Elicitation`        | When a tool requests user input (MCP elicitation)       | Yes        |
 | `ElicitationResult`  | After an elicitation dialog resolves                    | No         |
@@ -87,7 +90,8 @@ Executes a shell command. JSON input arrives on stdin.
 | Field           | Required | Description                                                               |
 | :-------------- | :------- | :------------------------------------------------------------------------ |
 | `type`          | Yes      | `"command"`                                                               |
-| `command`       | Yes      | Shell command to execute                                                  |
+| `command`       | Yes      | Shell command to execute (shell form when `args` is omitted)              |
+| `args`          | No       | Argument list — enables exec form (no shell), vs shell form when only `command` is set |
 | `timeout`       | No       | Seconds before cancellation (default: 600)                                |
 | `async`         | No       | If `true`, runs in the background without blocking                        |
 | `asyncRewake`   | No       | If `true` (async only), re-wakes Claude when the hook completes           |
@@ -104,7 +108,7 @@ Sends the JSON input as a POST to a URL.
 | :--------------- | :------- | :---------------------------------------------------- |
 | `type`           | Yes      | `"http"`                                              |
 | `url`            | Yes      | Endpoint URL                                          |
-| `timeout`        | No       | Seconds before cancellation (default: 30)             |
+| `timeout`        | No       | Seconds before cancellation (default: 600; `UserPromptSubmit` defaults to 30) |
 | `headers`        | No       | HTTP headers (supports `$VAR_NAME` for env variables) |
 | `allowedEnvVars` | No       | Environment variables allowed in headers              |
 
@@ -118,6 +122,20 @@ Sends a prompt to a Claude model for single-turn evaluation.
 | `prompt`  | Yes      | Prompt text. `$ARGUMENTS` = hook JSON input |
 | `model`   | No       | Model to use (default: fast model)          |
 | `timeout` | No       | Seconds before cancellation (default: 30)   |
+
+### MCP Tool (`type: "mcp_tool"`)
+
+Invokes a tool exposed by a configured MCP server.
+
+| Field           | Required | Description                                                       |
+| :-------------- | :------- | :---------------------------------------------------------------- |
+| `type`          | Yes      | `"mcp_tool"`                                                      |
+| `server`        | Yes      | MCP server name                                                   |
+| `tool`          | Yes      | Tool name on that server                                          |
+| `input`         | No       | Input object passed to the tool                                   |
+| `timeout`       | No       | Seconds before cancellation                                       |
+| `statusMessage` | No       | Message displayed during execution                                |
+| `if`            | No       | Permission-rule filter — runs only when active rules match        |
 
 ### Agent (`type: "agent"`)
 
@@ -144,6 +162,8 @@ The `matcher` field is a regex that filters when the hook triggers. Use `"*"`, `
 | `ConfigChange`                                   | Config source            | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills`       |
 | `InstructionsLoaded`                             | Load trigger             | `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`             |
 | `PreCompact`                                     | Trigger                  | `manual`, `auto`                                                                         |
+| `StopFailure`                                    | Failure reason           | `rate_limit`, `authentication_failed`, `oauth_org_not_allowed`, `billing_error`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown` |
+| `FileChanged`                                    | Watched filenames        | Literal filename watch list — **not** a regex or glob                                    |
 
 ### Matcher Semantics
 
@@ -179,6 +199,7 @@ All hooks receive these fields as JSON (stdin for command, body for HTTP):
 | `cwd`             | Current working directory                                                                 |
 | `permission_mode` | Permission mode: `default`, `plan`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions` |
 | `hook_event_name` | Event name                                                                                |
+| `effort`          | Reasoning effort, shape `{level: low\|medium\|high\|xhigh\|max}`                          |
 
 Additional fields for sub-agents:
 
@@ -192,7 +213,7 @@ Additional fields for sub-agents:
 | Code      | Meaning                                               |
 | :-------- | :---------------------------------------------------- |
 | **0**     | Success. Claude Code parses stdout for optional JSON  |
-| **2**     | Blocking error. stderr is shown to Claude as an error |
+| **2**     | Blocks the action for ~15 specific events (e.g. `PreToolUse`, `UserPromptSubmit`, `Stop`); for other events, just shows stderr to the user without blocking |
 | **Other** | Non-blocking error. stderr displayed in verbose mode  |
 
 ### JSON Output
@@ -207,6 +228,7 @@ On exit 0, stdout JSON can control behavior:
 | `systemMessage`  | —       | Warning message displayed to the user          |
 | `decision`       | —       | `"block"` to block the action (certain events) |
 | `reason`         | —       | Reason for blocking                            |
+| `terminalSequence` | —     | Raw terminal escape sequence written to the user's TTY |
 
 ### PreToolUse Decision Control
 
@@ -229,14 +251,14 @@ On exit 0, stdout JSON can control behavior:
 - `PostToolUse`: `updatedMCPToolOutput` (for MCP tools), `additionalContext`.
 - `UserPromptSubmit`: `sessionTitle`, `additionalContext`.
 - `PermissionDenied`: `retry: true` to retry the tool call after the user revisits permissions.
-- `PermissionRequest`: rich `decision` object — `behavior`, `updatedInput`, `updatedPermissions` (`addRules | replaceRules | removeRules | setMode | addDirectories | removeDirectories`), `destination` (`session | localSettings | projectSettings | userSettings`).
+- `PermissionRequest`: rich `decision` object — `decision.behavior` (`allow | deny | ask`), `decision.updatedInput` (mutated tool input), `decision.applyPermissionRules` (array of permission rules to apply for the current decision).
 - `Elicitation` / `ElicitationResult`: `action` (`accept | decline | cancel`) and `content`.
 - `WorktreeCreate`: returns the worktree path (stdout or `worktreePath`).
 
 ### Output Caps, Dedup, and HTTP Semantics
 
 - **Output cap**: hook stdout/stderr over 10,000 chars is truncated; the full payload is saved to a file with a preview.
-- **Deduplication**: identical handler definitions registered multiple times are executed once per event.
+- **Deduplication**: identical handler definitions registered multiple times are executed once per event. Command hooks dedupe by `command+args`; HTTP hooks dedupe by `url`.
 - **HTTP hooks**: non-2xx responses are non-blocking. To block, return 2xx with `decision: "block"` or an appropriate `hookSpecificOutput`.
 
 ## Environment Variables
@@ -248,6 +270,7 @@ On exit 0, stdout JSON can control behavior:
 | `${CLAUDE_PLUGIN_DATA}` | Plugin-scoped data directory                                                                                                          |
 | `$CLAUDE_CODE_REMOTE`   | `"true"` in a remote web environment                                                                                                  |
 | `$CLAUDE_ENV_FILE`      | Path to a file available in `SessionStart`, `CwdChanged`, `FileChanged` where hooks can persist env vars for subsequent Bash commands |
+| `$CLAUDE_EFFORT`        | Current reasoning effort level (`low`, `medium`, `high`, `xhigh`, `max`)                                                              |
 
 ## Hooks in Skills and Agents
 

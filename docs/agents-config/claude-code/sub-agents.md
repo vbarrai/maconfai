@@ -8,13 +8,27 @@
 
 A sub-agent is an autonomous Claude instance that runs in an isolated context, with its own system prompt and limited tool access. Sub-agents allow you to parallelize tasks, isolate complex workflows, and structure work into teams.
 
+> **Tool renaming (v2.1.63)**: the `Task` tool was renamed to `Agent`. Existing `Task(...)` references still work as aliases. Permission rules now use `Agent(name)` (e.g., `"allow": ["Agent(security-reviewer)"]`).
+
 ## Built-in Sub-agent Types
 
-| Agent             | Description                       | Available tools                       |
-| :---------------- | :-------------------------------- | :------------------------------------ |
-| `Explore`         | Fast codebase exploration         | Read, Grep, Glob, WebFetch, WebSearch |
-| `Plan`            | Software architect, plan design   | Read, Grep, Glob, WebFetch, WebSearch |
-| `general-purpose` | Versatile agent for complex tasks | All tools                             |
+| Agent               | Description                                          | Available tools                       |
+| :------------------ | :--------------------------------------------------- | :------------------------------------ |
+| `Explore`           | Fast codebase exploration                            | Read, Grep, Glob, WebFetch, WebSearch |
+| `Plan`              | Software architect, plan design                      | Read, Grep, Glob, WebFetch, WebSearch |
+| `general-purpose`   | Versatile agent for complex tasks                    | All tools                             |
+| `statusline-setup`  | Configures the status line (built-in, Sonnet)        | Read, Edit                            |
+| `claude-code-guide` | Built-in helper for Claude Code questions (Haiku)    | Read, WebFetch                        |
+
+### Scope and Priority
+
+| Priority | Source                       |
+| :------- | :--------------------------- |
+| 1        | Managed policy               |
+| 2        | `--agents` CLI flag          |
+| 3        | Project (`.claude/agents/`)  |
+| 4        | User (`~/.claude/agents/`)   |
+| 5        | Plugin                       |
 
 ## Creating a Custom Sub-agent
 
@@ -62,14 +76,34 @@ For each vulnerability found:
 
 ### Frontmatter Fields
 
-| Field           | Required    | Description                             |
-| :-------------- | :---------- | :-------------------------------------- |
-| `name`          | No          | Agent name (default: filename)          |
-| `description`   | Recommended | What the agent does and when to use it  |
-| `allowed-tools` | No          | Tools allowed without asking permission |
-| `model`         | No          | Model to use                            |
-| `hooks`         | No          | Hooks specific to the agent's lifecycle |
-| `context`       | No          | `fork` to isolate in a sub-agent        |
+| Field             | Required    | Description                                                                                                                |
+| :---------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | **Yes**     | Agent name                                                                                                                 |
+| `description`     | Recommended | What the agent does and when to use it                                                                                     |
+| `tools`           | No          | Tools allowed without asking permission (comma-separated string or YAML list)                                              |
+| `disallowedTools` | No          | Tools explicitly forbidden                                                                                                 |
+| `model`           | No          | Model to use. Accepts `inherit` (keep current) or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6`                     |
+| `permissionMode`  | No          | `default` \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                                         |
+| `maxTurns`        | No          | Maximum turns the subagent may take                                                                                        |
+| `skills`          | No          | Skills to preload                                                                                                          |
+| `mcpServers`      | No          | MCP servers to load for this subagent                                                                                      |
+| `memory`          | No          | Memory scope: `user` \| `project` \| `local`                                                                               |
+| `background`      | No          | If `true`, runs as a background task                                                                                        |
+| `effort`          | No          | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                                          |
+| `isolation`       | No          | `worktree` to run in an isolated git worktree                                                                              |
+| `color`           | No          | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`                          |
+| `initialPrompt`   | No          | Initial prompt seeded into the subagent's context                                                                          |
+| `hooks`           | No          | Hooks specific to the agent's lifecycle                                                                                    |
+
+> **Fork mode** is a Skill feature (not a subagent frontmatter field). It is invoked via the `/fork` slash command or by setting `CLAUDE_CODE_FORK_SUBAGENT=1`.
+
+> **Plugin-loaded subagents** ignore `hooks`, `mcpServers`, and `permissionMode`.
+
+> **Mention syntax**: address a subagent inline with `@agent-<name>` or `@"<name> (agent)"`.
+
+### Settings Key
+
+In `.claude/settings.json` (or user/managed), the top-level `agent` key sets the default subagent for new sessions.
 
 ## Invoking a Sub-agent
 
@@ -268,6 +302,15 @@ You are a unit testing expert. For each modified file:
 - Mocks: `vi.mock()` for external dependencies
 - No `test.only` or `test.skip`
 ```
+
+## Environment Variables
+
+| Variable                                    | Description                                                            |
+| :------------------------------------------ | :--------------------------------------------------------------------- |
+| `CLAUDE_CODE_SUBAGENT_MODEL`                | Override the model used by subagents                                   |
+| `CLAUDE_CODE_FORK_SUBAGENT`                 | If set to `1`, enable fork-mode subagent invocation                    |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`      | Disable `background: true` subagents                                   |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`      | Enable experimental agent-teams behavior                               |
 
 ## Sources
 

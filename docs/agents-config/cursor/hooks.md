@@ -88,6 +88,8 @@ LLM-evaluated natural language conditions for policy enforcement without custom 
 
 Returns `{ ok: boolean, reason?: string }`.
 
+> **Note**: In `type: "prompt"` hooks, the literal `$ARGUMENTS` placeholder inside the `prompt` field is auto-replaced with the JSON hook input at evaluation time.
+
 ## Hook Events Reference
 
 ### Session Lifecycle
@@ -98,6 +100,14 @@ Returns `{ ok: boolean, reason?: string }`.
 | `sessionEnd`   | When a conversation ends   | No (fire-and-forget) |
 
 `sessionStart` can inject environment variables and context. `sessionEnd` receives reason (`completed`/`aborted`/`error`) and duration metrics.
+
+### App Lifecycle
+
+| Event           | When it triggers      | Can block?           |
+| :-------------- | :-------------------- | :------------------- |
+| `workspaceOpen` | When a workspace opens | No (fire-and-forget) |
+
+App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g. `conversation_id`, `generation_id`, `transcript_path`) from the universal input.
 
 ### Tool Execution
 
@@ -210,6 +220,16 @@ Blocking/allowing hooks return:
 
 `permission` options: `"allow"`, `"deny"`, `"ask"` (prompts user approval — some hooks don't support it and fall back to deny).
 
+### Additional Output Fields
+
+| Field                     | Hook                | Description                                                                  |
+| :------------------------ | :------------------ | :--------------------------------------------------------------------------- |
+| `updated_input`           | `preToolUse`        | Modified tool input forwarded to the tool execution                          |
+| `continue`                | `beforeSubmitPrompt` | Allow (`true`) or block (`false`) the prompt submission                      |
+| `env`                     | `sessionStart`      | Environment variables injected into the session                              |
+| `additional_context`      | `sessionStart`      | Extra context string appended to the session                                 |
+| `updated_mcp_tool_output` | `postToolUse`       | Redacted/modified MCP tool output (for PII/secret stripping after execution) |
+
 ### Follow-Up Automation
 
 `subagentStop` and `stop` hooks support:
@@ -317,6 +337,10 @@ The script returns `permission: "deny"` for git commands, `permission: "ask"` fo
 | **Fail-closed option**    | Yes (`failClosed: true`)                            | No (exit code 2 blocks)                          |
 | **Environment variables** | `CURSOR_PROJECT_DIR`, `CURSOR_VERSION`, etc.        | `$CLAUDE_PROJECT_DIR`, `${CLAUDE_PLUGIN_ROOT}`   |
 | **Claude compat**         | Yes (`CLAUDE_PROJECT_DIR` alias)                    | —                                                |
+
+## Interop
+
+Cursor supports loading hooks from third-party tools, including Claude Code. Existing Claude Code hook configurations can be reused/loaded by Cursor for easier migration and shared tooling across agents.
 
 ## Sources
 
