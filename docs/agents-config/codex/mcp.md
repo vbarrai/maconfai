@@ -55,27 +55,27 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 
 ## Per-Server Options
 
-| Option                     | Type     | Description                                                       |
-| :------------------------- | :------- | :---------------------------------------------------------------- |
-| `command`                  | string   | stdio command                                                     |
-| `args`                     | string[] | Command arguments                                                 |
-| `env`                      | table    | Environment variables                                             |
-| `env_vars`                 | string[] | Allow/forward list of env vars passed through to the server       |
-| `cwd`                      | string   | Working directory                                                 |
-| `url`                      | string   | Streamable HTTP URL                                               |
-| `bearer_token_env_var`     | string   | Env variable for Bearer token                                     |
-| `http_headers`             | table    | Static HTTP headers                                               |
-| `env_http_headers`         | table    | HTTP headers from env variables                                   |
-| `scopes`                   | string[] | OAuth scopes requested during authorization                       |
-| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                               |
-| `experimental_environment` | string   | `"local"` or `"remote"`                                           |
-| `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                         |
-| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds         |
-| `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                                   |
-| `enabled`                  | bool     | Enable/disable the server                                         |
-| `required`                 | bool     | If `true`, fail startup if the server is unavailable              |
-| `disabled_tools`           | string[] | List of tools to disable                                          |
-| `enabled_tools`            | string[] | Allowlist of tools (complement of `disabled_tools`)               |
+| Option                     | Type     | Description                                                 |
+| :------------------------- | :------- | :---------------------------------------------------------- |
+| `command`                  | string   | stdio command                                               |
+| `args`                     | string[] | Command arguments                                           |
+| `env`                      | table    | Environment variables                                       |
+| `env_vars`                 | string[] | Allow/forward list of env vars passed through to the server |
+| `cwd`                      | string   | Working directory                                           |
+| `url`                      | string   | Streamable HTTP URL                                         |
+| `bearer_token_env_var`     | string   | Env variable for Bearer token                               |
+| `http_headers`             | table    | Static HTTP headers                                         |
+| `env_http_headers`         | table    | HTTP headers from env variables                             |
+| `scopes`                   | string[] | OAuth scopes requested during authorization                 |
+| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                         |
+| `experimental_environment` | string   | `"local"` or `"remote"`                                     |
+| `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                   |
+| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds   |
+| `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                             |
+| `enabled`                  | bool     | Enable/disable the server                                   |
+| `required`                 | bool     | If `true`, fail startup if the server is unavailable        |
+| `disabled_tools`           | string[] | List of tools to disable                                    |
+| `enabled_tools`            | string[] | Allowlist of tools (complement of `disabled_tools`)         |
 
 ## Project-Scoped Config
 
