@@ -50,13 +50,14 @@ Instructions that Claude will follow when the Skill is invoked.
 | `description`              | Recommended | What the Skill does and when to use it. Claude uses this field to decide when to load the Skill. Combined with `when_to_use`, truncated at 1,536 chars. |
 | `when_to_use`              | No          | Additional guidance on when Claude should invoke the Skill. Appended to `description` in the listing (counts toward the 1,536-char cap).                |
 | `argument-hint`            | No          | Hint displayed during auto-completion. E.g., `[issue-number]`, `[filename] [format]`.                                                                   |
+| `arguments`                | No          | Named positional arguments (space-separated string or YAML list). E.g., `arguments: [issue, branch]` → enables `$issue`, `$branch` substitution.        |
 | `disable-model-invocation` | No          | `true` = prevents Claude from automatically loading this Skill. For manual workflows (`/deploy`, `/commit`). Default: `false`.                          |
 | `user-invocable`           | No          | `false` = hidden from the `/` menu. For background knowledge. Default: `true`.                                                                          |
 | `allowed-tools`            | No          | Tools Claude can use without asking permission when the Skill is active. Space-separated string or YAML list. E.g., `Read Grep Glob`.                   |
-| `model`                    | No          | Model to use when the Skill is active.                                                                                                                  |
+| `model`                    | No          | Model to use when the Skill is active. `inherit` keeps the active model.                                                                                |
 | `effort`                   | No          | Reasoning effort budget. Options: `low`, `medium`, `high`, `xhigh`, `max`.                                                                              |
-| `paths`                    | No          | Glob patterns limiting when the Skill activates (e.g., `["src/**/*.ts"]`).                                                                              |
-| `shell`                    | No          | Shell used for `` !`...` `` injection and script execution. `bash` (default) or `powershell`.                                                           |
+| `paths`                    | No          | Glob patterns limiting when the Skill activates (e.g., `["src/**/*.ts"]`). Also accepts a comma-separated string.                                       |
+| `shell`                    | No          | Shell used for `` !`...` `` injection and script execution. `bash` (default) or `powershell` (requires `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`).            |
 | `context`                  | No          | `fork` = run in an isolated sub-agent.                                                                                                                  |
 | `agent`                    | No          | Type of sub-agent to use with `context: fork`. Options: `Explore`, `Plan`, `general-purpose` (default), or a custom agent from `.claude/agents/`.       |
 | `hooks`                    | No          | Hooks tied to the Skill's lifecycle.                                                                                                                    |
@@ -78,12 +79,14 @@ When working in a subdirectory, Claude Code also discovers Skills in nested `.cl
 
 ## Substitution Variables
 
-| Variable               | Description                            |
-| :--------------------- | :------------------------------------- |
-| `$ARGUMENTS`           | All arguments passed to the invocation |
-| `$ARGUMENTS[N]` / `$N` | Argument by index (0-based)            |
-| `${CLAUDE_SESSION_ID}` | Current session ID                     |
-| `${CLAUDE_SKILL_DIR}`  | Directory containing the SKILL.md      |
+| Variable               | Description                                                           |
+| :--------------------- | :-------------------------------------------------------------------- |
+| `$ARGUMENTS`           | All arguments passed to the invocation                                |
+| `$ARGUMENTS[N]` / `$N` | Argument by index (0-based)                                           |
+| `$name`                | Named argument from the `arguments` frontmatter field (e.g. `$issue`) |
+| `${CLAUDE_SESSION_ID}` | Current session ID                                                    |
+| `${CLAUDE_SKILL_DIR}`  | Directory containing the SKILL.md                                     |
+| `${CLAUDE_EFFORT}`     | Current reasoning effort level                                        |
 
 **Example:**
 
@@ -216,6 +219,12 @@ Files in `.claude/commands/` continue to work and support the same frontmatter. 
 
 Skill descriptions are loaded into context. With many Skills, they can exceed the character budget (1% of the context window, fallback to 8,000 chars). Use `/context` to check. Environment variable: `SLASH_COMMAND_TOOL_CHAR_BUDGET`.
 
+Additional settings:
+
+- `skillListingBudgetFraction` — fraction of the context window allocated to the skill listing.
+- `maxSkillDescriptionChars` — per-skill description character cap before truncation.
+- `skillOverrides` — controls how user/project skills override built-ins: `"on" | "name-only" | "user-invocable-only" | "off"`.
+
 ## Skill Content Lifecycle
 
 On auto-compaction, Claude Code retains the first 5,000 tokens of each loaded Skill, capped at a combined 25,000-token budget.
@@ -223,6 +232,8 @@ On auto-compaction, Claude Code retains the first 5,000 tokens of each loaded Sk
 ## Live Change Detection
 
 Adding, editing, or removing a Skill takes effect within the current session — no restart required. Skills in directories added via `--add-dir` are also re-discovered live.
+
+> **Note**: while `--add-dir` directories normally grant file-access only (not Skill/agent loading), `.claude/skills/` directories within them **are** loaded as an exception.
 
 ## Permission Rules
 

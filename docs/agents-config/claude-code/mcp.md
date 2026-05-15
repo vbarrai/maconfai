@@ -10,11 +10,11 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 
 ## Transport Types
 
-| Type              | Description                    | Typical usage                     |
-| :---------------- | :----------------------------- | :-------------------------------- |
-| `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python) |
-| `sse`             | Server-Sent Events via HTTP    | Remote servers (legacy)           |
-| `streamable-http` | Bidirectional HTTP streaming   | Remote servers (recommended)      |
+| Type              | Description                    | Typical usage                                                                    |
+| :---------------- | :----------------------------- | :------------------------------------------------------------------------------- |
+| `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python)                                                |
+| `sse`             | Server-Sent Events via HTTP    | **Deprecated** — use HTTP servers instead, where available                       |
+| `streamable-http` | Bidirectional HTTP streaming   | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs. |
 
 ## Configuration
 
@@ -70,13 +70,16 @@ For global MCP servers available across all projects:
 
 ## Configuration Fields
 
-| Field     | Required       | Description                     |
-| :-------- | :------------- | :------------------------------ |
-| `command` | Yes (stdio)    | Command to launch the server    |
-| `args`    | No             | Command arguments               |
-| `env`     | No             | Environment variables           |
-| `url`     | Yes (sse/http) | Remote server URL               |
-| `headers` | No             | HTTP headers for remote servers |
+| Field           | Required       | Description                                                                                |
+| :-------------- | :------------- | :----------------------------------------------------------------------------------------- |
+| `command`       | Yes (stdio)    | Command to launch the server                                                               |
+| `args`          | No             | Command arguments                                                                          |
+| `env`           | No             | Environment variables                                                                      |
+| `url`           | Yes (sse/http) | Remote server URL                                                                          |
+| `headers`       | No             | HTTP headers for remote servers                                                            |
+| `headersHelper` | No             | Shell command whose stdout produces headers dynamically (e.g. for short-lived auth tokens) |
+| `oauth`         | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl, scopes }`           |
+| `alwaysLoad`    | No             | If `true`, the server is exempt from Tool Search deferral and its tools always load        |
 
 ## Scopes
 
@@ -98,6 +101,10 @@ claude mcp add --transport stdio --env API_KEY=xxx my-server -- npx -y @package/
 claude mcp add --transport http github https://api.githubcopilot.com/mcp/
 claude mcp add --scope project --transport http sentry https://mcp.sentry.dev/mcp
 
+# HTTP server with custom header and OAuth
+claude mcp add --transport http --header "Authorization: Bearer $TOKEN" my-api https://api.example.com/mcp
+claude mcp add --transport http --client-id my-client --callback-port 8765 --scope read,write oauth-srv https://oauth.example.com/mcp
+
 # Add from JSON
 claude mcp add-json my-server '{"command": "npx", "args": ["-y", "@package/server"]}'
 
@@ -114,6 +121,16 @@ claude mcp reset-project-choices
 ```
 
 **Important**: flags (`--transport`, `--env`, `--scope`) must come **before** the server name. Use `--` to separate flags from server arguments.
+
+Additional `claude mcp add` flags:
+
+| Flag                  | Description                                              |
+| :-------------------- | :------------------------------------------------------- |
+| `--header "Name: V"`  | Adds an HTTP header (repeatable)                         |
+| `--callback-port <n>` | OAuth callback port                                      |
+| `--client-id <id>`    | OAuth client ID                                          |
+| `--client-secret <s>` | OAuth client secret (or set `MCP_CLIENT_SECRET` env var) |
+| `--scope <s>`         | OAuth scopes (comma-separated)                           |
 
 ## Interactive Menu `/mcp`
 
@@ -156,6 +173,8 @@ Supported syntax:
 
 Expansion works in: `command`, `args`, `env`, `url`, `headers`.
 
+> **Note**: when using `${CLAUDE_PROJECT_DIR}` in a project- or user-scoped `.mcp.json`, you **must** provide a default — `${CLAUDE_PROJECT_DIR:-.}` — because the variable may be unset outside an active session. Plugin-provided MCPs are exempt from this requirement.
+
 ### Where to define the variables
 
 Variables are resolved at runtime. Define them in one of these locations:
@@ -184,6 +203,20 @@ export MY_API_TOKEN="sk-..."
 ```
 
 > **Note**: Claude Code's `settings.json` is a local file not committed to any repo. It is a good place to store secrets that should not leak into shell history or dotfiles.
+
+## Environment Variables
+
+| Variable                      | Description                                                                                                    |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `MCP_TIMEOUT`                 | Per-server connection/request timeout                                                                          |
+| `MCP_CLIENT_SECRET`           | OAuth client secret (alternative to `--client-secret`)                                                         |
+| `MCP_CONNECTION_NONBLOCKING`  | If set, MCP connection failures do not block session start                                                     |
+| `ENABLE_TOOL_SEARCH`          | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded) |
+| `ENABLE_CLAUDEAI_MCP_SERVERS` | Enable claude.ai-hosted MCP servers                                                                            |
+| `CLAUDE_CODE_MCP_SERVER_NAME` | Server name override when Claude Code runs as an MCP server                                                    |
+| `CLAUDE_CODE_MCP_SERVER_URL`  | Server URL override when Claude Code runs as an MCP server                                                     |
+
+> **Reserved name**: `workspace` is reserved and cannot be used as a server name.
 
 ## Common MCP Servers
 
@@ -317,7 +350,7 @@ claude mcp serve
 - **Permissions**: Claude Code asks for permission before using MCP tools
 - **Network**: `stdio` servers run locally, `sse`/`http` can be remote
 - **Audit**: use `PreToolUse` hooks to log/validate MCP calls
-- **Enterprise**: `managed-mcp.json` for centralized configuration, allowlist/denylist via `allowedMcpServers` / `deniedMcpServers`
+- **Enterprise**: `managed-mcp.json` for centralized configuration (macOS: `/Library/Application Support/ClaudeCode/managed-mcp.json`, Linux: `/etc/claude-code/managed-mcp.json`, Windows: `C:\Program Files\ClaudeCode\managed-mcp.json`). Allowlist/denylist via `allowedMcpServers` / `deniedMcpServers`; entries accept `serverName`, `serverCommand`, or `serverUrl` (with wildcard URL patterns).
 
 ## Sources
 

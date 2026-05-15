@@ -1,6 +1,6 @@
 export type AgentType = 'claude-code' | 'cursor' | 'codex' | 'open-code'
 
-export type McpEnvSyntax = 'bare' | 'env-prefix'
+export type McpEnvSyntax = 'bare' | 'env-prefix' | 'opencode-env'
 
 export interface McpServerConfig {
   command?: string

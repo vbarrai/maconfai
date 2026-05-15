@@ -1,16 +1,101 @@
-> **maconfai support: Not supported** — Hooks are not managed by maconfai. Reference only.
+> **maconfai support: Not supported** — Hooks are not yet managed by maconfai for Codex. Codex hooks now share the same shape as Claude Code hooks. Adding `hooks.json` install support for Codex is a candidate roadmap item.
 
 # OpenAI Codex — Hooks Guide
 
-> Official source: [github.com/openai/codex](https://github.com/openai/codex)
+> Official source: [developers.openai.com/codex/hooks](https://developers.openai.com/codex/hooks) (secondary: [github.com/openai/codex](https://github.com/openai/codex))
 
 ## Overview
 
-Codex has limited hook support compared to Claude Code or Cursor. The main hook mechanism is commit attribution.
+Codex supports a hooks system aligned with Claude Code's hooks: lifecycle events can trigger user-defined commands, with structured stdin payloads and structured outputs that can influence agent behavior.
+
+## Lifecycle Events
+
+| Event               | Description                                       |
+| :------------------ | :------------------------------------------------ |
+| `SessionStart`      | Fires when a Codex session begins                 |
+| `PreToolUse`        | Fires before a tool call is executed              |
+| `PermissionRequest` | Fires when Codex needs to request user permission |
+| `PostToolUse`       | Fires after a tool call completes                 |
+| `UserPromptSubmit`  | Fires when the user submits a prompt              |
+| `Stop`              | Fires when the session is about to stop           |
+
+## Configuration Locations
+
+Hooks can be defined in any of the following locations (merged in precedence order):
+
+| Location                                        | Scope                                                                           |
+| :---------------------------------------------- | :------------------------------------------------------------------------------ |
+| `~/.codex/hooks.json`                           | User-level                                                                      |
+| `~/.codex/config.toml` (inline `[hooks]` table) | User-level                                                                      |
+| `<repo>/.codex/hooks.json`                      | Project-level                                                                   |
+| `<repo>/.codex/config.toml` (inline `[hooks]`)  | Project-level                                                                   |
+| `requirements.toml`                             | Admin/policy. Set `allow_managed_hooks_only = true` to ignore lower-scope hooks |
+| `.codex-plugin/plugin.json`                     | Plugin manifest contributing hooks                                              |
+
+## Structure
+
+Each event maps to a list of matcher groups; each matcher group has one or more handlers.
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/path/to/script.sh",
+            "timeout": 600,
+            "statusMessage": "Validating bash command..."
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Fields
+
+| Field           | Type   | Description                                    |
+| :-------------- | :----- | :--------------------------------------------- |
+| `matcher`       | string | Pattern to match against tool name or context  |
+| `type`          | string | Handler type — currently only `"command"`      |
+| `command`       | string | Shell command to execute                       |
+| `timeout`       | number | Timeout in seconds (default: 600)              |
+| `statusMessage` | string | Optional message displayed while the hook runs |
+
+## Hook stdin JSON
+
+Hooks receive a JSON payload on stdin:
+
+| Field             | Description                                  |
+| :---------------- | :------------------------------------------- |
+| `session_id`      | Current Codex session id                     |
+| `transcript_path` | Path to the session transcript               |
+| `cwd`             | Working directory                            |
+| `hook_event_name` | Name of the lifecycle event                  |
+| `turn_id`         | Identifier for the current conversation turn |
+
+## Hook outputs
+
+A hook may emit a JSON object on stdout to influence Codex:
+
+| Field                | Description                               |
+| :------------------- | :---------------------------------------- |
+| `continue`           | Whether to continue the operation         |
+| `stopReason`         | Reason to stop (if `continue` is false)   |
+| `systemMessage`      | Message injected as a system message      |
+| `permissionDecision` | Decision for `PermissionRequest` events   |
+| `decision`           | Generic decision (e.g., allow/deny)       |
+| `reason`             | Human-readable rationale for the decision |
 
 ## Commit Attribution
 
-Codex uses an automatically managed `prepare-commit-msg` hook for co-author attribution. Configurable via `command_attribution`:
+Commit attribution is configured via the `command_attribution` field.
+
+Per [openai/codex#11617](https://github.com/openai/codex/pull/11617) (merged 2026-02), the title and body of the PR describe two different mechanisms (prompt-based vs. `prepare-commit-msg` hook injected via `core.hooksPath`). The merged PR's "Summary of changes" explicitly keeps `command_attribution` config support (default Codex label, blank disables, custom label supported). The on-disk mechanism is out of scope for this doc until confirmed against `codex-rs` sources.
 
 - **Default label**: standard attribution
 - **Custom label**: custom label
@@ -18,4 +103,5 @@ Codex uses an automatically managed `prepare-commit-msg` hook for co-author attr
 
 ## Sources
 
+- [Codex Hooks](https://developers.openai.com/codex/hooks)
 - [OpenAI Codex — GitHub](https://github.com/openai/codex)

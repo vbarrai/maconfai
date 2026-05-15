@@ -19,25 +19,36 @@ Plugins can also be loaded from npm packages via the `plugin` option in `opencod
 
 ## Plugin Configuration
 
+The `plugin` field is an **array of npm package names**:
+
 ```json
 {
-  "plugin": {
-    "my-plugin": {
-      "source": "npm:@my-org/opencode-plugin",
-      "config": {
-        "key": "value"
-      }
-    }
-  }
+  "plugin": ["opencode-helicone-session", "@my-org/opencode-plugin"]
 }
 ```
 
+> Plugins listed in the `plugin` array of `opencode.json` are installed automatically using Bun at startup — no user-authored `package.json` is required. A `package.json` in `.opencode/` is only needed for **local** plugins (`.opencode/plugins/<name>.ts`) that import external npm packages.
+
 ## Common Hook Events
 
-| Event                 | Description                        |
-| :-------------------- | :--------------------------------- |
-| `tool.execute.before` | Intercept tool execution arguments |
-| `tool.execute.after`  | Access results after execution     |
+The plugin event catalog includes a wide range of lifecycle hooks:
+
+| Event namespace                   | Documented events                                                                                                                               |
+| :-------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session.*`                       | `session.created`, `session.deleted`, `session.idle`, `session.compacted`, `session.diff`, `session.error`, `session.status`, `session.updated` |
+| `message.*`                       | `message.updated`, `message.removed`, `message.part.updated`, `message.part.removed`                                                            |
+| `file.*`                          | `file.edited`, `file.watcher.updated`                                                                                                           |
+| `lsp.*`                           | `lsp.client.diagnostics`, `lsp.updated`                                                                                                         |
+| `permission.*`                    | `permission.asked`, `permission.replied`                                                                                                        |
+| `tool.execute.before`             | Intercept tool execution arguments                                                                                                              |
+| `tool.execute.after`              | Access results after execution                                                                                                                  |
+| `command.executed`                | A slash or shell command finished                                                                                                               |
+| `todo.updated`                    | Todo list changed                                                                                                                               |
+| `tui.*`                           | `tui.prompt.append`, `tui.command.execute`, `tui.toast.show`                                                                                    |
+| `shell.env`                       | Shell environment resolution                                                                                                                    |
+| `server.connected`                | Backend/server connection established                                                                                                           |
+| `installation.updated`            | Open Code installation/update events                                                                                                            |
+| `experimental.session.compacting` | Experimental session compaction event                                                                                                           |
 
 ## Why Not Supported by maconfai
 

@@ -173,8 +173,11 @@ function toOpenCodeServer(server: McpServerConfig): OpenCodeMcpServer {
 
 export function translateEnvVar(value: string, syntax: McpEnvSyntax): string {
   if (syntax === 'bare') return value
-  // Convert ${VAR} and ${VAR:-default} to ${env:VAR} and ${env:VAR:-default}
-  // but skip already-prefixed ${env:...}
+  if (syntax === 'opencode-env') {
+    // Open Code uses {env:VAR} (no leading $). Convert ${VAR} → {env:VAR}, skip pre-converted {env:...}.
+    return value.replace(/\$\{([^}]+)\}/g, '{env:$1}')
+  }
+  // env-prefix (Cursor): convert ${VAR} and ${VAR:-default} to ${env:VAR}, skip already-prefixed.
   return value.replace(/\$\{(?!env:)([^}]+)\}/g, '${env:$1}')
 }
 

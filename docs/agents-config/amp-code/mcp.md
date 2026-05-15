@@ -12,21 +12,54 @@
     "github": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" }
+      "env": { "GITHUB_TOKEN": "${GITHUB_TOKEN}" },
+      "includeTools": ["search_*", "get_issue"]
     }
   }
 }
 ```
 
+Per-server fields include the standard `command`/`args`/`env` (stdio) or `url`/`headers` (remote), plus:
+
+- `includeTools` — optional `string[]` of tool names or glob patterns to restrict which tools are loaded from the server.
+
+## Remote Servers
+
+```json
+{
+  "amp.mcpServers": {
+    "linear": {
+      "url": "https://mcp.linear.app/sse",
+      "headers": { "Authorization": "Bearer ${LINEAR_TOKEN}" }
+    }
+  }
+}
+```
+
+OAuth-enabled remote servers use the redirect URI `http://localhost:8976/oauth/callback`.
+
+## Scopes
+
+- **User / global settings** — entries in the user `settings.json` apply across all workspaces and load without prompting.
+- **Workspace** — entries in `.amp/settings.json` apply only to that workspace and require explicit approval (via `amp mcp approve <server>` or the UI) before they are loaded.
+
+## CLI
+
+- `amp mcp add <name> -- <command> [args]` — register a stdio server
+- `amp mcp add <name> <url>` — register a remote (HTTP/SSE) server
+- `amp mcp approve <server>` — approve a workspace-scoped server
+- `amp mcp doctor` — diagnose MCP server configuration and connectivity
+- `amp mcp oauth login <server>` / `amp mcp oauth logout <server>` — manage OAuth sessions for remote servers
+
 ## MCP Permissions
 
-Granular rule-based permissions system:
+Granular rule-based permissions system. Rules match against the server's `command`/`args` (stdio) or `url` (remote) — they are **not** globs over tool names.
 
 ```json
 {
   "amp.mcpPermissions": [
-    { "pattern": "github__*", "action": "allow" },
-    { "pattern": "dangerous__delete_*", "action": "block" }
+    { "matches": { "command": "npx * @modelcontextprotocol/server-github*" }, "action": "allow" },
+    { "matches": { "url": "https://mcp.example.com/*" }, "action": "block" }
   ]
 }
 ```
@@ -35,11 +68,13 @@ Granular rule-based permissions system:
 
 ## MCP on the Command Line
 
-`--mcp-config` flag for `-x` commands (without modifying config):
+`--mcp-config` takes an inline JSON string (no `-x` required):
 
 ```bash
-amp -x --mcp-config ./mcp-servers.json "prompt"
+amp --mcp-config '{"mcpServers":{"github":{"command":"npx","args":["-y","@modelcontextprotocol/server-github"]}}}'
 ```
+
+The upstream manual documents only the inline JSON form; file-path support is not officially documented.
 
 ## Sources
 

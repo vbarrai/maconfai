@@ -12,15 +12,15 @@ Claude automatically loads the contents of `CLAUDE.md` at the start of each sess
 
 ## Locations and Priority
 
-| Scope           | Path                                                                                            | Applies to                                              |
-| :-------------- | :---------------------------------------------------------------------------------------------- | :------------------------------------------------------ |
-| Enterprise      | macOS: `/Library/Application Support/ClaudeCode/CLAUDE.md`, Linux: `/etc/claude-code/CLAUDE.md` | All users in the organization                           |
-| User            | `~/.claude/CLAUDE.md`                                                                           | All your projects                                       |
-| Project (root)  | `CLAUDE.md` or `.claude/CLAUDE.md`                                                              | This project only                                       |
-| Project (local) | `CLAUDE.local.md`                                                                               | This project (unversioned, gitignored)                  |
-| Subdirectory    | `packages/frontend/CLAUDE.md`                                                                   | Loaded on demand when Claude works in this subdirectory |
+| Scope           | Path                                                                                                                                              | Applies to                                              |
+| :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------ |
+| Managed policy  | macOS: `/Library/Application Support/ClaudeCode/CLAUDE.md`, Linux: `/etc/claude-code/CLAUDE.md`, Windows: `C:\Program Files\ClaudeCode\CLAUDE.md` | All users in the organization                           |
+| User            | `~/.claude/CLAUDE.md`                                                                                                                             | All your projects                                       |
+| Project (root)  | `CLAUDE.md` or `.claude/CLAUDE.md`                                                                                                                | This project only                                       |
+| Project (local) | `CLAUDE.local.md`                                                                                                                                 | This project (unversioned, gitignored)                  |
+| Subdirectory    | `packages/frontend/CLAUDE.md`                                                                                                                     | Loaded on demand when Claude works in this subdirectory |
 
-**Priority**: enterprise > user > project. More specific files complement (do not replace) more general ones.
+**Priority**: managed policy > user > project. More specific files complement (do not replace) more general ones.
 
 **Filename**: case-sensitive — must be exactly `CLAUDE.md` (uppercase). Target **< 200 lines** per file for better adherence.
 
@@ -33,6 +33,20 @@ Claude Code discovers `CLAUDE.md` files hierarchically:
 3. Files in nested subdirectories — **loaded on demand** when Claude works in them
 
 The `claudeMdExcludes` setting allows excluding certain files (useful in monorepos).
+
+### AGENTS.md Interop
+
+Claude Code can read an `AGENTS.md` file (the cross-tool agent instructions convention) via an `@AGENTS.md` import inside `CLAUDE.md`, or by symlinking `CLAUDE.md → AGENTS.md`.
+
+### Auto Memory
+
+When enabled, Claude Code writes session learnings to `~/.claude/projects/<project>/memory/MEMORY.md`. The first **200 lines** (capped at **25 KB**) are loaded automatically at session start.
+
+Controlled by:
+
+- `autoMemoryEnabled` (settings)
+- `autoMemoryDirectory` (settings) — override the default location
+- `CLAUDE_CODE_DISABLE_AUTO_MEMORY` (env var)
 
 ## Imports (`@path`)
 
@@ -174,13 +188,17 @@ Claude Code uses `settings.json` files at multiple levels:
 }
 ```
 
-| Key               | Description                                |
-| :---------------- | :----------------------------------------- |
-| `permissions`     | Tools automatically allowed/denied         |
-| `hooks`           | Lifecycle hooks (see [hooks.md](hooks.md)) |
-| `mcpServers`      | MCP servers (see [mcp.md](mcp.md))         |
-| `env`             | Environment variables                      |
-| `disableAllHooks` | Disable all hooks                          |
+| Key                   | Description                                                                 |
+| :-------------------- | :-------------------------------------------------------------------------- |
+| `permissions`         | Tools automatically allowed/denied                                          |
+| `hooks`               | Lifecycle hooks (see [hooks.md](hooks.md))                                  |
+| `mcpServers`          | MCP servers (see [mcp.md](mcp.md))                                          |
+| `env`                 | Environment variables                                                       |
+| `disableAllHooks`     | Disable all hooks                                                           |
+| `claudeMd`            | Inline managed CLAUDE.md content (managed policy scope only)                |
+| `claudeMdExcludes`    | Glob patterns of CLAUDE.md files to exclude from auto-discovery             |
+| `autoMemoryEnabled`   | Enable auto-memory writes (`~/.claude/projects/<project>/memory/MEMORY.md`) |
+| `autoMemoryDirectory` | Override the default auto-memory directory                                  |
 
 ### Permissions
 
@@ -225,7 +243,16 @@ paths: src/api/**/*.ts
 
 User rules (`~/.claude/rules/`) are loaded before project rules (project takes priority).
 
+## Environment Variables
+
+| Variable                                       | Description                                                          |
+| :--------------------------------------------- | :------------------------------------------------------------------- |
+| `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` | When set, CLAUDE.md files in `--add-dir` directories are also loaded |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY`              | Disable auto-memory writes/loads                                     |
+
 ## CLI — Commands and Flags
+
+> **Note**: the authoritative CLI reference is [code.claude.com/docs/en/cli-reference](https://code.claude.com/docs/en/cli-reference). The tables below may be incomplete or contain entries that have shifted between versions.
 
 ### Main Commands
 

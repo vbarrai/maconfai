@@ -10,12 +10,11 @@
 
 ## Locations and Discovery Order
 
-| Scope            | Path                                    | Loading                       |
-| :--------------- | :-------------------------------------- | :---------------------------- |
-| System           | `/etc/gemini-cli/GEMINI.md`             | At startup (highest priority) |
-| User             | `~/.gemini/GEMINI.md`                   | At startup                    |
-| Project/Ancestor | Walked up from the current directory    | At startup                    |
-| Subdirectory     | Auto-discovered in accessed directories | On demand (just-in-time)      |
+| Scope            | Path                                    | Loading                  |
+| :--------------- | :-------------------------------------- | :----------------------- |
+| User             | `~/.gemini/GEMINI.md`                   | At startup               |
+| Project/Ancestor | Walked up from the current directory    | At startup               |
+| Subdirectory     | Auto-discovered in accessed directories | On demand (just-in-time) |
 
 ### On-demand discovery
 
@@ -53,7 +52,6 @@ Shared guidelines: @../shared/style-guide.md
 ```bash
 /memory show        # View current memory (full concatenated context)
 /memory reload      # Force a re-scan and reload of all GEMINI.md files
-/memory add <text>  # Add text to the global GEMINI.md (~/.gemini/GEMINI.md)
 ```
 
 The CLI footer displays how many context files are currently loaded.

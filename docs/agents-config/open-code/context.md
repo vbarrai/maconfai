@@ -20,6 +20,24 @@
 
 Open Code looks for `AGENTS.md` first; if none is found in a given category, it falls back to `CLAUDE.md`. **First match per category wins** — if both `AGENTS.md` and `CLAUDE.md` exist in the same location, only `AGENTS.md` is loaded. `~/.config/opencode/AGENTS.md` takes precedence over `~/.claude/CLAUDE.md`.
 
+### Search Precedence
+
+The explicit lookup order is:
+
+1. **Local upward walk** — `AGENTS.md` (then `CLAUDE.md`) from the current working directory walking up to the git worktree root.
+2. **Global AGENTS.md** — `~/.config/opencode/AGENTS.md`.
+3. **Global Claude Code fallback** — `~/.claude/CLAUDE.md`.
+
+## Disabling Claude Code Compatibility
+
+Open Code's Claude Code interop layer can be opted out via environment variables. _Note: these variables were observed in source/changelog but are not in the current upstream config reference; treat as unverified until confirmed against the canonical docs._
+
+| Variable                              | Effect                                                                 |
+| :------------------------------------ | :--------------------------------------------------------------------- |
+| `OPENCODE_DISABLE_CLAUDE_CODE`        | Disable all Claude Code compatibility behaviors                        |
+| `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skip loading `CLAUDE.md` fallback prompts (`AGENTS.md` only)           |
+| `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` | Skip discovering skills from `.claude/skills/` and `~/.claude/skills/` |
+
 ## Custom Instruction Files
 
 Specify custom instruction files in `opencode.json` as an **array of paths or glob patterns**:

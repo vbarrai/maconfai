@@ -23,7 +23,7 @@ describeConfai('open-code / install URL MCP', ({ givenSource, whenInstall, targe
             "type": "remote",
             "url": "https://my-server.com/mcp",
             "headers": {
-              "Authorization": "Bearer \${API_TOKEN}"
+              "Authorization": "Bearer {env:API_TOKEN}"
             }
           }
         }
