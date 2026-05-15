@@ -115,11 +115,11 @@ Remote MCP servers can authenticate via OAuth using an `auth` object:
 }
 ```
 
-| Field           | Description                              |
-| :-------------- | :--------------------------------------- |
-| `CLIENT_ID`     | OAuth client identifier                  |
-| `CLIENT_SECRET` | OAuth client secret                      |
-| `scopes`        | List of OAuth scopes to request          |
+| Field           | Required | Description                     |
+| :-------------- | :------- | :------------------------------ |
+| `CLIENT_ID`     | Yes      | OAuth client identifier         |
+| `CLIENT_SECRET` | No       | OAuth client secret             |
+| `scopes`        | No       | List of OAuth scopes to request |
 
 The OAuth redirect URL is fixed to `cursor://anysphere.cursor-mcp/oauth/callback`.
 
@@ -269,6 +269,6 @@ This lets extensions contribute MCP servers dynamically rather than relying on s
 
 ## Sources
 
-- [Model Context Protocol — Cursor Docs](https://docs.cursor.com/context/model-context-protocol)
+- [Model Context Protocol — Cursor Docs](https://cursor.com/docs/context/mcp)
 - [MCP Specification](https://modelcontextprotocol.io)
 - [MCP Servers — GitHub](https://github.com/modelcontextprotocol/servers)

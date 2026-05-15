@@ -34,21 +34,17 @@ enabled = false                                 # Disabled without removing
 disabled_tools = ["dangerous_tool"]             # Specific tools disabled
 enabled_tools = ["safe_tool"]                   # Allowlist (complement of disabled_tools)
 
-[mcp_servers.docs]
-command = "docs-server"
-supports_parallel_tool_calls = true             # Needs verification — allow concurrent tool calls
-default_tools_approval_mode = "approve"         # Needs verification — default approval for all tools
-
-[mcp_servers.docs.tools.search]
-approval_mode = "prompt"                        # Needs verification — per-tool override
 ```
+
+> **Note**: `supports_parallel_tool_calls`, `default_tools_approval_mode`, and per-tool `[mcp_servers.<name>.tools.<tool>] approval_mode` keys are **not** documented in the upstream config reference. They appear in community examples; treat as unverified until confirmed against `codex-rs` sources.
 
 ## Top-Level Config Keys
 
-| Key                        | Type   | Description                                |
-| :------------------------- | :----- | :----------------------------------------- |
-| `mcp_oauth_callback_port`  | number | Port used for the OAuth callback listener  |
-| `mcp_oauth_callback_url`   | string | Full callback URL used during OAuth flows  |
+| Key                           | Type   | Description                                 |
+| :---------------------------- | :----- | :------------------------------------------ |
+| `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener   |
+| `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows   |
+| `mcp_oauth_credentials_store` | string | Preferred credential store for OAuth tokens |
 
 ## Supported Transports
 
@@ -59,38 +55,27 @@ approval_mode = "prompt"                        # Needs verification — per-too
 
 ## Per-Server Options
 
-| Option                         | Type     | Description                                                                          |
-| :----------------------------- | :------- | :----------------------------------------------------------------------------------- |
-| `command`                      | string   | stdio command                                                                        |
-| `args`                         | string[] | Command arguments                                                                    |
-| `env`                          | table    | Environment variables                                                                |
-| `env_vars`                     | string[] | Allow/forward list of env vars passed through to the server                          |
-| `cwd`                          | string   | Working directory                                                                    |
-| `url`                          | string   | Streamable HTTP URL                                                                  |
-| `bearer_token_env_var`         | string   | Env variable for Bearer token                                                        |
-| `http_headers`                 | table    | Static HTTP headers                                                                  |
-| `env_http_headers`             | table    | HTTP headers from env variables                                                      |
-| `scopes`                       | string[] | OAuth scopes requested during authorization                                          |
-| `oauth_resource`               | string   | OAuth resource indicator (RFC 8707)                                                  |
-| `experimental_environment`     | string   | `"local"` or `"remote"`                                                              |
-| `startup_timeout_sec`          | number   | Startup timeout in seconds (default: 10s)                                            |
-| `startup_timeout_ms`           | number   | Startup timeout in milliseconds (alongside `startup_timeout_sec`)                    |
-| `tool_timeout_sec`             | number   | Per-tool timeout (default: 60s)                                                      |
-| `enabled`                      | bool     | Enable/disable the server                                                            |
-| `required`                     | bool     | If `true`, fail startup if the server is unavailable                                 |
-| `disabled_tools`               | string[] | List of tools to disable                                                             |
-| `enabled_tools`                | string[] | Allowlist of tools (complement of `disabled_tools`)                                  |
-| `supports_parallel_tool_calls` | bool     | Needs verification — if `true`, the server may receive multiple tool calls in flight |
-| `default_tools_approval_mode`  | string   | Needs verification — default approval mode for all tools (e.g., `approve`, `prompt`) |
-
-### Per-Tool Approval Overrides
-
-Override approval mode for individual tools using a nested table (Needs verification):
-
-```toml
-[mcp_servers.<name>.tools.<tool_name>]
-approval_mode = "prompt"
-```
+| Option                     | Type     | Description                                                       |
+| :------------------------- | :------- | :---------------------------------------------------------------- |
+| `command`                  | string   | stdio command                                                     |
+| `args`                     | string[] | Command arguments                                                 |
+| `env`                      | table    | Environment variables                                             |
+| `env_vars`                 | string[] | Allow/forward list of env vars passed through to the server       |
+| `cwd`                      | string   | Working directory                                                 |
+| `url`                      | string   | Streamable HTTP URL                                               |
+| `bearer_token_env_var`     | string   | Env variable for Bearer token                                     |
+| `http_headers`             | table    | Static HTTP headers                                               |
+| `env_http_headers`         | table    | HTTP headers from env variables                                   |
+| `scopes`                   | string[] | OAuth scopes requested during authorization                       |
+| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                               |
+| `experimental_environment` | string   | `"local"` or `"remote"`                                           |
+| `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                         |
+| `startup_timeout_ms`       | number   | Startup timeout in milliseconds (alongside `startup_timeout_sec`) |
+| `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                                   |
+| `enabled`                  | bool     | Enable/disable the server                                         |
+| `required`                 | bool     | If `true`, fail startup if the server is unavailable              |
+| `disabled_tools`           | string[] | List of tools to disable                                          |
+| `enabled_tools`            | string[] | Allowlist of tools (complement of `disabled_tools`)               |
 
 ## Project-Scoped Config
 

@@ -10,15 +10,15 @@
 
 ## Locations and Discovery
 
-| Scope                         | Path                          | Loading                                             |
-| :---------------------------- | :---------------------------- | :-------------------------------------------------- |
-| Current directory + ancestors | `AGENTS.md` (up to `$HOME`)   | Always included                                     |
-| Subtree                       | `packages/frontend/AGENTS.md` | Included when the agent reads files in that subtree |
-| User                          | `~/.config/amp/AGENTS.md`     | Always included                                     |
-| User (alt)                    | `~/.config/AGENTS.md`         | Always included                                     |
-| System (macOS)                | `/Library/Application Support/ampcode/AGENTS.md` | Always included                          |
-| System (Linux)                | `/etc/ampcode/AGENTS.md`      | Always included                                     |
-| System (Windows)              | `%ProgramData%\ampcode\AGENTS.md` | Always included                                 |
+| Scope                         | Path                                             | Loading                                             |
+| :---------------------------- | :----------------------------------------------- | :-------------------------------------------------- |
+| Current directory + ancestors | `AGENTS.md` (up to `$HOME`)                      | Always included                                     |
+| Subtree                       | `packages/frontend/AGENTS.md`                    | Included when the agent reads files in that subtree |
+| User                          | `~/.config/amp/AGENTS.md`                        | Always included                                     |
+| User (alt)                    | `~/.config/AGENTS.md`                            | Always included                                     |
+| System (macOS)                | `/Library/Application Support/ampcode/AGENTS.md` | Always included                                     |
+| System (Linux)                | `/etc/ampcode/AGENTS.md`                         | Always included                                     |
+| System (Windows)              | `%ProgramData%\ampcode\AGENTS.md`                | Always included                                     |
 
 > The `agents-md list` command palette entry shows the active guidance files for the current session.
 

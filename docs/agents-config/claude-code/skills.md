@@ -79,14 +79,14 @@ When working in a subdirectory, Claude Code also discovers Skills in nested `.cl
 
 ## Substitution Variables
 
-| Variable               | Description                            |
-| :--------------------- | :------------------------------------- |
-| `$ARGUMENTS`           | All arguments passed to the invocation |
-| `$ARGUMENTS[N]` / `$N` | Argument by index (0-based)            |
+| Variable               | Description                                                           |
+| :--------------------- | :-------------------------------------------------------------------- |
+| `$ARGUMENTS`           | All arguments passed to the invocation                                |
+| `$ARGUMENTS[N]` / `$N` | Argument by index (0-based)                                           |
 | `$name`                | Named argument from the `arguments` frontmatter field (e.g. `$issue`) |
-| `${CLAUDE_SESSION_ID}` | Current session ID                     |
-| `${CLAUDE_SKILL_DIR}`  | Directory containing the SKILL.md      |
-| `${CLAUDE_EFFORT}`     | Current reasoning effort level         |
+| `${CLAUDE_SESSION_ID}` | Current session ID                                                    |
+| `${CLAUDE_SKILL_DIR}`  | Directory containing the SKILL.md                                     |
+| `${CLAUDE_EFFORT}`     | Current reasoning effort level                                        |
 
 **Example:**
 

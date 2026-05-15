@@ -46,25 +46,24 @@ MCP servers are configured in `opencode.json` under the `mcp` key:
 
 ## Configuration Locations
 
-| Scope   | Path                                                        | Priority |
-| :------ | :---------------------------------------------------------- | :------- |
-| Remote  | `.well-known/opencode` (organizational) — _needs verification_ | Lowest   |
-| Global  | `~/.config/opencode/opencode.json`                          | Medium   |
-| Project | `./opencode.json`                                           | Highest  |
+| Scope   | Path                               | Priority |
+| :------ | :--------------------------------- | :------- |
+| Global  | `~/.config/opencode/opencode.json` | Lower    |
+| Project | `./opencode.json`                  | Highest  |
 
 Configurations merge — later configs override earlier ones only for conflicting keys.
 
 ## Per-Server Options
 
-| Option        | Type            | Description                                                              |
-| :------------ | :-------------- | :----------------------------------------------------------------------- |
-| `type`        | string          | `local` or `remote`                                                      |
-| `command`     | string[]        | Command + args as array                                                  |
-| `url`         | string          | Remote server URL                                                        |
-| `headers`     | object          | HTTP headers                                                             |
-| `environment` | object          | Environment variables                                                    |
-| `enabled`     | boolean         | Enable/disable the server                                                |
-| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)              |
+| Option        | Type            | Description                                                                 |
+| :------------ | :-------------- | :-------------------------------------------------------------------------- |
+| `type`        | string          | `local` or `remote`                                                         |
+| `command`     | string[]        | Command + args as array                                                     |
+| `url`         | string          | Remote server URL                                                           |
+| `headers`     | object          | HTTP headers                                                                |
+| `environment` | object          | Environment variables                                                       |
+| `enabled`     | boolean         | Enable/disable the server                                                   |
+| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                 |
 | `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth |
 
 ## Format Differences from Other Agents

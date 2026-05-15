@@ -32,10 +32,10 @@ The explicit lookup order is:
 
 Open Code's Claude Code interop layer can be opted out via environment variables:
 
-| Variable                              | Effect                                                          |
-| :------------------------------------ | :-------------------------------------------------------------- |
-| `OPENCODE_DISABLE_CLAUDE_CODE`        | Disable all Claude Code compatibility behaviors                 |
-| `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skip loading `CLAUDE.md` fallback prompts (`AGENTS.md` only)    |
+| Variable                              | Effect                                                                 |
+| :------------------------------------ | :--------------------------------------------------------------------- |
+| `OPENCODE_DISABLE_CLAUDE_CODE`        | Disable all Claude Code compatibility behaviors                        |
+| `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skip loading `CLAUDE.md` fallback prompts (`AGENTS.md` only)           |
 | `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` | Skip discovering skills from `.claude/skills/` and `~/.claude/skills/` |
 
 ## Custom Instruction Files

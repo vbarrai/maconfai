@@ -2,7 +2,7 @@
 
 # Cursor — Hooks Guide
 
-> Official source: [cursor.com/docs/hooks](https://cursor.com/docs/hooks)
+> Official source: [cursor.com/docs/agent/hooks](https://cursor.com/docs/agent/hooks)
 
 ## What is a Hook?
 
@@ -103,8 +103,8 @@ Returns `{ ok: boolean, reason?: string }`.
 
 ### App Lifecycle
 
-| Event           | When it triggers      | Can block?           |
-| :-------------- | :-------------------- | :------------------- |
+| Event           | When it triggers       | Can block?           |
+| :-------------- | :--------------------- | :------------------- |
 | `workspaceOpen` | When a workspace opens | No (fire-and-forget) |
 
 App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g. `conversation_id`, `generation_id`, `transcript_path`) from the universal input.
@@ -222,13 +222,13 @@ Blocking/allowing hooks return:
 
 ### Additional Output Fields
 
-| Field                     | Hook                | Description                                                                  |
-| :------------------------ | :------------------ | :--------------------------------------------------------------------------- |
-| `updated_input`           | `preToolUse`        | Modified tool input forwarded to the tool execution                          |
+| Field                     | Hook                 | Description                                                                  |
+| :------------------------ | :------------------- | :--------------------------------------------------------------------------- |
+| `updated_input`           | `preToolUse`         | Modified tool input forwarded to the tool execution                          |
 | `continue`                | `beforeSubmitPrompt` | Allow (`true`) or block (`false`) the prompt submission                      |
-| `env`                     | `sessionStart`      | Environment variables injected into the session                              |
-| `additional_context`      | `sessionStart`      | Extra context string appended to the session                                 |
-| `updated_mcp_tool_output` | `postToolUse`       | Redacted/modified MCP tool output (for PII/secret stripping after execution) |
+| `env`                     | `sessionStart`       | Environment variables injected into the session                              |
+| `additional_context`      | `sessionStart`       | Extra context string appended to the session                                 |
+| `updated_mcp_tool_output` | `postToolUse`        | Redacted/modified MCP tool output (for PII/secret stripping after execution) |
 
 ### Follow-Up Automation
 
@@ -344,4 +344,4 @@ Cursor supports loading hooks from third-party tools, including Claude Code. Exi
 
 ## Sources
 
-- [Hooks — Cursor Docs](https://cursor.com/docs/hooks)
+- [Hooks — Cursor Docs](https://cursor.com/docs/agent/hooks)

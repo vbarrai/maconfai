@@ -4,7 +4,7 @@
 
 > Official source: [cursor.com/docs/context/skills](https://cursor.com/docs/context/skills)
 
-> **Note**: Agent Skills in Cursor have been available since version **v2.4** (January 2026). Initially limited to the Nightly channel, Skills support is now active by default on the stable channel. When you create a "New Cursor Rule" from the interface, Cursor generates a `SKILL.md` in `.cursor/skills/`.
+> **Note**: Agent Skills in Cursor have been available since version **v2.4**. Initially limited to the Nightly channel, Skills support is now active by default on the stable channel. When you create a "New Cursor Rule" from the interface, Cursor generates a `SKILL.md` in `.cursor/skills/`.
 
 ## What is an Agent Skill in Cursor?
 
@@ -36,9 +36,9 @@ description: What the skill does and when to use it.
 | `description`              | Yes      | What the Skill does and when to use it. Max 1024 chars.                                                                                |
 | `disable-model-invocation` | No       | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`. |
 | `paths`                    | No       | Optional list of glob patterns. Scopes the skill so it is only considered when matching files are in context.                          |
-| `globs`                    | No       | Legacy alias for `paths` (same semantics).                                                                                              |
-| `license`                  | No       | License name or reference to a bundled license file. *Note: not currently documented upstream; may not be enforced.*                    |
-| `compatibility`            | No       | Environment requirements (system packages, network access, etc.). *Note: not currently documented upstream; may not be enforced.*       |
+| `globs`                    | No       | Legacy alias for `paths` (same semantics).                                                                                             |
+| `license`                  | No       | License name or reference to a bundled license file. _Note: not currently documented upstream; may not be enforced._                   |
+| `compatibility`            | No       | Environment requirements (system packages, network access, etc.). _Note: not currently documented upstream; may not be enforced._      |
 | `metadata`                 | No       | Arbitrary key-value mapping for additional metadata.                                                                                   |
 
 ## Where to store Skills

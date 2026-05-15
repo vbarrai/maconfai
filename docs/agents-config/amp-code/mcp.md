@@ -58,8 +58,8 @@ Granular rule-based permissions system. Rules match against the server's `comman
 ```json
 {
   "amp.mcpPermissions": [
-    { "pattern": "npx * @modelcontextprotocol/server-github*", "action": "allow" },
-    { "pattern": "https://mcp.example.com/*", "action": "block" }
+    { "matches": { "command": "npx * @modelcontextprotocol/server-github*" }, "action": "allow" },
+    { "matches": { "url": "https://mcp.example.com/*" }, "action": "block" }
   ]
 }
 ```
@@ -74,7 +74,7 @@ Granular rule-based permissions system. Rules match against the server's `comman
 amp --mcp-config '{"mcpServers":{"github":{"command":"npx","args":["-y","@modelcontextprotocol/server-github"]}}}'
 ```
 
-A file-based form (`amp -x --mcp-config ./mcp-servers.json "prompt"`) may also work locally as a secondary convenience.
+The upstream manual documents only the inline JSON form; file-path support is not officially documented.
 
 ## Sources
 

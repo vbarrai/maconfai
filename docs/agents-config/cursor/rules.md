@@ -12,22 +12,22 @@ Rules are persistent instructions that the Cursor agent sees at the beginning of
 
 ### By scope
 
-| Type                  | Storage                      | Applies to                   |
-| :-------------------- | :--------------------------- | :--------------------------- |
-| **Project**           | `.cursor/rules/*.mdc` or `.cursor/rules/*.md` | This repo only (versionable) |
-| **Imported**          | `.cursor/rules/imported/<repoName>/` | Rules imported from remote repositories |
-| **User**              | Cursor Settings > Rules      | All your projects            |
-| **Team**              | Team Dashboard               | All team members             |
-| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root | This repo (plain markdown)   |
+| Type                  | Storage                                       | Applies to                              |
+| :-------------------- | :-------------------------------------------- | :-------------------------------------- |
+| **Project**           | `.cursor/rules/*.mdc` or `.cursor/rules/*.md` | This repo only (versionable)            |
+| **Imported**          | `.cursor/rules/imported/<repoName>/`          | Rules imported from remote repositories |
+| **User**              | Cursor Settings > Rules                       | All your projects                       |
+| **Team**              | Team Dashboard                                | All team members                        |
+| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root                  | This repo (plain markdown)              |
 
 ### By activation mode
 
-| Type                | Behavior                                                        | Use case                                        |
-| :------------------ | :-------------------------------------------------------------- | :---------------------------------------------- |
-| **Always** (Always Apply)                  | Always included in context                                      | Core conventions, tech stack                    |
-| **Auto Attached** (Apply to Specific Files) | Included when files match the `globs` pattern                   | Frontend-specific, backend-specific Rules, etc. |
-| **Agent Requested** (Apply Intelligently)   | The AI decides whether to include it based on the `description` | Specialized knowledge on demand                 |
-| **Manual** (Apply Manually)                 | Included only when mentioned with `@ruleName`                   | Specific workflows invoked manually             |
+| Type                                                | Behavior                                                        | Use case                                        |
+| :-------------------------------------------------- | :-------------------------------------------------------------- | :---------------------------------------------- |
+| **Always Apply** (legacy: Always)                   | Always included in context                                      | Core conventions, tech stack                    |
+| **Apply to Specific Files** (legacy: Auto Attached) | Included when files match the `globs` pattern                   | Frontend-specific, backend-specific Rules, etc. |
+| **Apply Intelligently** (legacy: Agent Requested)   | The AI decides whether to include it based on the `description` | Specialized knowledge on demand                 |
+| **Apply Manually** (legacy: Manual)                 | Included only when mentioned with `@ruleName`                   | Specific workflows invoked manually             |
 
 ## `.mdc` format
 

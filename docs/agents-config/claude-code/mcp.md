@@ -10,10 +10,10 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 
 ## Transport Types
 
-| Type              | Description                    | Typical usage                     |
-| :---------------- | :----------------------------- | :-------------------------------- |
-| `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python) |
-| `sse`             | Server-Sent Events via HTTP    | **Deprecated** — use HTTP servers instead, where available |
+| Type              | Description                    | Typical usage                                                                    |
+| :---------------- | :----------------------------- | :------------------------------------------------------------------------------- |
+| `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python)                                                |
+| `sse`             | Server-Sent Events via HTTP    | **Deprecated** — use HTTP servers instead, where available                       |
 | `streamable-http` | Bidirectional HTTP streaming   | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs. |
 
 ## Configuration
@@ -70,16 +70,16 @@ For global MCP servers available across all projects:
 
 ## Configuration Fields
 
-| Field     | Required       | Description                     |
-| :-------- | :------------- | :------------------------------ |
-| `command` | Yes (stdio)    | Command to launch the server    |
-| `args`    | No             | Command arguments               |
-| `env`     | No             | Environment variables           |
-| `url`     | Yes (sse/http) | Remote server URL               |
-| `headers` | No             | HTTP headers for remote servers |
-| `headersHelper` | No       | Shell command whose stdout produces headers dynamically (e.g. for short-lived auth tokens) |
-| `oauth`   | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl, scopes }` |
-| `alwaysLoad` | No          | If `true`, the server is exempt from Tool Search deferral and its tools always load |
+| Field           | Required       | Description                                                                                |
+| :-------------- | :------------- | :----------------------------------------------------------------------------------------- |
+| `command`       | Yes (stdio)    | Command to launch the server                                                               |
+| `args`          | No             | Command arguments                                                                          |
+| `env`           | No             | Environment variables                                                                      |
+| `url`           | Yes (sse/http) | Remote server URL                                                                          |
+| `headers`       | No             | HTTP headers for remote servers                                                            |
+| `headersHelper` | No             | Shell command whose stdout produces headers dynamically (e.g. for short-lived auth tokens) |
+| `oauth`         | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl, scopes }`           |
+| `alwaysLoad`    | No             | If `true`, the server is exempt from Tool Search deferral and its tools always load        |
 
 ## Scopes
 
@@ -124,13 +124,13 @@ claude mcp reset-project-choices
 
 Additional `claude mcp add` flags:
 
-| Flag                  | Description                                                  |
-| :-------------------- | :----------------------------------------------------------- |
-| `--header "Name: V"`  | Adds an HTTP header (repeatable)                             |
-| `--callback-port <n>` | OAuth callback port                                          |
-| `--client-id <id>`    | OAuth client ID                                              |
-| `--client-secret <s>` | OAuth client secret (or set `MCP_CLIENT_SECRET` env var)     |
-| `--scope <s>`         | OAuth scopes (comma-separated)                               |
+| Flag                  | Description                                              |
+| :-------------------- | :------------------------------------------------------- |
+| `--header "Name: V"`  | Adds an HTTP header (repeatable)                         |
+| `--callback-port <n>` | OAuth callback port                                      |
+| `--client-id <id>`    | OAuth client ID                                          |
+| `--client-secret <s>` | OAuth client secret (or set `MCP_CLIENT_SECRET` env var) |
+| `--scope <s>`         | OAuth scopes (comma-separated)                           |
 
 ## Interactive Menu `/mcp`
 
@@ -206,15 +206,15 @@ export MY_API_TOKEN="sk-..."
 
 ## Environment Variables
 
-| Variable                       | Description                                                                                                  |
-| :----------------------------- | :----------------------------------------------------------------------------------------------------------- |
-| `MCP_TIMEOUT`                  | Per-server connection/request timeout                                                                        |
-| `MCP_CLIENT_SECRET`            | OAuth client secret (alternative to `--client-secret`)                                                       |
-| `MCP_CONNECTION_NONBLOCKING`   | If set, MCP connection failures do not block session start                                                   |
-| `ENABLE_TOOL_SEARCH`           | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded) |
-| `ENABLE_CLAUDEAI_MCP_SERVERS`  | Enable claude.ai-hosted MCP servers                                                                          |
-| `CLAUDE_CODE_MCP_SERVER_NAME`  | Server name override when Claude Code runs as an MCP server                                                  |
-| `CLAUDE_CODE_MCP_SERVER_URL`   | Server URL override when Claude Code runs as an MCP server                                                   |
+| Variable                      | Description                                                                                                    |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `MCP_TIMEOUT`                 | Per-server connection/request timeout                                                                          |
+| `MCP_CLIENT_SECRET`           | OAuth client secret (alternative to `--client-secret`)                                                         |
+| `MCP_CONNECTION_NONBLOCKING`  | If set, MCP connection failures do not block session start                                                     |
+| `ENABLE_TOOL_SEARCH`          | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded) |
+| `ENABLE_CLAUDEAI_MCP_SERVERS` | Enable claude.ai-hosted MCP servers                                                                            |
+| `CLAUDE_CODE_MCP_SERVER_NAME` | Server name override when Claude Code runs as an MCP server                                                    |
+| `CLAUDE_CODE_MCP_SERVER_URL`  | Server URL override when Claude Code runs as an MCP server                                                     |
 
 > **Reserved name**: `workspace` is reserved and cannot be used as a server name.
 

@@ -8,22 +8,22 @@
 
 Codex supports the open Agent Skills standard with progressive disclosure:
 
-| Level               | When Loaded                 | Budget                                                       |
-| :------------------ | :-------------------------- | :----------------------------------------------------------- |
-| **1. Metadata**     | At startup                  | ~8,000 characters total when the context window is unknown   |
-| **2. Instructions** | When the skill is triggered | SKILL.md body                                                |
-| **3. Resources**    | On demand                   | Referenced files, scripts                                    |
+| Level               | When Loaded                 | Budget                                                     |
+| :------------------ | :-------------------------- | :--------------------------------------------------------- |
+| **1. Metadata**     | At startup                  | ~8,000 characters total when the context window is unknown |
+| **2. Instructions** | When the skill is triggered | SKILL.md body                                              |
+| **3. Resources**    | On demand                   | Referenced files, scripts                                  |
 
 ## Locations
 
-| Scope  | Path                                                                                                |
-| :----- | :-------------------------------------------------------------------------------------------------- |
-| REPO   | `.agents/skills` (cwd), `../.agents/skills` (parent), `$REPO_ROOT/.agents/skills`                   |
-| USER   | `$HOME/.agents/skills` (note: upstream is NOT `~/.codex/skills`)                                    |
-| ADMIN  | `/etc/codex/skills`                                                                                 |
-| SYSTEM | Bundled with Codex                                                                                  |
+| Scope  | Path                                                                              |
+| :----- | :-------------------------------------------------------------------------------- |
+| REPO   | `.agents/skills` (cwd), `../.agents/skills` (parent), `$REPO_ROOT/.agents/skills` |
+| USER   | `$HOME/.agents/skills` (note: upstream is NOT `~/.codex/skills`)                  |
+| ADMIN  | `/etc/codex/skills`                                                               |
+| SYSTEM | Bundled with Codex                                                                |
 
-> **Note:** The maconfai `CLAUDE.md` mapping listing "Codex user dir = `~/.codex/skills/<name>/`" appears to conflict with upstream `$HOME/.agents/skills/` — TBD pending source verification.
+> **Note:** Upstream documents the USER skills dir as `$HOME/.agents/skills/<name>/`. The maconfai `CLAUDE.md` mapping listing `~/.codex/skills/<name>/` is therefore incorrect and should be updated.
 
 ## Skill Structure
 
@@ -76,7 +76,7 @@ dependencies:
     - type: 'mcp'
       value: 'github'
       description: 'GitHub MCP server for issue/PR management'
-      transport: 'streamable-http'
+      transport: 'streamable_http'
       url: 'https://mcp.example.com/github'
 ```
 
@@ -107,7 +107,7 @@ enabled = false
 
 ## Built-in System Skills
 
-Codex ships with skills in `~/.codex/skills/.system/`:
+Codex ships with skills under the SYSTEM scope (bundled with the binary; exact on-disk location depends on the install):
 
 | Skill              | Description                                                                                                                               |
 | :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
