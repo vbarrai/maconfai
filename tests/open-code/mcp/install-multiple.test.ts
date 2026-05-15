@@ -31,7 +31,7 @@ describeConfai(
               "@modelcontextprotocol/server-github"
             ],
             "environment": {
-              "GITHUB_TOKEN": "\${GITHUB_TOKEN}"
+              "GITHUB_TOKEN": "{env:GITHUB_TOKEN}"
             }
           },
           "linear": {

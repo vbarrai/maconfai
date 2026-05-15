@@ -311,7 +311,7 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 | :---------- | :------------------------- | :---------------------------------- | :----------------------- |
 | Claude Code | `.claude/skills/<name>/`   | `~/.claude/skills/<name>/`          | `.agents/skills/<name>/` |
 | Cursor      | `.cursor/skills/<name>/`   | `~/.cursor/skills/<name>/`          | `.agents/skills/<name>/` |
-| Codex       | `.agents/skills/<name>/`   | `~/.codex/skills/<name>/`           | `.agents/skills/<name>/` |
+| Codex       | `.agents/skills/<name>/`   | `~/.agents/skills/<name>/`          | `.agents/skills/<name>/` |
 | Gemini CLI  | `.gemini/skills/<name>/`   | `~/.gemini/skills/<name>/`          | `.agents/skills/<name>/` |
 | Amp Code    | `.agents/skills/<name>/`   | `~/.config/agents/skills/<name>/`   | `.agents/skills/<name>/` |
 | Open Code   | `.opencode/skills/<name>/` | `~/.config/opencode/skills/<name>/` | `.agents/skills/<name>/` |

@@ -34,6 +34,14 @@ describe('translateEnvVar', () => {
   it('handles multiple variables in one string', () => {
     expect(translateEnvVar('${A}:${B}', 'env-prefix')).toBe('${env:A}:${env:B}')
   })
+
+  it('converts ${VAR} to {env:VAR} for opencode-env syntax', () => {
+    expect(translateEnvVar('${GITHUB_TOKEN}', 'opencode-env')).toBe('{env:GITHUB_TOKEN}')
+  })
+
+  it('converts multiple vars to {env:VAR} for opencode-env', () => {
+    expect(translateEnvVar('Bearer ${A}:${B}', 'opencode-env')).toBe('Bearer {env:A}:{env:B}')
+  })
 })
 
 describe('translateServerConfig', () => {

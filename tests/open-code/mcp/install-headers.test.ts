@@ -2,7 +2,7 @@ import { it, expect } from 'vitest'
 import { describeConfai, mcpCustomApi } from '../../test-utils.ts'
 
 describeConfai('open-code / url with headers', ({ givenSource, whenInstall, targetFile }) => {
-  it('keeps env vars bare in headers for opencode.json', async () => {
+  it('translates env vars to {env:VAR} in headers for opencode.json', async () => {
     await givenSource({
       mcps: {
         'custom-api': mcpCustomApi,
@@ -18,8 +18,8 @@ describeConfai('open-code / url with headers', ({ givenSource, whenInstall, targ
             "type": "remote",
             "url": "https://api.example.com/mcp",
             "headers": {
-              "Authorization": "Bearer \${API_TOKEN}",
-              "X-Team-Id": "\${TEAM_ID}"
+              "Authorization": "Bearer {env:API_TOKEN}",
+              "X-Team-Id": "{env:TEAM_ID}"
             }
           }
         }

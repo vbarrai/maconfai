@@ -32,7 +32,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     name: 'codex',
     displayName: 'Codex',
     skillsDir: '.codex/skills',
-    globalSkillsDir: join(codexHome, 'skills'),
+    globalSkillsDir: join(home, '.agents/skills'),
     mcpConfigPath: '.codex/config.toml',
     mcpEnvSyntax: 'bare',
     mcpConfigFormat: 'codex',
@@ -43,7 +43,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     skillsDir: '.opencode/skills',
     globalSkillsDir: join(home, '.config/opencode/skills'),
     mcpConfigPath: 'opencode.json',
-    mcpEnvSyntax: 'bare',
+    mcpEnvSyntax: 'opencode-env',
     mcpConfigFormat: 'opencode',
   },
 }
