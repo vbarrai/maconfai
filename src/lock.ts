@@ -76,10 +76,12 @@ export async function addToLock(
   const now = new Date().toISOString()
   const existing = lock.skills[skillName]
 
+  const hashChanged = !existing || existing.skillFolderHash !== entry.skillFolderHash
+
   lock.skills[skillName] = {
     ...entry,
     installedAt: existing?.installedAt ?? now,
-    updatedAt: now,
+    updatedAt: hashChanged ? now : existing!.updatedAt,
   }
 
   await writeLock(lock, cwd)
