@@ -30,7 +30,7 @@ The explicit lookup order is:
 
 ## Disabling Claude Code Compatibility
 
-Open Code's Claude Code interop layer can be opted out via environment variables:
+Open Code's Claude Code interop layer can be opted out via environment variables. _Note: these variables were observed in source/changelog but are not in the current upstream config reference; treat as unverified until confirmed against the canonical docs._
 
 | Variable                              | Effect                                                                 |
 | :------------------------------------ | :--------------------------------------------------------------------- |

@@ -93,9 +93,9 @@ A hook may emit a JSON object on stdout to influence Codex:
 
 ## Commit Attribution
 
-Commit attribution is configured via the `commit_attribution` field (not `command_attribution`).
+Commit attribution is configured via the `command_attribution` field.
 
-Per [openai/codex#11617](https://github.com/openai/codex/pull/11617) (merged 2026-02), the title and body of the PR describe two different mechanisms (prompt-based vs. `prepare-commit-msg` hook injected via `core.hooksPath`). The merged implementation is not unambiguously documented in the PR alone; the current upstream config schema exposes only the `commit_attribution` key, leaving the on-disk mechanism out of scope for this doc until confirmed against `codex-rs` sources.
+Per [openai/codex#11617](https://github.com/openai/codex/pull/11617) (merged 2026-02), the title and body of the PR describe two different mechanisms (prompt-based vs. `prepare-commit-msg` hook injected via `core.hooksPath`). The merged PR's "Summary of changes" explicitly keeps `command_attribution` config support (default Codex label, blank disables, custom label supported). The on-disk mechanism is out of scope for this doc until confirmed against `codex-rs` sources.
 
 - **Default label**: standard attribution
 - **Custom label**: custom label

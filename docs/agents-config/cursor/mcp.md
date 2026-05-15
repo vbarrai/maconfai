@@ -2,7 +2,7 @@
 
 # Cursor — MCP Servers Guide
 
-> Official source: [cursor.com/docs/context/mcp](https://cursor.com/docs/context/mcp)
+> Official source: [cursor.com/docs/mcp](https://cursor.com/docs/mcp)
 
 ## What is MCP in Cursor?
 
@@ -269,6 +269,6 @@ This lets extensions contribute MCP servers dynamically rather than relying on s
 
 ## Sources
 
-- [Model Context Protocol — Cursor Docs](https://cursor.com/docs/context/mcp)
+- [Model Context Protocol — Cursor Docs](https://cursor.com/docs/mcp)
 - [MCP Specification](https://modelcontextprotocol.io)
 - [MCP Servers — GitHub](https://github.com/modelcontextprotocol/servers)

@@ -70,7 +70,7 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 | `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                               |
 | `experimental_environment` | string   | `"local"` or `"remote"`                                           |
 | `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                         |
-| `startup_timeout_ms`       | number   | Startup timeout in milliseconds (alongside `startup_timeout_sec`) |
+| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds         |
 | `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                                   |
 | `enabled`                  | bool     | Enable/disable the server                                         |
 | `required`                 | bool     | If `true`, fail startup if the server is unavailable              |

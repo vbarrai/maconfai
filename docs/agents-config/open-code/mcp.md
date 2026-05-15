@@ -80,24 +80,25 @@ maconfai handles format translation automatically — the source `mcp.json` uses
 
 ## Tool Management
 
-A top-level `tools` object can enable or disable MCP tools globally using glob patterns. Per-agent overrides are supported via `agent.<name>.tools`:
+A top-level `tools` object enables or disables tools by name (boolean values). Per-agent overrides are supported via `agent.<name>.tools`:
 
 ```json
 {
   "tools": {
-    "my-mcp*": false
+    "write": false,
+    "bash": false
   },
   "agent": {
     "build": {
       "tools": {
-        "my-mcp*": true
+        "write": true
       }
     }
   }
 }
 ```
 
-Glob patterns match tool names; later, more specific patterns take precedence.
+Keys are tool names with boolean values. Glob/wildcard pattern support is not documented in the current upstream config reference.
 
 ## CLI
 
