@@ -1,134 +1,137 @@
 ---
 name: docs-audit
-version: 1.0.0
+version: 1.2.0
 description: >-
-  TRIGGER when the user asks to check, verify, audit, or update the agent documentation,
-  or wants to know if agent configurations have changed upstream.
-  DO NOT TRIGGER for code changes, test runs, or general questions about the project.
-allowed-tools: WebFetch, WebSearch, Read, Glob, Grep, Agent, Bash(read-only)
+  TRIGGER when the user asks to check, verify, audit, refresh, or update the agent documentation
+  under `docs/agents-config/`, or wants to know whether upstream agent configuration has drifted
+  from what maconfai documents. Use this whenever the user mentions "audit docs", "check agent
+  docs", "are our docs up to date", "doc drift", or asks about new upstream features for Claude
+  Code, Cursor, Codex, Gemini CLI, Amp Code, or Open Code that may not be reflected locally.
+  DO NOT TRIGGER for code changes, test runs, or general questions about the maconfai codebase.
+allowed-tools: WebFetch, WebSearch, Read, Glob, Grep, Edit, Write, Agent, Bash
 disable-model-invocation: true
 ---
 
-# Documentation Audit Skill
+# Documentation Audit
 
-You are a documentation auditor for **maconfai**, a universal configuration installer for AI coding agents. Compare the project's internal documentation (`docs/agents-config/`) against the latest official sources on the web, and report any discrepancies, missing features, or outdated information.
+Audit the internal agent documentation in `docs/agents-config/` against the official upstream sources, report drift, and — when drift is found — open a pull request from `main` with the proposed documentation updates so a human can review and merge.
 
-## Scope
+## Why this skill exists
 
-### Agents and Features
+maconfai is only useful if its documentation reflects how the underlying agents actually work today. Upstream agents (Claude Code, Cursor, Codex, Gemini CLI, Amp Code, Open Code) ship features, rename fields, and change defaults frequently. Silent drift between `docs/agents-config/` and the official docs causes maconfai to install or describe configurations that no longer match reality. The audit catches that drift early.
 
-| Agent           | skills      | hooks      | mcp      | context      | Other           |
-| :-------------- | :---------- | :--------- | :------- | :----------- | :-------------- |
-| **Claude Code** | `skills.md` | `hooks.md` | `mcp.md` | `context.md` | `sub-agents.md` |
-| **Cursor**      | `skills.md` | `hooks.md` | `mcp.md` | `context.md` | `rules.md`      |
-| **Codex**       | `skills.md` | `hooks.md` | `mcp.md` | `context.md` |                 |
-| **Gemini CLI**  | `skills.md` |            | `mcp.md` | `context.md` |                 |
-| **Amp Code**    | `skills.md` |            | `mcp.md` | `context.md` |                 |
-| **Open Code**   | `skills.md` | `hooks.md` | `mcp.md` | `context.md` |                 |
+## Inputs and ground truth
 
-### Official Source URLs
+Two facts make this audit cheap to run correctly:
 
-| Agent       | Feature    | Official URL                                           |
-| :---------- | :--------- | :----------------------------------------------------- |
-| Claude Code | skills     | https://code.claude.com/docs/en/skills                 |
-| Claude Code | hooks      | https://code.claude.com/docs/en/hooks                  |
-| Claude Code | mcp        | https://code.claude.com/docs/en/mcp                    |
-| Claude Code | context    | https://code.claude.com/docs/en/claude-md              |
-| Claude Code | sub-agents | https://code.claude.com/docs/en/sub-agents             |
-| Cursor      | skills     | https://cursor.com/docs/context/skills                 |
-| Cursor      | hooks      | https://cursor.com/docs/hooks                          |
-| Cursor      | mcp        | https://docs.cursor.com/context/model-context-protocol |
-| Cursor      | context    | https://cursor.com/docs/context/rules                  |
-| Cursor      | rules      | https://cursor.com/docs/context/rules                  |
-| Codex       | skills     | https://developers.openai.com/codex/skills/            |
-| Codex       | hooks      | https://github.com/openai/codex                        |
-| Codex       | mcp        | https://developers.openai.com/codex/mcp/               |
-| Codex       | context    | https://developers.openai.com/codex/guides/agents-md   |
-| Gemini CLI  | skills     | https://geminicli.com/docs/cli/skills/                 |
-| Gemini CLI  | mcp        | https://geminicli.com/docs/tools/mcp-server/           |
-| Gemini CLI  | context    | https://geminicli.com/docs/cli/gemini-md               |
-| Amp Code    | skills     | https://ampcode.com/news/agent-skills                  |
-| Amp Code    | mcp        | https://ampcode.com/manual                             |
-| Amp Code    | context    | https://ampcode.com/manual                             |
-| Open Code   | skills     | https://opencode.ai/docs/skills/                       |
-| Open Code   | hooks      | https://opencode.ai/docs/plugins/                      |
-| Open Code   | mcp        | https://opencode.ai/docs/mcp-servers/                  |
-| Open Code   | context    | https://opencode.ai/docs/rules/                        |
+1. The set of agents and features is whatever exists on disk under `docs/agents-config/<agent>/<feature>.md`. Discover it with `ls` or `Glob` — do not hardcode a list in this skill, because it will drift.
+2. Each local doc declares its own upstream source. The first non-banner lines of every doc contain:
+   ```
+   > **maconfai support: Supported | Not supported** — <short reason>
+   > Official source: [<display>](<url>)
+   ```
+   Treat the `Official source:` URL inside each doc as authoritative. Do not maintain a parallel URL table — one source of truth.
 
-## Audit Procedure
+If a doc is missing the `Official source:` line, that itself is a finding (report it and stop processing that file).
 
-### Step 1 — Read the Local Doc
+## Procedure
 
-For each `docs/agents-config/<agent>/<feature>.md` file, read and extract:
+### Step 1 — Discover
 
-- Configuration format (JSON keys, file paths, field names)
-- Supported options and their types
-- CLI commands
-- File locations and scopes
-- Transport types (for MCP)
-- Frontmatter fields (for skills)
-- Hook event names and structure (for hooks)
-- Environment variable syntax
+Run `Glob` for `docs/agents-config/*/*.md` to enumerate the files to audit. For each file, read the first ~10 lines to capture:
 
-### Step 2 — Fetch the Official Source
+- the maconfai support status (Supported / Not supported)
+- the official source URL
 
-Use `WebFetch` to retrieve the current official documentation page. If the page is not accessible or returns an error, use `WebSearch` to find the latest version (search for `"<agent name>" <feature> documentation site:<domain>`).
+### Step 2 — Parallelize per agent
+
+Spawn one subagent per agent directory in a single message (Claude Code, Cursor, Codex, Gemini CLI, Amp Code, Open Code — whatever exists). Each subagent is responsible for all features of its agent. Doing this in one message means the fetches run concurrently and the audit finishes in roughly the time of the slowest single agent.
+
+Give each subagent:
+- the list of `<feature>.md` files for its agent
+- the official URL extracted from each file
+- the maconfai support status of each file
+- a copy of "Step 3 — Compare" and "Step 4 — Findings" below, so it can return structured results
 
 ### Step 3 — Compare
 
-For each feature, check for:
+For each `(agent, feature)` pair, fetch the official URL with `WebFetch`. If the page 404s, redirects to a different doc, or is gated, fall back to `WebSearch` with a query like `"<agent> <feature> documentation"` and prefer results on the official domain. Note the fallback in the finding so the human can verify.
 
-1. **New configuration fields** — fields present in official docs but missing from maconfai docs
-2. **Removed or deprecated fields** — fields in maconfai docs that no longer appear upstream
-3. **Changed defaults** — default values that have shifted
-4. **New CLI commands** — new `claude mcp`, `cursor`, `codex`, `gemini` subcommands
-5. **New transport types** — new MCP transports or connection methods
-6. **Changed file paths** — config file locations that have moved
-7. **New features** — entirely new capabilities not yet documented (e.g., new hook events, new skill frontmatter fields)
-8. **Syntax changes** — env var syntax, JSON structure changes
-9. **New scopes** — new configuration scopes (managed, enterprise, etc.)
+Compare the local doc to the upstream page along these dimensions, prioritized roughly in this order (most impactful first):
 
-### Step 4 — Report
+1. **New or removed configuration fields** — JSON keys, TOML keys, frontmatter fields
+2. **Changed file paths or scopes** — where the agent reads config from (user vs project vs managed)
+3. **New transport types or CLI subcommands** — especially MCP transports and `<agent> mcp ...` commands
+4. **Renamed fields** — same concept, different key name (high impact, easy to miss)
+5. **Changed defaults** — values that shifted
+6. **New hook event names or skill frontmatter fields**
+7. **Env var / interpolation syntax changes** (e.g. `${VAR}` vs `${env:VAR}`)
+8. **New configuration scopes** (managed, enterprise, team)
 
-Produce a structured report grouped by agent, then by feature. For each finding:
+For each dimension, the question to answer is: "if a maconfai user trusted this local doc today, what would surprise them?" That framing is more useful than mechanically diffing text — upstream docs are often reorganized without semantic change, and you should not report cosmetic differences.
+
+**Weight findings by maconfai support status.** Drift in a `Supported` feature directly affects installer behavior and is high priority. Drift in a `Not supported` feature is reference-only and is lower priority. Surface both, but label them.
+
+### Step 4 — Findings
+
+Each subagent returns findings in this shape:
 
 ```
-### <Agent> / <Feature>
+## <Agent> / <Feature>
+Status: Up to date | Needs update | New upstream feature | Cannot verify
+Support: Supported | Not supported
 
-**Status**: Up to date | Needs update | New feature | Cannot verify
+Changes detected:
+- <field/concept>: local says "<X>", upstream now says "<Y>"  (quote exact strings where possible)
 
-#### Changes detected
-- <what changed> — <what maconfai says> vs <what official docs say>
+Recommended action:
+- <specific edit to docs/agents-config/<agent>/<feature>.md, naming the section or line if practical>
 
-#### Recommended action
-- <specific edit to make in which file>
+Notes:
+- <fallback used, ambiguity, auth wall, etc. — empty if none>
 ```
 
-## Important Rules
+If `Status` is `Up to date`, omit the `Changes detected` and `Recommended action` blocks.
 
-- **Do NOT modify any files.** This skill is read-only. Only report findings.
-- **Fetch ALL official URLs** — do not skip any agent or feature.
-- **Be precise** — quote the specific field, option, or command that differs.
-- **Flag uncertainty** — if a page is behind auth, returns 404, or is ambiguous, say so clearly.
-- **Prioritize impact** — lead with changes that affect maconfai's implementation (supported features), then reference-only docs.
-- **Check the maconfai support status** — each doc starts with a banner like `> **maconfai support: Supported**` or `> **maconfai support: Not supported**`. Changes to supported features are higher priority.
+## Final report
 
-## Parallelization Strategy
+After all subagents return, produce a single report with this structure:
 
-To speed up the audit, launch multiple agents in parallel:
+### 1. Executive summary
 
-- One agent per agent (Claude Code, Cursor, Codex, etc.)
-- Each agent fetches all feature URLs for that agent and compares with local docs
-- Consolidate results at the end
+A table sorted by priority (Supported-and-changed first, then Supported-and-up-to-date, then Not-supported):
 
-## Output Format
+| Agent | Feature | Status | Support | Priority |
+| :---- | :------ | :----- | :------ | :------- |
 
-Start with an executive summary table:
+### 2. Detailed findings
 
-| Agent | Feature | Status | Priority |
-| :---- | :------ | :----- | :------- |
-| ...   | ...     | ...    | ...      |
+The per-feature blocks from Step 4, grouped by agent.
 
-Then provide detailed findings per agent/feature.
+### 3. Prioritized action list
 
-End with a prioritized action list of recommended documentation updates.
+A flat numbered list of recommended edits, ordered by impact. Each item names the file to edit and what to change. This is what the human will work from, so keep it concrete — "Add `transport: streamable-http` to the MCP transports list in `docs/agents-config/claude-code/mcp.md`" is useful; "Update Claude Code MCP doc" is not.
+
+## Step 5 — Open a pull request when drift is found
+
+If the report contains at least one `Needs update` or `New upstream feature` finding, open a pull request with the documentation changes. If every feature is `Up to date` (or only `Cannot verify` entries remain), skip this step and stop after presenting the report.
+
+Procedure:
+
+1. **Show the report first.** Present the executive summary and prioritized action list to the user before touching any files, so they know what the PR will contain.
+2. **Branch from `main`.** Make sure the working tree is clean (`git status`), then `git fetch origin` and create a new branch from `origin/main`: `git checkout -b docs/audit-YYYY-MM-DD origin/main`. Use today's date. If a branch with that name exists, append `-2`, `-3`, etc.
+3. **Apply edits.** Make exactly the edits described in the prioritized action list — nothing more. Preserve the `> **maconfai support: …**` and `> Official source: …` banners. If an upstream URL has changed, update the `Official source:` line too.
+4. **Commit.** One commit, message `docs: audit agent configs against upstream (YYYY-MM-DD)`. List the affected files and a one-line summary of each change in the commit body.
+5. **Push and open the PR** with `gh pr create --base main`. The PR body should embed the full report (executive summary + detailed findings + action list) so reviewers see the upstream evidence behind every edit. Title: `docs: refresh agent config docs (YYYY-MM-DD audit)`.
+6. **Return the PR URL** to the user.
+
+If any step fails (dirty working tree, push rejected, `gh` not authenticated), stop and surface the error — do not try to work around it. The audit report itself is still valuable even without the PR.
+
+## Guardrails
+
+- **Audit before editing.** Never modify `docs/agents-config/` until Steps 1–4 have produced a concrete report. The PR step is a follow-on, not the entry point.
+- **Only edit what the report justifies.** Each edit in the PR must trace back to a specific finding with an upstream quote. No drive-by reformatting, no "while I'm here" cleanups — those make the PR hard to review and erode trust in the audit.
+- **Quote, don't paraphrase.** When reporting a difference, include the exact field name or value from each side. Paraphrased findings are hard to verify and easy to dispute.
+- **Say so when you don't know.** If a page is unreachable, ambiguous, or behind auth, label the status `Cannot verify` and explain in `Notes`. A confident wrong finding is worse than an honest gap.
+- **Don't invent URLs.** The only URLs you should fetch are the ones extracted from local docs (Step 1) or returned by `WebSearch`. Do not guess URLs from agent names.
+- **Ignore cosmetic drift.** Reorganized headings, rephrased prose, and changed example variable names are not findings. Semantic differences are.

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "skills": {
+    "skill-creator": {
+      "source": "anthropics/claude-plugins-official",
+      "sourceUrl": "https://github.com/anthropics/claude-plugins-official.git",
+      "skillPath": "plugins/skill-creator/skills/skill-creator",
+      "skillFolderHash": "98a510d1cfef9f82c3b1eec200229ca68725e613",
+      "agents": [
+        "claude-code"
+      ],
+      "installedAt": "2026-05-15T19:16:08.980Z",
+      "updatedAt": "2026-05-15T19:16:08.980Z"
+    }
+  },
+  "mcpServers": {},
+  "hooks": {}
+}
