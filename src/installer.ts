@@ -1,5 +1,16 @@
 import { existsSync } from 'fs'
-import { mkdir, cp, readdir, rm, stat, lstat, readlink, symlink, realpath } from 'fs/promises'
+import {
+  mkdir,
+  cp,
+  readdir,
+  rm,
+  stat,
+  lstat,
+  readlink,
+  symlink,
+  realpath,
+  writeFile,
+} from 'fs/promises'
 import { join, basename, normalize, resolve, sep, relative, dirname } from 'path'
 import { homedir, platform } from 'os'
 import type { Skill, AgentType } from './types.ts'
@@ -146,6 +157,9 @@ export async function installSkill(
       await rm(canonicalDir, { recursive: true, force: true }).catch(() => {})
       await mkdir(canonicalDir, { recursive: true })
       await copyDirectory(skill.path, canonicalDir)
+      if (skill.rawContent) {
+        await writeFile(join(canonicalDir, 'SKILL.md'), skill.rawContent, 'utf-8')
+      }
 
       const realCanonical = await realpath(canonicalDir).catch(() => resolve(canonicalDir))
       const realAgent = await resolveParentSymlinks(agentDir)

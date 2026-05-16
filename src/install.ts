@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, relative } from 'path'
 import { parseSource } from './source-parser.ts'
 import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
 import {
@@ -72,6 +72,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
   const spinner = p.spinner()
   let tempDir: string | null = null
+  const refTempDirs: string[] = []
 
   try {
     // Parse source
@@ -101,7 +102,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Discover skills, MCP servers, and hooks
     spinner.start('Discovering skills, MCP servers, and hooks...')
-    const skills = await discoverSkills(skillsDir)
+    let skills = await discoverSkills(skillsDir)
     const rootMcpServers = await discoverMcpServers(skillsDir)
     const dirMcpServers = await discoverMcpDirs(skillsDir)
     const rootHooks = await discoverHooks(skillsDir)
@@ -125,6 +126,118 @@ export async function runInstall(args: string[]): Promise<void> {
     const totalHookCount = Object.keys(rootHooks).length + Object.keys(dirHooks).length
     if (totalHookCount > 0) parts.push(`${totalHookCount} hook(s)`)
     spinner.stop(`Found ${pc.green(parts.join(' + '))}`)
+
+    // Types shared between remote ref resolution and the main MCP/hook collection
+    interface McpEntry {
+      serverName: string
+      source: string
+      config: McpServerConfig
+    }
+    interface HookEntry {
+      groupName: string
+      source: string
+      group: HookGroup
+      dirPath?: string
+    }
+
+    // Extras collected from remote refs (injected into the main MCP/hook lists below)
+    const remoteMcpExtras: McpEntry[] = []
+    const remoteHookExtras: HookEntry[] = []
+
+    // Resolve remote skill references (extensionless files in skills/ containing a source string)
+    interface SkillCtx {
+      repoDir: string
+      skillRelPath: string
+      source: string
+      sourceUrl: string
+      ref?: string
+    }
+    const skillCtxMap = new Map<string, SkillCtx>()
+
+    if (skills.some((s) => s.remoteRef)) {
+      spinner.start('Resolving remote skill references...')
+      const resolved: typeof skills = []
+      for (const skill of skills) {
+        if (!skill.remoteRef) {
+          resolved.push(skill)
+          continue
+        }
+        const remoteRef = skill.remoteRef
+        const refParsed = parseSource(remoteRef.source)
+        let refTempDir: string | null = null
+        let refBase: string
+        if (refParsed.type === 'local') {
+          refBase = refParsed.localPath!
+        } else {
+          refTempDir = await cloneRepo(refParsed.url, refParsed.ref)
+          refTempDirs.push(refTempDir)
+          refBase = refTempDir
+        }
+        const refSkillsDir = refParsed.subpath ? join(refBase, refParsed.subpath) : refBase
+        const include = remoteRef.include ?? ['skills']
+
+        // Resolve skill
+        if (include.includes('skills')) {
+          const refDiscovered = await discoverSkills(refSkillsDir)
+          const match = refDiscovered.find((s) => s.name === skill.name) ?? refDiscovered[0]
+          if (match?.remoteRef) {
+            p.log.warn(
+              `Skipping remote ref "${skill.name}": circular reference detected (${remoteRef.source} → ${match.remoteRef.source})`,
+            )
+          } else if (match) {
+            const finalSkill = remoteRef.prefix
+              ? {
+                  ...match,
+                  name: `${remoteRef.prefix}-${match.name}`,
+                  rawContent: match.rawContent?.replace(
+                    /^(name:\s*)\S+/m,
+                    `$1${remoteRef.prefix}-${match.name}`,
+                  ),
+                }
+              : match
+            resolved.push(finalSkill)
+            const refOwnerRepo = getOwnerRepo(refParsed)
+            skillCtxMap.set(finalSkill.name, {
+              repoDir: refBase,
+              skillRelPath: relative(refBase, match.path),
+              source: refOwnerRepo ?? remoteRef.source,
+              sourceUrl: refParsed.type === 'local' ? refParsed.localPath! : refParsed.url,
+              ref: refParsed.ref,
+            })
+          } else {
+            p.log.warn(`Could not resolve remote skill reference: ${remoteRef.source}`)
+          }
+        }
+
+        // Collect MCPs from remote
+        if (include.includes('mcps')) {
+          const refMcps = {
+            ...(await discoverMcpServers(refSkillsDir)),
+            ...(await discoverMcpDirs(refSkillsDir)),
+          }
+          for (const [serverName, config] of Object.entries(refMcps)) {
+            const key = remoteRef.prefix ? `${remoteRef.prefix}-${serverName}` : serverName
+            remoteMcpExtras.push({ serverName: key, source: `ref:${skill.name}`, config })
+          }
+        }
+
+        // Collect hooks from remote
+        if (include.includes('hooks')) {
+          const refHooks = await discoverHooks(refSkillsDir)
+          for (const [groupName, group] of Object.entries(refHooks)) {
+            const key = remoteRef.prefix ? `${remoteRef.prefix}-${groupName}` : groupName
+            remoteHookExtras.push({ groupName: key, source: `ref:${skill.name}`, group })
+          }
+          const refHookDirs = await discoverHookDirs(refSkillsDir)
+          for (const [groupName, { group, dirPath }] of Object.entries(refHookDirs)) {
+            const key = remoteRef.prefix ? `${remoteRef.prefix}-${groupName}` : groupName
+            remoteHookExtras.push({ groupName: key, source: `ref:${skill.name}`, group, dirPath })
+          }
+        }
+      }
+      skills = resolved
+      spinner.stop(`Resolved ${skillCtxMap.size} remote reference(s)`)
+    }
 
     // Check which skills are already installed
     const installed = await listInstalledSkills({ global: false })
@@ -165,12 +278,7 @@ export async function runInstall(args: string[]): Promise<void> {
       selectedSkills = selected as Skill[]
     }
 
-    // Collect MCP servers from root mcp.json + mcps/ directories
-    interface McpEntry {
-      serverName: string
-      source: string
-      config: McpServerConfig
-    }
+    // Collect MCP servers from root mcp.json + mcps/ directories + remote refs
     const allMcpEntries: McpEntry[] = []
     for (const [serverName, config] of Object.entries(rootMcpServers)) {
       allMcpEntries.push({ serverName, source: 'mcp.json', config })
@@ -178,6 +286,7 @@ export async function runInstall(args: string[]): Promise<void> {
     for (const [serverName, config] of Object.entries(dirMcpServers)) {
       allMcpEntries.push({ serverName, source: `mcps/${serverName}`, config })
     }
+    allMcpEntries.push(...remoteMcpExtras)
 
     // Select MCP servers
     let selectedMcpNames: Set<string> = new Set()
@@ -216,13 +325,7 @@ export async function runInstall(args: string[]): Promise<void> {
       }
     }
 
-    // Collect hook groups from root hooks.json + hooks/ directories
-    interface HookEntry {
-      groupName: string
-      source: string
-      group: HookGroup
-      dirPath?: string
-    }
+    // Collect hook groups from root hooks.json + hooks/ directories + remote refs
     const allHookEntries: HookEntry[] = []
     for (const [groupName, group] of Object.entries(rootHooks)) {
       allHookEntries.push({ groupName, source: 'hooks.json', group })
@@ -230,6 +333,7 @@ export async function runInstall(args: string[]): Promise<void> {
     for (const [groupName, { group, dirPath }] of Object.entries(dirHooks)) {
       allHookEntries.push({ groupName, source: `hooks/${groupName}`, group, dirPath })
     }
+    allHookEntries.push(...remoteHookExtras)
 
     // Select hooks
     let selectedHookNames: Set<string> = new Set()
@@ -336,7 +440,9 @@ export async function runInstall(args: string[]): Promise<void> {
     const standaloneMcps: Record<string, McpServerConfig> = {}
     for (const entry of allMcpEntries) {
       if (
-        (entry.source === 'mcp.json' || entry.source.startsWith('mcps/')) &&
+        (entry.source === 'mcp.json' ||
+          entry.source.startsWith('mcps/') ||
+          entry.source.startsWith('ref:')) &&
         selectedMcpNames.has(entry.serverName)
       ) {
         standaloneMcps[entry.serverName] = entry.config
@@ -438,18 +544,25 @@ export async function runInstall(args: string[]): Promise<void> {
         }
 
         if (skillSuccess) {
-          const skillRelPath = parsed.subpath
-            ? `${parsed.subpath}/skills/${skill.name}`
-            : `skills/${skill.name}`
+          const ctx = skillCtxMap.get(skill.name)
+          const skillRelPath = ctx
+            ? ctx.skillRelPath
+            : parsed.subpath
+              ? `${parsed.subpath}/skills/${skill.name}`
+              : `skills/${skill.name}`
           let skillFolderHash = ''
           try {
-            skillFolderHash = await getTreeHash(skillsDir, skillRelPath)
+            skillFolderHash = await getTreeHash(ctx ? ctx.repoDir : skillsDir, skillRelPath)
           } catch {}
           await addToLock(skill.name, {
-            source: ownerRepo || source,
-            sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
+            source: ctx ? ctx.source : ownerRepo || source,
+            sourceUrl: ctx
+              ? ctx.sourceUrl
+              : parsed.type === 'local'
+                ? parsed.localPath!
+                : parsed.url,
             skillPath: skillRelPath,
-            ref: parsed.ref,
+            ref: ctx ? ctx.ref : parsed.ref,
             skillFolderHash,
             agents: targetAgents,
           })
@@ -512,6 +625,9 @@ export async function runInstall(args: string[]): Promise<void> {
     process.exit(1)
   } finally {
     await cleanup(tempDir)
+    for (const d of refTempDirs) {
+      await cleanupTempDir(d).catch(() => {})
+    }
   }
 
   console.log()

@@ -19,11 +19,18 @@ export interface HookGroup {
   cursor?: HookEvents
 }
 
+export interface RemoteRef {
+  source: string
+  include?: Array<'skills' | 'mcps' | 'hooks'>
+  prefix?: string
+}
+
 export interface Skill {
   name: string
   description: string
   path: string
   rawContent?: string
+  remoteRef?: RemoteRef
 }
 
 export interface AgentConfig {

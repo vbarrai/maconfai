@@ -84,6 +84,17 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+export function remoteRefYaml(opts: {
+  source: string
+  include?: Array<'skills' | 'mcps' | 'hooks'>
+  prefix?: string
+}): string {
+  const lines = [`source: ${opts.source}`]
+  if (opts.include?.length) lines.push(`include: [${opts.include.join(', ')}]`)
+  if (opts.prefix) lines.push(`prefix: ${opts.prefix}`)
+  return lines.join('\n')
+}
+
 export type SkillLayout = 'skills-dir' | 'root-dirs' | 'root-single'
 
 export interface SkillFixture {
@@ -94,6 +105,7 @@ export function setupScenario() {
   let tempDir: string
   let sourceDir: string
   let targetDir: string
+  const extraDirs: string[] = []
 
   async function init() {
     tempDir = await mkdtemp(join(tmpdir(), 'maconfai-e2e-'))
@@ -105,6 +117,27 @@ export function setupScenario() {
 
   async function cleanup() {
     await rm(tempDir, { recursive: true, force: true })
+    for (const d of extraDirs) {
+      await rm(d, { recursive: true, force: true }).catch(() => {})
+    }
+  }
+
+  async function givenRemoteSkill(name: string): Promise<string> {
+    const remoteDir = await mkdtemp(join(tmpdir(), 'maconfai-remote-'))
+    extraDirs.push(remoteDir)
+    const skillDir = join(remoteDir, 'skills', name)
+    await mkdir(skillDir, { recursive: true })
+    await writeFile(join(skillDir, 'SKILL.md'), skillFile(name))
+    return remoteDir
+  }
+
+  async function givenRemoteRef(name: string, refContent: string): Promise<string> {
+    const remoteDir = await mkdtemp(join(tmpdir(), 'maconfai-remote-'))
+    extraDirs.push(remoteDir)
+    const skillsDir = join(remoteDir, 'skills')
+    await mkdir(skillsDir, { recursive: true })
+    await writeFile(join(skillsDir, name), refContent)
+    return remoteDir
   }
 
   async function given(files: FileTree) {
@@ -118,6 +151,7 @@ export function setupScenario() {
   async function givenSource(opts: {
     skills?: SkillFixture[]
     skillLayout?: SkillLayout
+    remoteRefs?: Record<string, string>
     mcps?: Record<string, McpServerConfig>
     mcpDirs?: Record<string, McpServerConfig>
     hooks?: Record<string, HookGroup>
@@ -135,6 +169,10 @@ export function setupScenario() {
             ? `./${skill.name}/SKILL.md`
             : `./SKILL.md`
       files[path] = skillFile(skill.name)
+    }
+
+    for (const [name, refTarget] of Object.entries(opts.remoteRefs ?? {})) {
+      files[`./skills/${name}`] = refTarget
     }
 
     if (opts.mcps) {
@@ -299,6 +337,8 @@ export function setupScenario() {
     givenSource,
     givenSkill,
     givenSkillWithMcp,
+    givenRemoteSkill,
+    givenRemoteRef,
     sourceFiles,
     whenInstall,
     then,
