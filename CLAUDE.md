@@ -201,6 +201,7 @@ tests/
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
       install-none.test.ts               # Empty MCP list installs nothing
+      uninstall-single.test.ts           # Removes one server from .mcp.json, preserves others
     hooks/
       install-single.test.ts             # Single hook group
       install-multiple.test.ts           # Multiple hook groups
@@ -229,6 +230,7 @@ tests/
       install-with-skill.test.ts         # Hooks alongside a SKILL.md
       install-from-dir.test.ts           # Hook from hooks/<name>/hooks.json
       install-dir-with-files.test.ts     # Hook dir with companion scripts
+      install-dir-no-files.test.ts       # Hook dir without companion files
       install-merge.test.ts              # Sequential installs merge hooks
       install-skip-duplicate.test.ts     # Duplicate handlers not added twice
   codex/
@@ -244,7 +246,10 @@ tests/
       install-merge.test.ts              # Sequential installs merge in TOML
       install-skip-existing.test.ts      # Existing MCP name preserved
       install-none.test.ts               # Empty MCP list installs nothing
+      uninstall-single.test.ts           # Removes one server from TOML, preserves others
   open-code/
+    skills/
+      install-single.test.ts             # Single skill to open-code agent
     mcp/
       install-single.test.ts             # Single MCP with opencode.json format
       install-multiple.test.ts           # Multiple MCPs in opencode.json
@@ -256,6 +261,11 @@ tests/
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
       install-none.test.ts               # Empty MCP list installs nothing
+      uninstall-single.test.ts           # Removes one server from opencode.json, preserves others
+  lock/
+    add/
+      mcp-entry.test.ts                  # Adds new MCP server entry
+      hook-entry.test.ts                 # Adds new hook entry
 ```
 
 ### Test anatomy
@@ -264,10 +274,10 @@ tests/
 import { it, expect } from "vitest";
 import { describeConfai } from "../../test-utils.ts";
 
-describeConfai("cursor / install single MCP", ({ givenSource, when, targetFile, targetFiles }) => {
+describeConfai("cursor / install single MCP", ({ givenSource, whenInstall, targetFile, targetFiles }) => {
   it("should install a simple mcp server", async () => {
-    await givenSource({ mcps: { ... } });           // given
-    await when({ skills: [...], agents: [...] });    // when
+    await givenSource({ mcps: { ... } });                    // given
+    await whenInstall({ skills: [...], agents: [...] });     // when
     expect(await targetFiles()).toMatchInlineSnapshot(` // then — file tree
       [...]
     `);
@@ -282,7 +292,7 @@ describeConfai("cursor / install single MCP", ({ givenSource, when, targetFile, 
 
 - `givenSource({ skills?, mcps?, mcpDirs?, hooks?, hookDirs?, hookDirFiles? })` — creates source fixtures (skills with SKILL.md, root mcp.json, mcps/<name>/mcp.json dirs, root hooks.json, hooks/<name>/hooks.json dirs, companion files in hook dirs)
 - `givenSkill(...names)` — shorthand for skills without MCP
-- `when({ skills?, agents?, mcps?, hooks?, extraArgs? })` — runs the CLI with `-y` flag
+- `whenInstall({ skills?, agents?, mcps?, hooks?, extraArgs? })` — runs the CLI with `-y` flag
 - `targetFiles()` — returns sorted list of all files in target dir
 - `targetFile(path)` — returns file content as string
 - `then(fileTree)` — asserts multiple file contents
