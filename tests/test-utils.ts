@@ -136,7 +136,7 @@ export function setupScenario() {
     extraDirs.push(remoteDir)
     const skillsDir = join(remoteDir, 'skills')
     await mkdir(skillsDir, { recursive: true })
-    await writeFile(join(skillsDir, name), refContent)
+    await writeFile(join(skillsDir, `${name}.yml`), refContent)
     return remoteDir
   }
 
@@ -172,7 +172,7 @@ export function setupScenario() {
     }
 
     for (const [name, refTarget] of Object.entries(opts.remoteRefs ?? {})) {
-      files[`./skills/${name}`] = refTarget
+      files[`./skills/${name}.yml`] = refTarget
     }
 
     if (opts.mcps) {

@@ -87,23 +87,10 @@ npx maconfai install
 
 ## Remote skill references
 
-A `skills/<name>` extensionless file turns a repo into a **skill registry** — it points to a skill hosted elsewhere without copying it.
-
-### Plain string (simple pointer)
-
-The file content is the same source string you'd pass to `maconfai install`:
-
-```
-anthropics/claude-plugins-official/plugins/skill-creator
-```
-
-All source formats are supported: `owner/repo`, `owner/repo/subpath`, `owner/repo#branch`, full GitHub URLs.
-
-### YAML (structured reference)
-
-For more control, use a YAML format with optional `include` and `prefix` fields:
+A `skills/<name>.yml` file turns a repo into a **skill registry** — it points to a skill hosted elsewhere without copying it.
 
 ```yaml
+# skills/skill-creator.yml
 source: anthropics/claude-plugins-official/plugins/skill-creator
 include: [skills, mcps, hooks]
 prefix: official

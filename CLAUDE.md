@@ -55,7 +55,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **Agents**: `claude-code`, `cursor`, `codex`, `gemini-cli`, `amp-code`, `open-code` (type `AgentType`)
 - **Skills**: Discovered via a waterfall strategy (first match wins):
   1. `skills/<name>/SKILL.md` — multi-skill repo with a `skills/` wrapper directory
-  2. `skills/<name>` (extensionless file) — remote skill reference; file content is a source string passed directly to `maconfai install` (e.g. `anthropics/claude-plugins-official/plugins/skill-creator`). Supports `owner/repo/subpath` and `owner/repo#branch` formats. The lock tracks the **remote** source so updates pull from the original repo.
+  2. `skills/<name>.yml` — remote skill reference; file content is either a plain source string or a YAML document with `source`, `include`, and `prefix` fields. Supports `owner/repo/subpath` and `owner/repo#branch` formats. The lock tracks the **remote** source so updates pull from the original repo.
   3. `<name>/SKILL.md` — multi-skill repo with skills directly at root level (skips `.`-prefixed dirs, `mcps`, `hooks`, `skills`)
   4. `SKILL.md` at root — single-skill repo
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files

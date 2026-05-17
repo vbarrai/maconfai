@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../test-utils.ts'
+import { describeConfai, remoteRefYaml } from '../test-utils.ts'
 
 describeConfai(
   'remote ref / --skills filter applies to remote ref skills',
@@ -8,7 +8,10 @@ describeConfai(
       const remoteA = await givenRemoteSkill('skill-a')
       const remoteB = await givenRemoteSkill('skill-b')
       await givenSource({
-        remoteRefs: { 'skill-a': remoteA, 'skill-b': remoteB },
+        remoteRefs: {
+          'skill-a': remoteRefYaml({ source: remoteA }),
+          'skill-b': remoteRefYaml({ source: remoteB }),
+        },
       })
 
       await whenInstall({ skills: ['skill-b'], agents: ['claude-code'] })

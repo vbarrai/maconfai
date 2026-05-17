@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest'
-import { describeConfai } from '../test-utils.ts'
+import { describeConfai, remoteRefYaml } from '../test-utils.ts'
 
 describeConfai(
   'remote ref / mixed normal skills and remote ref skills',
@@ -8,7 +8,7 @@ describeConfai(
       const remoteDir = await givenRemoteSkill('skill-creator')
       await givenSource({
         skills: [{ name: 'lint' }],
-        remoteRefs: { 'skill-creator': remoteDir },
+        remoteRefs: { 'skill-creator': remoteRefYaml({ source: remoteDir }) },
       })
 
       await whenInstall({ skills: ['lint', 'skill-creator'], agents: ['claude-code'] })

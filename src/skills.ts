@@ -79,42 +79,37 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
 }
 
 /**
- * Parses a remote ref file. Supports:
- * - Plain string: `owner/repo/path` (backwards compat)
- * - YAML: `source: ...`, optional `include: [skills, mcps, hooks]`, optional `prefix: name`
+ * Parses a `.yml` remote ref file. Requires a `source:` key.
+ * Optional fields: `include: [skills, mcps, hooks]`, `prefix: name`
  */
 export function parseRemoteRefFile(content: string): RemoteRef | null {
   const trimmed = content.trim()
   if (!trimmed) return null
 
-  if (trimmed.includes('\n') || /^source:\s/.test(trimmed)) {
-    const data: Record<string, string> = {}
-    for (const line of trimmed.split('\n')) {
-      const sep = line.indexOf(':')
-      if (sep === -1) continue
-      const key = line.slice(0, sep).trim()
-      const val = line.slice(sep + 1).trim()
-      if (key && val) data[key] = val
-    }
-    if (!data.source) return null
-    const include = data.include
-      ? data.include
-          .replace(/[[\]]/g, '')
-          .split(',')
-          .map((s) => s.trim())
-          .filter(
-            (s): s is 'skills' | 'mcps' | 'hooks' =>
-              s === 'skills' || s === 'mcps' || s === 'hooks',
-          )
-      : undefined
-    return {
-      source: data.source,
-      ...(include?.length ? { include } : {}),
-      ...(data.prefix ? { prefix: data.prefix } : {}),
-    }
+  const data: Record<string, string> = {}
+  for (const line of trimmed.split('\n')) {
+    const sep = line.indexOf(':')
+    if (sep === -1) continue
+    const key = line.slice(0, sep).trim()
+    const val = line.slice(sep + 1).trim()
+    if (key && val) data[key] = val
   }
+  if (!data.source) return null
 
-  return { source: trimmed }
+  const include = data.include
+    ? data.include
+        .replace(/[[\]]/g, '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(
+          (s): s is 'skills' | 'mcps' | 'hooks' => s === 'skills' || s === 'mcps' || s === 'hooks',
+        )
+    : undefined
+  return {
+    source: data.source,
+    ...(include?.length ? { include } : {}),
+    ...(data.prefix ? { prefix: data.prefix } : {}),
+  }
 }
 
 /**
@@ -154,13 +149,14 @@ async function discoverSkillsInDir(dir: string, skipSet: Set<string>): Promise<S
           const skill = await parseSkillMd(join(skillDir, 'SKILL.md'))
           if (skill) skills.push(skill)
         }
-      } else if (entry.isFile() && !entry.name.includes('.')) {
+      } else if (entry.isFile() && entry.name.endsWith('.yml')) {
         const content = await readFile(join(dir, entry.name), 'utf-8').catch(() => null)
         if (content) {
           const ref = parseRemoteRefFile(content)
           if (ref) {
+            const name = entry.name.slice(0, -4)
             const desc = ref.prefix ? `→ ${ref.source} (prefix: ${ref.prefix})` : `→ ${ref.source}`
-            skills.push({ name: entry.name, description: desc, path: '', remoteRef: ref })
+            skills.push({ name, description: desc, path: '', remoteRef: ref })
           }
         }
       }
