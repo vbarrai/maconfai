@@ -82,7 +82,7 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
  * Parses a `.yml` remote ref file. Requires a `source:` key.
  * Optional fields: `include: [skills, mcps, hooks]`, `prefix: name`
  */
-export function parseRemoteRefFile(content: string): RemoteRef | null {
+function parseRemoteRefFile(content: string): RemoteRef | null {
   const trimmed = content.trim()
   if (!trimmed) return null
 
