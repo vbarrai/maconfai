@@ -79,10 +79,34 @@ npx maconfai install
 
 1. **Discover** — maconfai finds skills using a waterfall strategy (first match wins):
    - `skills/<name>/SKILL.md` — multi-skill repo with a `skills/` wrapper directory
+   - `skills/<name>` (extensionless file) — **remote skill reference** (see below)
    - `<name>/SKILL.md` — multi-skill repo with skills directly at root level
    - `SKILL.md` at root — single-skill repo
 2. **Select** — Pick which skills and agents to install to (auto-detects installed agents). Already installed skills are pre-checked; uncheck to remove.
 3. **Install** — Skills are copied to a canonical `.agents/skills/` directory with symlinks to each agent's skills directory.
+
+## Remote skill references
+
+A `skills/<name>.yml` file turns a repo into a **skill registry** — it points to a skill hosted elsewhere without copying it.
+
+```yaml
+# skills/skill-creator.yml
+source: anthropics/claude-plugins-official/plugins/skill-creator
+include: [skills, mcps, hooks]
+prefix: official
+```
+
+| Field     | Default    | Description                                                             |
+| :-------- | :--------- | :---------------------------------------------------------------------- |
+| `source`  | —          | Source string (same formats as plain string)                            |
+| `include` | `[skills]` | What to pull from the remote: `skills`, `mcps`, `hooks`                 |
+| `prefix`  | —          | Prefix applied to installed skill names, MCP keys, and hook group names |
+
+With `prefix: official`, a remote skill named `skill-creator` is installed as `official-skill-creator` (directory name and frontmatter `name:` field both updated). MCP server `github` becomes `official-github`, etc.
+
+### How it works
+
+When installing from a registry repo, maconfai fetches each referenced skill directly from its origin. The `ai-lock.json` tracks the **remote** source, so `maconfai check` detects updates from the original repo — not the registry. Circular references (a ref pointing to another ref) are detected and skipped with a warning.
 
 ## Supported agents
 

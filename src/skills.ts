@@ -1,6 +1,6 @@
 import { readdir, readFile, stat } from 'fs/promises'
 import { join, dirname } from 'path'
-import type { Skill, McpServerConfig, HookGroup } from './types.ts'
+import type { Skill, RemoteRef, McpServerConfig, HookGroup } from './types.ts'
 
 function parseFrontmatter(content: string): { data: Record<string, string> } {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
@@ -79,6 +79,40 @@ export async function parseSkillMd(skillMdPath: string): Promise<Skill | null> {
 }
 
 /**
+ * Parses a `.yml` remote ref file. Requires a `source:` key.
+ * Optional fields: `include: [skills, mcps, hooks]`, `prefix: name`
+ */
+function parseRemoteRefFile(content: string): RemoteRef | null {
+  const trimmed = content.trim()
+  if (!trimmed) return null
+
+  const data: Record<string, string> = {}
+  for (const line of trimmed.split('\n')) {
+    const sep = line.indexOf(':')
+    if (sep === -1) continue
+    const key = line.slice(0, sep).trim()
+    const val = line.slice(sep + 1).trim()
+    if (key && val) data[key] = val
+  }
+  if (!data.source) return null
+
+  const include = data.include
+    ? data.include
+        .replace(/[[\]]/g, '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(
+          (s): s is 'skills' | 'mcps' | 'hooks' => s === 'skills' || s === 'mcps' || s === 'hooks',
+        )
+    : undefined
+  return {
+    source: data.source,
+    ...(include?.length ? { include } : {}),
+    ...(data.prefix ? { prefix: data.prefix } : {}),
+  }
+}
+
+/**
  * Discovers skills using a waterfall strategy (first match wins):
  *
  * 1. **skills/ directory**: `skills/<name>/SKILL.md` — multi-skill repo with a wrapper dir
@@ -108,11 +142,23 @@ async function discoverSkillsInDir(dir: string, skipSet: Set<string>): Promise<S
   try {
     const entries = await readdir(dir, { withFileTypes: true })
     for (const entry of entries) {
-      if (!entry.isDirectory() || skipSet.has(entry.name) || entry.name.startsWith('.')) continue
-      const skillDir = join(dir, entry.name)
-      if (await hasFile(skillDir, 'SKILL.md')) {
-        const skill = await parseSkillMd(join(skillDir, 'SKILL.md'))
-        if (skill) skills.push(skill)
+      if (skipSet.has(entry.name) || entry.name.startsWith('.')) continue
+      if (entry.isDirectory()) {
+        const skillDir = join(dir, entry.name)
+        if (await hasFile(skillDir, 'SKILL.md')) {
+          const skill = await parseSkillMd(join(skillDir, 'SKILL.md'))
+          if (skill) skills.push(skill)
+        }
+      } else if (entry.isFile() && entry.name.endsWith('.yml')) {
+        const content = await readFile(join(dir, entry.name), 'utf-8').catch(() => null)
+        if (content) {
+          const ref = parseRemoteRefFile(content)
+          if (ref) {
+            const name = entry.name.slice(0, -4)
+            const desc = ref.prefix ? `→ ${ref.source} (prefix: ${ref.prefix})` : `→ ${ref.source}`
+            skills.push({ name, description: desc, path: '', remoteRef: ref })
+          }
+        }
       }
     }
   } catch {

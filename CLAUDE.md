@@ -55,8 +55,9 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **Agents**: `claude-code`, `cursor`, `codex`, `gemini-cli`, `amp-code`, `open-code` (type `AgentType`)
 - **Skills**: Discovered via a waterfall strategy (first match wins):
   1. `skills/<name>/SKILL.md` — multi-skill repo with a `skills/` wrapper directory
-  2. `<name>/SKILL.md` — multi-skill repo with skills directly at root level (skips `.`-prefixed dirs, `mcps`, `hooks`, `skills`)
-  3. `SKILL.md` at root — single-skill repo
+  2. `skills/<name>.yml` — remote skill reference; file content is either a plain source string or a YAML document with `source`, `include`, and `prefix` fields. Supports `owner/repo/subpath` and `owner/repo#branch` formats. The lock tracks the **remote** source so updates pull from the original repo.
+  3. `<name>/SKILL.md` — multi-skill repo with skills directly at root level (skips `.`-prefixed dirs, `mcps`, `hooks`, `skills`)
+  4. `SKILL.md` at root — single-skill repo
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
 - **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor, `opencode.json` for Open Code)
@@ -125,6 +126,11 @@ tests/
     lock-tracks-all-three.test.ts        # ai-lock.json tracks all
     lock-removes-deselected-skill.test.ts # Lock cleaned on deselect
     lock-hash-empty-for-local.test.ts    # No hash for local sources
+    remote-ref-basic.test.ts            # Remote ref: basic install via skills/<name> file
+    remote-ref-mixed.test.ts            # Remote ref: mix of local and remote ref skills
+    remote-ref-filter.test.ts           # Remote ref: --skills filter applies to refs
+    lock-tracks-remote-ref.test.ts      # Remote ref: lock tracks remote source, not proxy repo
+    remote-ref-circular.test.ts        # Remote ref: circular reference is skipped with warning
     mcp-not-created-for-codex.test.ts    # Codex skips MCP config
     no-filter-selects-all.test.ts        # No filter = select everything
     nothing-to-do.test.ts               # Nothing to install
@@ -290,7 +296,9 @@ describeConfai("cursor / install single MCP", ({ givenSource, whenInstall, targe
 
 ### Helpers (`describeConfai` provides)
 
-- `givenSource({ skills?, mcps?, mcpDirs?, hooks?, hookDirs?, hookDirFiles? })` — creates source fixtures (skills with SKILL.md, root mcp.json, mcps/<name>/mcp.json dirs, root hooks.json, hooks/<name>/hooks.json dirs, companion files in hook dirs)
+- `givenSource({ skills?, remoteRefs?, mcps?, mcpDirs?, hooks?, hookDirs?, hookDirFiles? })` — creates source fixtures (skills with SKILL.md, `remoteRefs` creates extensionless `skills/<name>` ref files, root mcp.json, mcps/<name>/mcp.json dirs, root hooks.json, hooks/<name>/hooks.json dirs, companion files in hook dirs)
+- `givenRemoteSkill(name)` — creates an isolated temp dir containing `skills/<name>/SKILL.md` and returns its path; used as the target for `remoteRefs`
+- `givenRemoteRef(name, refTarget)` — creates an isolated temp dir containing a `skills/<name>` ref file pointing to `refTarget`; used to simulate a circular/chained remote reference
 - `givenSkill(...names)` — shorthand for skills without MCP
 - `whenInstall({ skills?, agents?, mcps?, hooks?, extraArgs? })` — runs the CLI with `-y` flag
 - `targetFiles()` — returns sorted list of all files in target dir
