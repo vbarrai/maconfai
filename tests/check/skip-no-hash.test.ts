@@ -16,8 +16,8 @@ it('should skip skills without hash or path', async () => {
   await runCheck()
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "success: All skills are up to date
-    info: 2 skill(s) skipped (no version tracking)
+    "success: All skills, MCPs, and hooks are up to date
+    info: 2 item(s) skipped (no version tracking)
     message:   - no-hash: No version hash
     message:   - also-no-hash: No version hash"
   `)

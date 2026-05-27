@@ -21,9 +21,9 @@ it('should handle mixed results: up-to-date, skipped, and errored', async () => 
   await runCheck()
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "info: 1 skill(s) skipped (no version tracking)
+    "info: 1 item(s) skipped (no version tracking)
     message:   - no-tracking: No version hash
-    warn: 1 skill(s) could not be checked:
+    warn: 1 item(s) could not be checked:
     message:   - broken: Network error"
   `)
 })

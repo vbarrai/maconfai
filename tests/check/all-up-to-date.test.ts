@@ -14,5 +14,5 @@ it('should report all skills up to date', async () => {
   const { runCheck } = await import('../../src/check.ts')
   await runCheck()
 
-  expect(getLogs()).toMatchInlineSnapshot(`"success: All skills are up to date"`)
+  expect(getLogs()).toMatchInlineSnapshot(`"success: All skills, MCPs, and hooks are up to date"`)
 })
