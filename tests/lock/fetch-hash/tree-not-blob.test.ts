@@ -17,7 +17,7 @@ function okTree(tree: Array<{ path: string; type: string; sha: string }>) {
   return { ok: true, json: async () => ({ sha: 'root-sha', tree }) }
 }
 
-it('ignores blob entries, only matches tree type', async () => {
+it('matches blob entries in addition to tree type', async () => {
   const { fetchSkillFolderHash } = await import('../../../src/lock.ts')
 
   mockFetch.mockResolvedValueOnce(
@@ -31,5 +31,5 @@ it('ignores blob entries, only matches tree type', async () => {
     'main',
   )
 
-  expect(result).toMatchInlineSnapshot(`null`)
+  expect(result).toMatchInlineSnapshot(`"blob-sha"`)
 })

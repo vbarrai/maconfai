@@ -3,8 +3,8 @@ import { describeConfai } from '../../test-utils.ts'
 
 describeConfai(
   'claude-code / skip existing MCP server',
-  ({ givenSource, sourceFiles, whenInstall, targetFile }) => {
-    it('preserves existing MCP config when same name is reinstalled', async () => {
+  ({ givenSource, whenInstall, targetFile }) => {
+    it('overwrites a maconfai-managed MCP when reinstalled with new config', async () => {
       await givenSource({
         mcps: {
           github: {
@@ -14,12 +14,6 @@ describeConfai(
           },
         },
       })
-
-      expect(await sourceFiles()).toMatchInlineSnapshot(`
-      [
-        "mcp.json",
-      ]
-    `)
 
       await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
 
@@ -45,7 +39,7 @@ describeConfai(
               "@modelcontextprotocol/server-github"
             ],
             "env": {
-              "GITHUB_TOKEN": "\${ORIGINAL_TOKEN}"
+              "GITHUB_TOKEN": "\${NEW_TOKEN}"
             }
           }
         }

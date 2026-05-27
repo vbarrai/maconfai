@@ -56,3 +56,23 @@ export function detectInstalledAgents(): AgentType[] {
   if (existsSync(join(home, '.config/opencode'))) result.push('open-code')
   return result
 }
+
+export function detectProjectAgents(cwd = process.cwd()): AgentType[] {
+  const result: AgentType[] = []
+  if (
+    existsSync(join(cwd, '.mcp.json')) ||
+    existsSync(join(cwd, '.claude/settings.json')) ||
+    existsSync(join(cwd, '.claude/skills'))
+  )
+    result.push('claude-code')
+  if (
+    existsSync(join(cwd, '.cursor/mcp.json')) ||
+    existsSync(join(cwd, '.cursor/hooks.json')) ||
+    existsSync(join(cwd, '.cursor/skills'))
+  )
+    result.push('cursor')
+  if (existsSync(join(cwd, '.codex/config.toml'))) result.push('codex')
+  if (existsSync(join(cwd, 'opencode.json')) || existsSync(join(cwd, '.opencode/skills')))
+    result.push('open-code')
+  return result
+}

@@ -2,7 +2,7 @@ import { it, expect } from 'vitest'
 import { describeConfai, mcpLinear } from '../../test-utils.ts'
 
 describeConfai('open-code / skip existing MCP', ({ givenSource, whenInstall, targetFile }) => {
-  it('should preserve existing MCP server and not overwrite', async () => {
+  it('overwrites a maconfai-managed MCP when reinstalled with new config', async () => {
     await givenSource({
       mcps: {
         linear: mcpLinear,
@@ -11,7 +11,6 @@ describeConfai('open-code / skip existing MCP', ({ givenSource, whenInstall, tar
 
     await whenInstall({ mcps: ['linear'], agents: ['open-code'] })
 
-    // Install again with different config for same name
     await givenSource({
       mcps: {
         linear: {
@@ -23,17 +22,14 @@ describeConfai('open-code / skip existing MCP', ({ givenSource, whenInstall, tar
 
     await whenInstall({ mcps: ['linear'], agents: ['open-code'] })
 
-    // Original config should be preserved
     expect(await targetFile('opencode.json')).toMatchInlineSnapshot(`
       "{
         "mcp": {
           "linear": {
             "type": "local",
             "command": [
-              "npx",
-              "-y",
-              "mcp-remote",
-              "https://mcp.linear.app/mcp"
+              "node",
+              "different-server.js"
             ]
           }
         }

@@ -19,18 +19,24 @@ export interface SkillLockEntry {
   updatedAt: string
 }
 
-interface McpLockEntry {
+export interface McpLockEntry {
   source: string
   sourceUrl: string
+  folderPath?: string
+  folderHash?: string
   ref?: string
+  agents?: string[]
   installedAt: string
   updatedAt: string
 }
 
-interface HookLockEntry {
+export interface HookLockEntry {
   source: string
   sourceUrl: string
+  folderPath?: string
+  folderHash?: string
   ref?: string
+  agents?: string[]
   installedAt: string
   updatedAt: string
 }
@@ -96,10 +102,12 @@ export async function addMcpToLock(
   const now = new Date().toISOString()
   const existing = lock.mcpServers[serverName]
 
+  const mcpHashChanged = !existing || existing.folderHash !== entry.folderHash
+
   lock.mcpServers[serverName] = {
     ...entry,
     installedAt: existing?.installedAt ?? now,
-    updatedAt: now,
+    updatedAt: mcpHashChanged ? now : existing!.updatedAt,
   }
 
   await writeLock(lock, cwd)
@@ -114,10 +122,12 @@ export async function addHookToLock(
   const now = new Date().toISOString()
   const existing = lock.hooks[groupName]
 
+  const hookHashChanged = !existing || existing.folderHash !== entry.folderHash
+
   lock.hooks[groupName] = {
     ...entry,
     installedAt: existing?.installedAt ?? now,
-    updatedAt: now,
+    updatedAt: hookHashChanged ? now : existing!.updatedAt,
   }
 
   await writeLock(lock, cwd)
@@ -176,7 +186,9 @@ export async function fetchSkillFolderHash(
 
       if (!folderPath) return data.sha
 
-      const entry = data.tree.find((e) => e.type === 'tree' && e.path === folderPath)
+      const entry = data.tree.find(
+        (e) => (e.type === 'tree' || e.type === 'blob') && e.path === folderPath,
+      )
       if (entry) return entry.sha
     } catch {
       continue

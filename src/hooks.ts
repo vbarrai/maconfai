@@ -23,7 +23,7 @@ async function writeJsonFile(filePath: string, data: Record<string, unknown>): P
 export async function installHooks(
   hookEvents: HookEvents,
   agentType: AgentType,
-  options: { cwd?: string } = {},
+  options: { cwd?: string; force?: boolean } = {},
 ): Promise<{ installed: string[]; skipped: string[] }> {
   const agent = agents[agentType]
   if (!agent.hooksConfigPath || !agent.hooksConfigFormat) {
@@ -50,11 +50,31 @@ export async function installHooks(
   for (const [eventName, handlers] of Object.entries(hookEvents)) {
     if (!Array.isArray(handlers) || handlers.length === 0) continue
 
+    if (options.force) {
+      if (!hooks[eventName]) {
+        hooks[eventName] = []
+      }
+      const existing = hooks[eventName]!
+      for (const handler of handlers) {
+        const matcher = (handler as Record<string, unknown>).matcher
+        const idx =
+          matcher !== undefined
+            ? existing.findIndex((h) => (h as Record<string, unknown>).matcher === matcher)
+            : existing.findIndex((h) => JSON.stringify(h) === JSON.stringify(handler))
+        if (idx !== -1) {
+          existing[idx] = handler
+        } else {
+          existing.push(handler)
+        }
+      }
+      installed.push(eventName)
+      continue
+    }
+
     if (!hooks[eventName]) {
       hooks[eventName] = []
     }
 
-    // Append new handlers to the event array
     const existing = hooks[eventName]!
     const existingJson = existing.map((h) => JSON.stringify(h))
     let addedAny = false

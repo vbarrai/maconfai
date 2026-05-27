@@ -116,6 +116,7 @@ async function installMcpServersCodex(
   servers: Record<string, McpServerConfig>,
   configPath: string,
   syntax: McpEnvSyntax,
+  ownedNames?: Set<string>,
 ): Promise<{ installed: string[]; skipped: string[] }> {
   const content = await readCodexToml(configPath)
   const existing = parseCodexToml(content)
@@ -124,7 +125,7 @@ async function installMcpServersCodex(
   const skipped: string[] = []
 
   for (const [name, serverConfig] of Object.entries(servers)) {
-    if (existing[name]) {
+    if (existing[name] && !ownedNames?.has(name)) {
       skipped.push(name)
       continue
     }
@@ -228,7 +229,7 @@ async function writeMcpConfig(filePath: string, config: McpConfigFile): Promise<
 export async function installMcpServers(
   servers: Record<string, McpServerConfig>,
   agentType: AgentType,
-  options: { cwd?: string } = {},
+  options: { cwd?: string; ownedNames?: Set<string> } = {},
 ): Promise<{ installed: string[]; skipped: string[] }> {
   const agent = agents[agentType]
   if (!agent.mcpConfigPath || !agent.mcpEnvSyntax) {
@@ -239,11 +240,11 @@ export async function installMcpServers(
   const configPath = join(cwd, agent.mcpConfigPath)
 
   if (agent.mcpConfigFormat === 'opencode') {
-    return installMcpServersOpenCode(servers, configPath, agent.mcpEnvSyntax)
+    return installMcpServersOpenCode(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
   }
 
   if (agent.mcpConfigFormat === 'codex') {
-    return installMcpServersCodex(servers, configPath, agent.mcpEnvSyntax)
+    return installMcpServersCodex(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
   }
 
   const config = await readMcpConfig(configPath)
@@ -256,7 +257,7 @@ export async function installMcpServers(
   const skipped: string[] = []
 
   for (const [name, serverConfig] of Object.entries(servers)) {
-    if (config.mcpServers[name]) {
+    if (config.mcpServers[name] && !options.ownedNames?.has(name)) {
       skipped.push(name)
       continue
     }
@@ -275,6 +276,7 @@ async function installMcpServersOpenCode(
   servers: Record<string, McpServerConfig>,
   configPath: string,
   syntax: McpEnvSyntax,
+  ownedNames?: Set<string>,
 ): Promise<{ installed: string[]; skipped: string[] }> {
   let config: OpenCodeConfigFile = {}
   try {
@@ -290,7 +292,7 @@ async function installMcpServersOpenCode(
   const skipped: string[] = []
 
   for (const [name, serverConfig] of Object.entries(servers)) {
-    if (config.mcp[name]) {
+    if (config.mcp[name] && !ownedNames?.has(name)) {
       skipped.push(name)
       continue
     }
