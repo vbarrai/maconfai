@@ -101,6 +101,38 @@ export async function installHooks(
   return { installed, skipped }
 }
 
+export async function uninstallHooks(
+  hookEvents: HookEvents,
+  agentType: AgentType,
+  options: { cwd?: string } = {},
+): Promise<void> {
+  const agent = agents[agentType]
+  if (!agent.hooksConfigPath) return
+
+  const cwd = options.cwd || process.cwd()
+  const configPath = join(cwd, agent.hooksConfigPath)
+  const config = await readJsonFile(configPath)
+
+  if (!config.hooks) return
+
+  const hooks = config.hooks as Record<string, unknown[]>
+  let changed = false
+
+  for (const [eventName, handlers] of Object.entries(hookEvents)) {
+    if (!hooks[eventName]) continue
+    const toRemove = new Set(handlers.map((h) => JSON.stringify(h)))
+    const before = hooks[eventName].length
+    hooks[eventName] = hooks[eventName].filter((h) => !toRemove.has(JSON.stringify(h)))
+    if (hooks[eventName].length !== before) changed = true
+    if (hooks[eventName].length === 0) delete hooks[eventName]
+  }
+
+  if (changed) {
+    if (Object.keys(hooks).length === 0) delete config.hooks
+    await writeJsonFile(configPath, config)
+  }
+}
+
 /**
  * Copies companion files (scripts, etc.) from a hook source directory
  * to .agents/hooks/<hookName>/ in the target project.
