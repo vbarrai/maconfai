@@ -46,9 +46,9 @@ it('should update multiple outdated skills', async () => {
     "info: 2 update(s) available:
     message:   * skill-a (alice/repo-a)
     message:   * skill-b (bob/repo-b)
-    success: Updated skill-a
-    success: Updated skill-b
-    success: Updated 2 skill(s)"
+    success: Updated skill: skill-a
+    success: Updated skill: skill-b
+    success: Updated 2 item(s)"
   `)
 
   // Two different sources → two cloneRepo calls

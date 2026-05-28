@@ -12,7 +12,7 @@ it('should show no-skills message for empty lock', async () => {
   await runCheck()
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "info: No globally installed skills to check.
-    info: Install skills with: maconfai install <source> -g"
+    "info: No installed configurations to check.
+    info: Install with: maconfai install <source>"
   `)
 })

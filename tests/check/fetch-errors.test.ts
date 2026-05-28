@@ -19,7 +19,7 @@ it('should report fetch errors and null results', async () => {
   await runCheck()
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "warn: 2 skill(s) could not be checked:
+    "warn: 2 item(s) could not be checked:
     message:   - rate-limited: API rate limit
     message:   - fetch-null: Could not fetch from GitHub"
   `)

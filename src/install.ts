@@ -582,17 +582,34 @@ export async function runInstall(args: string[]): Promise<void> {
     // Install standalone MCP servers (from root mcp.json)
     if (hasStandaloneMcps) {
       spinner.start('Installing MCP servers...')
+      const existingLock = await readLock()
+      const ownedMcpNames = new Set(Object.keys(existingLock.mcpServers))
+
+      const installedMcpNames = new Set<string>()
       for (const agent of targetAgents) {
-        await installMcpServers(standaloneMcps, agent)
+        const result = await installMcpServers(standaloneMcps, agent, { ownedNames: ownedMcpNames })
+        for (const name of result.installed) installedMcpNames.add(name)
       }
-      for (const serverName of Object.keys(standaloneMcps)) {
+
+      for (const serverName of installedMcpNames) {
+        const mcpEntry = allMcpEntries.find((e) => e.serverName === serverName)!
+        const folderPath = mcpEntry.source
+        let folderHash = ''
+        if (parsed.type !== 'local') {
+          try {
+            folderHash = await getTreeHash(skillsDir, folderPath)
+          } catch {}
+        }
         await addMcpToLock(serverName, {
           source: ownerRepo || source,
           sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
           ref: parsed.ref,
+          folderPath,
+          folderHash,
+          agents: targetAgents,
         })
       }
-      spinner.stop(`Installed ${Object.keys(standaloneMcps).length} MCP server(s)`)
+      spinner.stop(`Installed ${installedMcpNames.size} MCP server(s)`)
     }
 
     // Install hooks
@@ -611,10 +628,20 @@ export async function runInstall(args: string[]): Promise<void> {
             await installHooks(hookEvents as Record<string, unknown[]>, agent)
           }
         }
+        const folderPath = entry.source
+        let folderHash = ''
+        if (parsed.type !== 'local') {
+          try {
+            folderHash = await getTreeHash(skillsDir, folderPath)
+          } catch {}
+        }
         await addHookToLock(entry.groupName, {
           source: ownerRepo || source,
           sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
           ref: parsed.ref,
+          folderPath,
+          folderHash,
+          agents: targetAgents,
         })
       }
       spinner.stop(`Installed ${selectedHookGroups.length} hook(s)`)

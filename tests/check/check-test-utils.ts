@@ -54,11 +54,42 @@ export const mockDiscoverSkills = vi.fn(async (_basePath: string) => [
   { name: 'my-skill', description: 'A test skill', dir: '/tmp/maconfai-mock/skills/my-skill' },
 ])
 
+export const mockDiscoverMcpServers = vi.fn(
+  async (_basePath: string) => ({}) as Record<string, unknown>,
+)
+export const mockDiscoverMcpDirs = vi.fn(
+  async (_basePath: string) => ({}) as Record<string, unknown>,
+)
+export const mockDiscoverHooks = vi.fn(async (_basePath: string) => ({}) as Record<string, unknown>)
+export const mockDiscoverHookDirs = vi.fn(
+  async (_basePath: string) => ({}) as Record<string, unknown>,
+)
+
 export const mockInstallSkill = vi.fn(async (_skill: unknown, _agent: unknown, _opts: unknown) => ({
   success: true as boolean,
 }))
 
+export const mockInstallMcpServers = vi.fn(
+  async (_servers: unknown, _agent: unknown, _opts?: unknown) => ({
+    installed: [] as string[],
+    skipped: [] as string[],
+  }),
+)
+
+export const mockInstallHooks = vi.fn(
+  async (_events: unknown, _agent: unknown, _opts?: unknown) => ({
+    installed: [] as string[],
+    skipped: [] as string[],
+  }),
+)
+
+export const mockInstallHookFiles = vi.fn(async (_src: unknown, _name: unknown) => true)
+
 export const mockAddToLock = vi.fn(async (_name: string, _entry: unknown, _cwd?: string) => {})
+export const mockAddMcpToLock = vi.fn(async (_name: string, _entry: unknown, _cwd?: string) => {})
+export const mockAddHookToLock = vi.fn(async (_name: string, _entry: unknown, _cwd?: string) => {})
+
+export const mockDetectProjectAgents = vi.fn(() => [] as string[])
 
 export function getLogs(): string {
   return logs.map((l) => `${l.method}: ${l.args.join(' ')}`).join('\n')
