@@ -13,10 +13,18 @@ import {
 } from './skills.ts'
 import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
 import { agents, detectInstalledAgents } from './agents.ts'
-import { readLock, addToLock, addMcpToLock, addHookToLock, removeFromLock } from './lock.ts'
+import {
+  readLock,
+  addToLock,
+  addMcpToLock,
+  addHookToLock,
+  removeFromLock,
+  removeMcpFromLock,
+  removeHookFromLock,
+} from './lock.ts'
 import { getOwnerRepo } from './source-parser.ts'
-import { installMcpServers, listInstalledMcpServerNames } from './mcp.ts'
-import { installHooks, installHookFiles } from './hooks.ts'
+import { installMcpServers, uninstallMcpServers, listInstalledMcpServerNames } from './mcp.ts'
+import { installHooks, installHookFiles, uninstallHooks } from './hooks.ts'
 import type { Skill, AgentType, McpServerConfig, HookGroup } from './types.ts'
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
@@ -510,6 +518,45 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop(`Removed ${toUninstall.length} skill(s)`)
     }
 
+    // Uninstall deselected MCP servers (present in source + lock but not selected)
+    const lockForDeselect = await readLock()
+    const lockedMcpNames = new Set(Object.keys(lockForDeselect.mcpServers))
+    const deselectedMcps = allMcpEntries
+      .filter((e) => lockedMcpNames.has(e.serverName) && !selectedMcpNames.has(e.serverName))
+      .map((e) => e.serverName)
+    if (deselectedMcps.length > 0) {
+      spinner.start('Removing deselected MCP servers...')
+      for (const agent of ALL_AGENTS) {
+        await uninstallMcpServers(deselectedMcps, agent)
+      }
+      for (const name of deselectedMcps) {
+        await removeMcpFromLock(name).catch(() => {})
+      }
+      spinner.stop(`Removed ${deselectedMcps.length} MCP server(s)`)
+    }
+
+    // Uninstall deselected hook groups (present in source + lock but not selected)
+    const lockedHookNames = new Set(Object.keys(lockForDeselect.hooks))
+    const deselectedHooks = allHookEntries.filter(
+      (e) => lockedHookNames.has(e.groupName) && !selectedHookNames.has(e.groupName),
+    )
+    if (deselectedHooks.length > 0) {
+      spinner.start('Removing deselected hooks...')
+      for (const entry of deselectedHooks) {
+        const lockEntry = lockForDeselect.hooks[entry.groupName]
+        if (lockEntry?.handlers) {
+          for (const agent of ALL_AGENTS) {
+            const events = lockEntry.handlers[agent] as Record<string, unknown[]> | undefined
+            if (events) {
+              await uninstallHooks(events, agent)
+            }
+          }
+        }
+        await removeHookFromLock(entry.groupName).catch(() => {})
+      }
+      spinner.stop(`Removed ${deselectedHooks.length} hook(s)`)
+    }
+
     // Clean removed agents: remove ALL discovered skills from their directories
     if (removedAgents.length > 0) {
       spinner.start('Cleaning removed agents...')
@@ -635,6 +682,14 @@ export async function runInstall(args: string[]): Promise<void> {
             folderHash = await getTreeHash(skillsDir, folderPath)
           } catch {}
         }
+        const installedHandlers: Record<string, unknown> = {}
+        for (const agent of targetAgents) {
+          const agentKey = agent as keyof HookGroup
+          const events = entry.group[agentKey]
+          if (events && typeof events === 'object' && !Array.isArray(events)) {
+            installedHandlers[agent] = events
+          }
+        }
         await addHookToLock(entry.groupName, {
           source: ownerRepo || source,
           sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
@@ -642,6 +697,7 @@ export async function runInstall(args: string[]): Promise<void> {
           folderPath,
           folderHash,
           agents: targetAgents,
+          handlers: installedHandlers,
         })
       }
       spinner.stop(`Installed ${selectedHookGroups.length} hook(s)`)
@@ -667,43 +723,95 @@ async function runUninstall(): Promise<void> {
 
   const spinner = p.spinner()
 
-  // Find installed skills (both scopes)
-  spinner.start('Scanning installed skills...')
+  spinner.start('Scanning installed configs...')
   const projectSkills = await listInstalledSkills({ global: false })
   const globalSkills = await listInstalledSkills({ global: true })
   const allSkills = [
     ...projectSkills.map((s) => ({ ...s, scope: 'project' as const })),
     ...globalSkills.map((s) => ({ ...s, scope: 'global' as const })),
   ]
-  spinner.stop(`Found ${allSkills.length} installed skill(s)`)
+  const lock = await readLock()
+  const installedMcps = Object.keys(lock.mcpServers)
+  const installedHooks = Object.keys(lock.hooks)
+  spinner.stop(
+    `Found ${allSkills.length} skill(s), ${installedMcps.length} MCP server(s), ${installedHooks.length} hook(s)`,
+  )
 
-  if (allSkills.length === 0) {
-    p.log.info('No skills installed.')
+  if (allSkills.length === 0 && installedMcps.length === 0 && installedHooks.length === 0) {
+    p.log.info('Nothing installed.')
     p.outro('')
     return
   }
 
   // Select skills to remove
-  const choices = allSkills.map((s) => ({
-    value: s,
-    label: `${s.name} ${pc.dim(`[${s.scope}]`)} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
-  }))
+  let skillsToRemove: typeof allSkills = []
+  if (allSkills.length > 0) {
+    const skillChoices = allSkills.map((s) => ({
+      value: s,
+      label: `${s.name} ${pc.dim(`[${s.scope}]`)} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
+    }))
 
-  const selected = await p.multiselect({
-    message: `Select skills to uninstall ${pc.dim('(space to toggle)')}`,
-    options: choices as any,
-    required: true,
-  })
+    const selectedSkills = await p.multiselect({
+      message: `Select skills to uninstall ${pc.dim('(space to toggle)')}`,
+      options: skillChoices as any,
+      required: false,
+    })
 
-  if (p.isCancel(selected)) {
-    p.cancel('Cancelled')
-    process.exit(0)
+    if (p.isCancel(selectedSkills)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+
+    skillsToRemove = selectedSkills as typeof allSkills
   }
 
-  const toRemove = selected as typeof allSkills
+  // Select MCP servers to remove
+  let mcpsToRemove: string[] = []
+  if (installedMcps.length > 0) {
+    const mcpChoices = installedMcps.map((n) => ({ value: n, label: n }))
+
+    const selectedMcps = await p.multiselect({
+      message: `Select MCP servers to uninstall ${pc.dim('(space to toggle)')}`,
+      options: mcpChoices as any,
+      required: false,
+    })
+
+    if (p.isCancel(selectedMcps)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+
+    mcpsToRemove = selectedMcps as string[]
+  }
+
+  // Select hook groups to remove
+  let hooksToRemove: string[] = []
+  if (installedHooks.length > 0) {
+    const hookChoices = installedHooks.map((n) => ({ value: n, label: n }))
+
+    const selectedHooks = await p.multiselect({
+      message: `Select hooks to uninstall ${pc.dim('(space to toggle)')}`,
+      options: hookChoices as any,
+      required: false,
+    })
+
+    if (p.isCancel(selectedHooks)) {
+      p.cancel('Cancelled')
+      process.exit(0)
+    }
+
+    hooksToRemove = selectedHooks as string[]
+  }
+
+  const totalToRemove = skillsToRemove.length + mcpsToRemove.length + hooksToRemove.length
+  if (totalToRemove === 0) {
+    p.log.info('Nothing selected.')
+    p.outro('')
+    return
+  }
 
   const confirmed = await p.confirm({
-    message: `Remove ${toRemove.length} skill(s)?`,
+    message: `Remove ${totalToRemove} item(s)?`,
   })
 
   if (p.isCancel(confirmed) || !confirmed) {
@@ -711,21 +819,44 @@ async function runUninstall(): Promise<void> {
     process.exit(0)
   }
 
-  spinner.start('Removing skills...')
-
-  for (const skill of toRemove) {
-    for (const agent of skill.agents) {
-      await uninstallSkill(skill.dirName, agent, {
-        global: skill.scope === 'global',
-      })
-    }
-
-    if (skill.scope === 'global') {
+  if (skillsToRemove.length > 0) {
+    spinner.start('Removing skills...')
+    for (const skill of skillsToRemove) {
+      for (const agent of skill.agents) {
+        await uninstallSkill(skill.dirName, agent, { global: skill.scope === 'global' })
+      }
       await removeFromLock(skill.name).catch(() => {})
     }
+    spinner.stop(`Removed ${skillsToRemove.length} skill(s)`)
   }
 
-  spinner.stop(`Removed ${toRemove.length} skill(s)`)
+  if (mcpsToRemove.length > 0) {
+    spinner.start('Removing MCP servers...')
+    for (const agent of ALL_AGENTS) {
+      await uninstallMcpServers(mcpsToRemove, agent)
+    }
+    for (const name of mcpsToRemove) {
+      await removeMcpFromLock(name).catch(() => {})
+    }
+    spinner.stop(`Removed ${mcpsToRemove.length} MCP server(s)`)
+  }
+
+  if (hooksToRemove.length > 0) {
+    spinner.start('Removing hooks...')
+    for (const groupName of hooksToRemove) {
+      const lockEntry = lock.hooks[groupName]
+      if (lockEntry?.handlers) {
+        for (const agent of ALL_AGENTS) {
+          const events = lockEntry.handlers[agent] as Record<string, unknown[]> | undefined
+          if (events) {
+            await uninstallHooks(events, agent)
+          }
+        }
+      }
+      await removeHookFromLock(groupName).catch(() => {})
+    }
+    spinner.stop(`Removed ${hooksToRemove.length} hook(s)`)
+  }
 
   console.log()
   p.outro(pc.green('Done!'))

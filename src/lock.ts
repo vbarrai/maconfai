@@ -39,6 +39,7 @@ export interface HookLockEntry {
   agents?: string[]
   installedAt: string
   updatedAt: string
+  handlers?: Record<string, unknown>
 }
 
 interface LockFile {
@@ -136,6 +137,18 @@ export async function addHookToLock(
 export async function removeFromLock(skillName: string, cwd?: string): Promise<void> {
   const lock = await readLock(cwd)
   delete lock.skills[skillName]
+  await writeLock(lock, cwd)
+}
+
+export async function removeMcpFromLock(serverName: string, cwd?: string): Promise<void> {
+  const lock = await readLock(cwd)
+  delete lock.mcpServers[serverName]
+  await writeLock(lock, cwd)
+}
+
+export async function removeHookFromLock(groupName: string, cwd?: string): Promise<void> {
+  const lock = await readLock(cwd)
+  delete lock.hooks[groupName]
   await writeLock(lock, cwd)
 }
 
