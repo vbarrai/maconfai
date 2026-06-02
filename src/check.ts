@@ -42,6 +42,8 @@ export async function runCheck(
   opts: { autoUpdate?: boolean } = {},
 ): Promise<void> {
   const skipPrompts = opts.autoUpdate || args.includes('-y') || args.includes('--yes')
+  // --force ignores the trust gate and updates every config, trusted or not
+  const force = args.includes('--force')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
 
@@ -76,10 +78,19 @@ export async function runCheck(
   const mcpUpdates: Array<{ serverName: string; entry: McpLockEntry }> = []
   const hookUpdates: Array<{ groupName: string; entry: HookLockEntry }> = []
   const skipped: Array<{ name: string; reason: string }> = []
+  const blocked: Array<{ name: string }> = []
   const errors: Array<{ name: string; error: string }> = []
+
+  // A config is gated unless it is trusted. Missing trusted (grandfathered entries
+  // installed before the field existed) counts as trusted.
+  const isBlocked = (entry: { trusted?: boolean }) => !force && entry.trusted === false
 
   for (const name of skillNames) {
     const entry = lock.skills[name]!
+    if (isBlocked(entry)) {
+      blocked.push({ name })
+      continue
+    }
     if (!entry.skillFolderHash || !entry.skillPath) {
       skipped.push({ name, reason: 'No version hash' })
       continue
@@ -98,6 +109,10 @@ export async function runCheck(
 
   for (const serverName of mcpNames) {
     const entry = lock.mcpServers[serverName]!
+    if (isBlocked(entry)) {
+      blocked.push({ name: `MCP: ${serverName}` })
+      continue
+    }
     if (!entry.folderHash || !entry.folderPath) {
       mcpUpdates.push({ serverName, entry })
       continue
@@ -117,6 +132,10 @@ export async function runCheck(
 
   for (const groupName of hookNames) {
     const entry = lock.hooks[groupName]!
+    if (isBlocked(entry)) {
+      blocked.push({ name: `hook: ${groupName}` })
+      continue
+    }
     if (!entry.folderHash || !entry.folderPath) {
       hookUpdates.push({ groupName, entry })
       continue
@@ -139,7 +158,7 @@ export async function runCheck(
 
   const totalUpdates = skillUpdates.length + mcpUpdates.length + hookUpdates.length
 
-  if (totalUpdates === 0 && errors.length === 0) {
+  if (totalUpdates === 0 && errors.length === 0 && blocked.length === 0) {
     p.log.success(pc.green('All skills, MCPs, and hooks are up to date'))
   }
 
@@ -369,6 +388,16 @@ export async function runCheck(
     }
     if (failCount > 0) {
       p.log.error(pc.red(`Failed: ${failCount}`))
+    }
+  }
+
+  if (blocked.length > 0) {
+    console.log()
+    p.log.warn(
+      `${blocked.length} item(s) blocked (not trusted) — run ${pc.cyan('maconfai update --force')} to update anyway`,
+    )
+    for (const b of blocked) {
+      p.log.message(pc.dim(`  - ${b.name}`))
     }
   }
 

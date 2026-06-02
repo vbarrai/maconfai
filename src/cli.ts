@@ -20,14 +20,20 @@ ${BOLD}Usage:${RESET}
   maconfai install                      Interactive uninstall
   maconfai check                        Check for updates (prompts before installing)
   maconfai update                       Check and install updates automatically
+  maconfai update --force               Update every config, including non-trusted ones
 
 ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
+  --trusted                      Mark installed configs as trusted (blind auto-update)
   --agents=claude,cursor,codex,open-code  Install to specific agents
   --skills=skill-a,skill-b      Install specific skills
   --mcps=mcp1,mcp2              Install specific MCP servers
   --hooks=hook1,hook2           Install specific hooks
   --branch=<name>                Use a specific branch
+
+${BOLD}Update Options:${RESET}
+  --force                        Update all configs, bypassing the trust gate
+  -y, --yes                      Skip the confirmation prompt (check only)
 
 ${BOLD}Sources:${RESET}
   owner/repo                             GitHub shorthand

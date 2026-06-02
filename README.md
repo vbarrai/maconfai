@@ -43,6 +43,15 @@ maconfai install
 
 # Check for updates and install them
 maconfai check
+
+# Install and mark every config as trusted (auto-updatable)
+maconfai install owner/repo --trusted
+
+# Update only trusted configs (non-trusted ones are blocked)
+maconfai update
+
+# Update absolutely everything, bypassing the trust gate
+maconfai update --force
 ```
 
 ### Example
@@ -84,6 +93,24 @@ npx maconfai install
    - `SKILL.md` at root — single-skill repo
 2. **Select** — Pick which skills and agents to install to (auto-detects installed agents). Already installed skills are pre-checked; uncheck to remove.
 3. **Install** — Skills are copied to a canonical `.agents/skills/` directory with symlinks to each agent's skills directory.
+
+## Trusted configs
+
+Each installed config (skill, MCP server, or hook) carries a `trusted` boolean in `ai-lock.json`. It controls how `maconfai update` treats that config:
+
+- **Trusted** — `maconfai update` fetches and installs the latest content blindly, without asking.
+- **Not trusted** (the default for new installs) — `maconfai update` **blocks** the config and reports it. Nothing is changed.
+- **`maconfai update --force`** — updates every config, trusted or not, bypassing the gate.
+
+Trust is set on the installer side (never declared by the source repo, so a compromised source cannot self-certify):
+
+| How                                     | Result                                                                   |
+| :-------------------------------------- | :----------------------------------------------------------------------- |
+| `maconfai install owner/repo --trusted` | Marks all installed configs as trusted                                   |
+| Interactive install                     | Prompts once whether to trust the configs in this run                    |
+| `maconfai install owner/repo -y`        | New configs default to non-trusted; reinstalls keep their existing trust |
+
+Configs installed before this feature existed (no `trusted` field in the lock) are grandfathered as trusted, so `maconfai update` keeps working for them.
 
 ## Remote skill references
 

@@ -49,6 +49,18 @@ function parseListArg(args: string[], name: string): string[] | undefined {
     .filter(Boolean)
 }
 
+// Resolve the trust value written to the lock for a single config.
+// - runChoice set (via --trusted or the interactive prompt) → use it for every config
+// - runChoice undefined (e.g. -y without --trusted) → preserve an existing config's trust,
+//   default brand-new configs to non-trusted
+function resolveTrust(
+  runChoice: boolean | undefined,
+  existing: { trusted?: boolean } | undefined,
+): boolean {
+  if (runChoice !== undefined) return runChoice
+  return existing?.trusted ?? false
+}
+
 function parseAgentsArg(args: string[]): AgentType[] | undefined {
   const raw = parseListArg(args, 'agents')
   if (!raw) return undefined
@@ -74,6 +86,9 @@ export async function runInstall(args: string[]): Promise<void> {
   const argMcps = parseListArg(args, 'mcps')
   const argHooks = parseListArg(args, 'hooks')
   const argBranch = parseListArg(args, 'branch')?.[0]
+  // --trusted marks every config installed in this run as trusted (blind auto-update).
+  // Run-level choice: true via flag, set by the interactive prompt, or undefined (per-config default).
+  let trustChoice: boolean | undefined = args.includes('--trusted') ? true : undefined
 
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai install ')))
@@ -498,6 +513,22 @@ export async function runInstall(args: string[]): Promise<void> {
       }
       p.log.info(`Agents: ${targetAgents.map((a) => pc.cyan(agents[a].displayName)).join(', ')}`)
 
+      // Ask whether to trust these configs (only when something is actually being installed
+      // and the user did not already pass --trusted)
+      const installingSomething = toInstall.length > 0 || hasStandaloneMcps || hasSelectedHooks
+      if (trustChoice === undefined && installingSomething) {
+        const trust = await p.confirm({
+          message: `Trust these configs? ${pc.dim('(maconfai update will fetch the latest blindly)')}`,
+          initialValue: false,
+        })
+        if (p.isCancel(trust)) {
+          p.cancel('Cancelled')
+          await cleanup(tempDir)
+          process.exit(0)
+        }
+        trustChoice = trust
+      }
+
       const confirmed = await p.confirm({ message: 'Proceed?' })
       if (p.isCancel(confirmed) || !confirmed) {
         p.cancel('Cancelled')
@@ -570,6 +601,10 @@ export async function runInstall(args: string[]): Promise<void> {
 
     const ownerRepo = getOwnerRepo(parsed)
 
+    // Snapshot of trust state before writing — lets the -y default preserve a config's
+    // existing trust while defaulting brand-new configs to non-trusted
+    const priorLock = await readLock()
+
     // Install selected skills
     if (selectedSkills.length > 0) {
       spinner.start('Installing skills...')
@@ -612,6 +647,7 @@ export async function runInstall(args: string[]): Promise<void> {
             ref: ctx ? ctx.ref : parsed.ref,
             skillFolderHash,
             agents: targetAgents,
+            trusted: resolveTrust(trustChoice, priorLock.skills[skill.name]),
           })
         }
       }
@@ -654,6 +690,7 @@ export async function runInstall(args: string[]): Promise<void> {
           folderPath,
           folderHash,
           agents: targetAgents,
+          trusted: resolveTrust(trustChoice, priorLock.mcpServers[serverName]),
         })
       }
       spinner.stop(`Installed ${installedMcpNames.size} MCP server(s)`)
@@ -697,6 +734,7 @@ export async function runInstall(args: string[]): Promise<void> {
           folderPath,
           folderHash,
           agents: targetAgents,
+          trusted: resolveTrust(trustChoice, priorLock.hooks[entry.groupName]),
           handlers: installedHandlers,
         })
       }
