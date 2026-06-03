@@ -51,7 +51,7 @@ maconfai install owner/repo --trusted
 maconfai update
 
 # Update absolutely everything, bypassing the trust gate
-maconfai update --force
+maconfai update --include-untrusted
 ```
 
 ### Example
@@ -100,7 +100,7 @@ Each installed config (skill, MCP server, or hook) carries a `trusted` boolean i
 
 - **Trusted** — `maconfai update` fetches and installs the latest content blindly, without asking.
 - **Not trusted** (the default for new installs) — `maconfai update` **blocks** the config and reports it. Nothing is changed.
-- **`maconfai update --force`** — updates every config, trusted or not, bypassing the gate.
+- **`maconfai update --include-untrusted`** — updates every config, trusted or not, bypassing the gate.
 
 Trust is set on the installer side (never declared by the source repo, so a compromised source cannot self-certify):
 

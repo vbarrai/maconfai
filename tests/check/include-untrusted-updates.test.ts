@@ -17,9 +17,9 @@ vi.mock('../../src/lock.ts', () => ({
   fetchSkillFolderHash: async () => 'new-hash',
 }))
 
-it('updates a non-trusted config when --force is passed', async () => {
+it('updates a non-trusted config when --include-untrusted is passed', async () => {
   const { runCheck } = await import('../../src/check.ts')
-  await runCheck(['--force'], { autoUpdate: true })
+  await runCheck(['--include-untrusted'], { autoUpdate: true })
 
   expect(getLogs()).toMatchInlineSnapshot(`
     "info: 1 update(s) available:

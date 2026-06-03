@@ -42,8 +42,8 @@ export async function runCheck(
   opts: { autoUpdate?: boolean } = {},
 ): Promise<void> {
   const skipPrompts = opts.autoUpdate || args.includes('-y') || args.includes('--yes')
-  // --force ignores the trust gate and updates every config, trusted or not
-  const force = args.includes('--force')
+  // --include-untrusted ignores the trust gate and updates every config, trusted or not
+  const includeUntrusted = args.includes('--include-untrusted')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
 
@@ -83,7 +83,7 @@ export async function runCheck(
 
   // A config is gated unless it is trusted. Missing trusted (grandfathered entries
   // installed before the field existed) counts as trusted.
-  const isBlocked = (entry: { trusted?: boolean }) => !force && entry.trusted === false
+  const isBlocked = (entry: { trusted?: boolean }) => !includeUntrusted && entry.trusted === false
 
   for (const name of skillNames) {
     const entry = lock.skills[name]!
@@ -394,7 +394,7 @@ export async function runCheck(
   if (blocked.length > 0) {
     console.log()
     p.log.warn(
-      `${blocked.length} item(s) blocked (not trusted) — run ${pc.cyan('maconfai update --force')} to update anyway`,
+      `${blocked.length} item(s) blocked (not trusted) — run ${pc.cyan('maconfai update --include-untrusted')} to update anyway`,
     )
     for (const b of blocked) {
       p.log.message(pc.dim(`  - ${b.name}`))

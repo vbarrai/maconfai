@@ -62,8 +62,8 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
 - **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor, `opencode.json` for Open Code)
 - **Hooks**: Defined in `hooks/<name>/hooks.json` directories or root `hooks.json`, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor). Companion files (scripts, configs) in `hooks/<name>/` are automatically copied to `.agents/hooks/<name>/`
-- **Trusted**: Per-config `trusted?: boolean` in `ai-lock.json` (on every skill/MCP/hook entry), set installer-side (never declared by the source). Gates `maconfai update`: trusted configs update blindly; non-trusted configs are **blocked** (reported, not changed); `update --force` updates all. The gate rule is `trusted !== false` — a **missing** `trusted` (entries installed before the field existed) is grandfathered as trusted. New installs default to non-trusted; `--trusted` or the interactive prompt opts in. `add{,Mcp,Hook}ToLock` preserve `trusted` when the caller omits it (so update never resets it); `install.ts:resolveTrust` defaults new configs to non-trusted while preserving a reinstalled config's existing trust.
-- **CLI flags**: `-y`/`--yes` (skip prompts), `--trusted` (mark installed configs trusted), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks), `--force` (on `update`: bypass the trust gate)
+- **Trusted**: Per-config `trusted?: boolean` in `ai-lock.json` (on every skill/MCP/hook entry), set installer-side (never declared by the source). Gates `maconfai update`: trusted configs update blindly; non-trusted configs are **blocked** (reported, not changed); `update --include-untrusted` updates all. The gate rule is `trusted !== false` — a **missing** `trusted` (entries installed before the field existed) is grandfathered as trusted. New installs default to non-trusted; `--trusted` or the interactive prompt opts in. `add{,Mcp,Hook}ToLock` preserve `trusted` when the caller omits it (so update never resets it); `install.ts:resolveTrust` defaults new configs to non-trusted while preserving a reinstalled config's existing trust.
+- **CLI flags**: `-y`/`--yes` (skip prompts), `--trusted` (mark installed configs trusted), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks), `--include-untrusted` (on `update`: bypass the trust gate)
 
 ## Testing conventions
 
@@ -193,7 +193,7 @@ tests/
     no-skills.test.ts                    # No skills to check
     blocked-untrusted.test.ts            # Non-trusted configs blocked from update
     blocked-untrusted-mcp-hook.test.ts   # Gate also blocks non-trusted MCPs/hooks
-    force-updates-untrusted.test.ts      # --force updates non-trusted configs
+    include-untrusted-updates.test.ts    # --include-untrusted updates non-trusted configs
     grandfathered-trusted.test.ts        # Missing trusted field = trusted (not blocked)
     cancel-update.test.ts                # User cancels update
     decline-update.test.ts               # User declines update

@@ -38,7 +38,7 @@ it('blocks non-trusted MCP servers and hooks', async () => {
   await runCheck([], { autoUpdate: true })
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "warn: 2 item(s) blocked (not trusted) — run maconfai update --force to update anyway
+    "warn: 2 item(s) blocked (not trusted) — run maconfai update --include-untrusted to update anyway
     message:   - MCP: untrusted-mcp
     message:   - hook: untrusted-hook"
   `)

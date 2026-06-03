@@ -11,12 +11,12 @@ vi.mock('../../src/lock.ts', () => ({
   fetchSkillFolderHash: async () => 'new-hash',
 }))
 
-it('blocks non-trusted configs and points to --force', async () => {
+it('blocks non-trusted configs and points to --include-untrusted', async () => {
   const { runCheck } = await import('../../src/check.ts')
   await runCheck([], { autoUpdate: true })
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "warn: 1 item(s) blocked (not trusted) — run maconfai update --force to update anyway
+    "warn: 1 item(s) blocked (not trusted) — run maconfai update --include-untrusted to update anyway
     message:   - untrusted-skill"
   `)
 })

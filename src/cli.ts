@@ -20,7 +20,7 @@ ${BOLD}Usage:${RESET}
   maconfai install                      Interactive uninstall
   maconfai check                        Check for updates (prompts before installing)
   maconfai update                       Check and install updates automatically
-  maconfai update --force               Update every config, including non-trusted ones
+  maconfai update --include-untrusted   Update every config, including non-trusted ones
 
 ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
@@ -32,7 +32,7 @@ ${BOLD}Install Options:${RESET}
   --branch=<name>                Use a specific branch
 
 ${BOLD}Update Options:${RESET}
-  --force                        Update all configs, bypassing the trust gate
+  --include-untrusted            Update all configs, bypassing the trust gate
   -y, --yes                      Skip the confirmation prompt (check only)
 
 ${BOLD}Sources:${RESET}
