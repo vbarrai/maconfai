@@ -15,6 +15,7 @@ export interface SkillLockEntry {
   ref?: string
   skillFolderHash: string
   agents?: string[]
+  trusted?: boolean
   installedAt: string
   updatedAt: string
 }
@@ -26,6 +27,7 @@ export interface McpLockEntry {
   folderHash?: string
   ref?: string
   agents?: string[]
+  trusted?: boolean
   installedAt: string
   updatedAt: string
 }
@@ -37,6 +39,7 @@ export interface HookLockEntry {
   folderHash?: string
   ref?: string
   agents?: string[]
+  trusted?: boolean
   installedAt: string
   updatedAt: string
   handlers?: Record<string, unknown>
@@ -87,6 +90,8 @@ export async function addToLock(
 
   lock.skills[skillName] = {
     ...entry,
+    // Preserve trust when the caller (e.g. update) does not specify it
+    trusted: entry.trusted ?? existing?.trusted,
     installedAt: existing?.installedAt ?? now,
     updatedAt: hashChanged ? now : existing!.updatedAt,
   }
@@ -107,6 +112,8 @@ export async function addMcpToLock(
 
   lock.mcpServers[serverName] = {
     ...entry,
+    // Preserve trust when the caller (e.g. update) does not specify it
+    trusted: entry.trusted ?? existing?.trusted,
     installedAt: existing?.installedAt ?? now,
     updatedAt: mcpHashChanged ? now : existing!.updatedAt,
   }
@@ -127,6 +134,8 @@ export async function addHookToLock(
 
   lock.hooks[groupName] = {
     ...entry,
+    // Preserve trust when the caller (e.g. update) does not specify it
+    trusted: entry.trusted ?? existing?.trusted,
     installedAt: existing?.installedAt ?? now,
     updatedAt: hookHashChanged ? now : existing!.updatedAt,
   }

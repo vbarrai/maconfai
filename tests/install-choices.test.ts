@@ -135,6 +135,8 @@ describeConfai('install / choices shown to user', ({ givenSource, getTargetDir }
       │
       ●  Agents: Claude Code
 
+      ◆  Trust these configs? (maconfai update will fetch the latest blindly) … Yes
+
       ◆  Proceed? … Yes
       │
       ◇  Done
