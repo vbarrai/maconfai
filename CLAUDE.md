@@ -30,6 +30,19 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `pnpm prettier` — Check formatting (CI)
 - `pnpm prettier:format` — Format all files with Prettier
 
+## Release
+
+Project-specific facts the `release` skill relies on (the skill is generic; the specifics live here):
+
+- **Trigger**: pushing a `v*` git tag triggers `.github/workflows/publish.yml`. There is no manual publish step.
+- **CI pipeline** (`publish.yml`): `preflight` fails the run if the tag (minus the `v` prefix) ≠ `package.json` version → lint/typecheck/test → `pnpm build` → `npm publish --access public` → `gh release create --generate-notes`.
+- **Version source of truth**: `package.json` `version`. Bump with `pnpm version <major|minor|patch>` on `main` **before** tagging (CI compares the tag against `package.json` on the tagged commit).
+- **Tag format**: `vX.Y.Z` (annotated), pushed from `main`.
+- **Pre-release gate**: `pnpm ci` (= `check` + `test --run` + `build`) is the same gate CI runs — run it locally before tagging so failures surface before the tag is pushed.
+- **Versioning**: semver, pre-1.0 — flag any breaking change or changed default loudly, even in a minor bump.
+- **Changelog**: lives on the GitHub release only (no `CHANGELOG.md` file in the repo). The skill overwrites CI's auto-generated notes with a curated changelog via `gh release edit --notes-file`.
+- **Tag commands**: `git tag -a vX.Y.Z -m vX.Y.Z && git push origin vX.Y.Z`; undo before publish with `git push --delete origin vX.Y.Z && git tag -d vX.Y.Z` (a published npm version is permanent).
+
 ## Project structure
 
 - `src/cli.ts` — CLI entry point (argument parsing)
