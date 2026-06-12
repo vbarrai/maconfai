@@ -76,26 +76,28 @@ For each vulnerability found:
 
 ### Frontmatter Fields
 
-| Field             | Required | Description                                                                                            |
-| :---------------- | :------- | :----------------------------------------------------------------------------------------------------- |
-| `name`            | **Yes**  | Agent name                                                                                             |
-| `description`     | **Yes**  | What the agent does and when to use it (used by Claude to route work to the agent)                     |
-| `tools`           | No       | Tools allowed without asking permission (comma-separated string or YAML list)                          |
-| `disallowedTools` | No       | Tools explicitly forbidden                                                                             |
-| `model`           | No       | Model to use. Accepts `inherit` (keep current) or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6` |
-| `permissionMode`  | No       | `default` \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                     |
-| `maxTurns`        | No       | Maximum turns the subagent may take                                                                    |
-| `skills`          | No       | Skills to preload                                                                                      |
-| `mcpServers`      | No       | MCP servers to load for this subagent                                                                  |
-| `memory`          | No       | Memory scope: `user` \| `project` \| `local`                                                           |
-| `background`      | No       | If `true`, runs as a background task                                                                   |
-| `effort`          | No       | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                      |
-| `isolation`       | No       | `worktree` to run in an isolated git worktree                                                          |
-| `color`           | No       | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`      |
-| `initialPrompt`   | No       | Initial prompt seeded into the subagent's context                                                      |
-| `hooks`           | No       | Hooks specific to the agent's lifecycle                                                                |
+| Field             | Required | Description                                                                                                                                                                                                                                                     |
+| :---------------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | **Yes**  | Agent name                                                                                                                                                                                                                                                      |
+| `description`     | **Yes**  | What the agent does and when to use it (used by Claude to route work to the agent)                                                                                                                                                                              |
+| `tools`           | No       | Tools allowed without asking permission (comma-separated string or YAML list)                                                                                                                                                                                   |
+| `disallowedTools` | No       | Tools explicitly forbidden                                                                                                                                                                                                                                      |
+| `model`           | No       | Model to use. Accepts `inherit` (keep current), short aliases (`sonnet`, `opus`, `haiku`, `fable`), or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6`                                                                                                     |
+| `permissionMode`  | No       | `default` \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                                                                                                                                                                              |
+| `maxTurns`        | No       | Maximum turns the subagent may take                                                                                                                                                                                                                             |
+| `skills`          | No       | Skills to preload                                                                                                                                                                                                                                               |
+| `mcpServers`      | No       | MCP servers to load for this subagent                                                                                                                                                                                                                           |
+| `memory`          | No       | Memory scope: `user` (`~/.claude/agent-memory/<name>/`) \| `project` (`.claude/agent-memory/<name>/`) \| `local` (`.claude/agent-memory-local/<name>/`). When set, Read/Write/Edit tools are automatically enabled for the subagent to manage its memory files. |
+| `background`      | No       | If `true`, runs as a background task                                                                                                                                                                                                                            |
+| `effort`          | No       | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                                                                                                                                                                               |
+| `isolation`       | No       | `worktree` to run in an isolated git worktree                                                                                                                                                                                                                   |
+| `color`           | No       | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`                                                                                                                                                               |
+| `initialPrompt`   | No       | Initial prompt seeded into the subagent's context                                                                                                                                                                                                               |
+| `hooks`           | No       | Hooks specific to the agent's lifecycle                                                                                                                                                                                                                         |
 
 > **Fork mode** is a Skill feature (not a subagent frontmatter field). It is invoked via the `/fork` slash command or by setting `CLAUDE_CODE_FORK_SUBAGENT=1`.
+
+> **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is 5 for background subagents.
 
 > **Plugin-loaded subagents** ignore `hooks`, `mcpServers`, and `permissionMode`.
 

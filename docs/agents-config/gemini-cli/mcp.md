@@ -61,9 +61,13 @@ stdio servers only connect in **trusted folders**:
 gemini trust    # Mark the current folder as trusted
 ```
 
+## Server Status Values
+
+A server can be in one of four states: `DISCONNECTED`, `CONNECTING`, `CONNECTED`, or `Disabled`.
+
 ## MCP Tool Naming
 
-Tools are exposed as `mcp_{serverName}_{toolName}` (single underscores, `mcp_` prefix). Avoid underscores in server names to keep the delimiter unambiguous.
+Tools are exposed as `mcp_{serverName}_{toolName}` (single underscores, `mcp_` prefix). Valid server name characters: letters, numbers, underscore, hyphen, dot, colon (max 63 characters). Avoid underscores to keep the delimiter unambiguous.
 
 ## MCP Resources
 
@@ -81,19 +85,26 @@ Tool input schemas have `$schema`, `additionalProperties`, and problematic `anyO
 
 Gemini CLI supports OAuth 2.0 authentication for remote MCP servers via:
 
-| Field                    | Description                                                                                   |
-| :----------------------- | :-------------------------------------------------------------------------------------------- |
-| `authProviderType`       | Provider strategy: `dynamic_discovery`, `google_credentials`, `service_account_impersonation` |
-| `targetAudience`         | OAuth audience claim                                                                          |
-| `targetServiceAccount`   | Service account to impersonate                                                                |
-| `oauth.scopes`           | Requested scopes                                                                              |
-| `oauth.clientId`         | OAuth client ID                                                                               |
-| `oauth.clientSecret`     | OAuth client secret                                                                           |
-| `oauth.authorizationUrl` | Authorization endpoint                                                                        |
-| `oauth.tokenUrl`         | Token endpoint                                                                                |
-| `oauth.redirectUri`      | Redirect URI                                                                                  |
-| `oauth.tokenParamName`   | Parameter name for token exchange                                                             |
-| `oauth.audiences`        | Allowed token audiences                                                                       |
+The following are **top-level** per-server fields (not nested under `oauth`):
+
+| Field                  | Description                                                                                   |
+| :--------------------- | :-------------------------------------------------------------------------------------------- |
+| `authProviderType`     | Provider strategy: `dynamic_discovery`, `google_credentials`, `service_account_impersonation` |
+| `targetAudience`       | OAuth audience claim                                                                          |
+| `targetServiceAccount` | Service account to impersonate                                                                |
+
+The following are nested under `oauth`:
+
+| Field                    | Description                       |
+| :----------------------- | :-------------------------------- |
+| `oauth.scopes`           | Requested scopes                  |
+| `oauth.clientId`         | OAuth client ID                   |
+| `oauth.clientSecret`     | OAuth client secret               |
+| `oauth.authorizationUrl` | Authorization endpoint            |
+| `oauth.tokenUrl`         | Token endpoint                    |
+| `oauth.redirectUri`      | Redirect URI                      |
+| `oauth.tokenParamName`   | Parameter name for token exchange |
+| `oauth.audiences`        | Allowed token audiences           |
 
 ## CLI MCP
 
@@ -108,7 +119,9 @@ gemini mcp disable <name>        # Disable a server (optionally --session)
 /mcp enable|disable <name>       # Enable/disable a server at runtime
 ```
 
-Flags for `gemini mcp add`: `-s, --scope user|project` (default `project`), `-t, --transport stdio|sse|http`, `-e, --env KEY=VAL`, `-H, --header KEY=VAL`, `--timeout`, `--trust`, `--include-tools`, `--exclude-tools`.
+Flags for `gemini mcp add`: `-s, --scope user|project` (default `project`), `-t, --transport stdio|sse|http`, `-e, --env KEY=VAL`, `-H, --header KEY=VAL`, `--timeout`, `--trust`, `--include-tools`, `--exclude-tools`, `--description`.
+
+`/mcp list` lists all configured servers and their status.
 
 ## Global MCP Configuration
 

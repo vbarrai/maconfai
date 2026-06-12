@@ -55,16 +55,17 @@ Configurations merge — later configs override earlier ones only for conflictin
 
 ## Per-Server Options
 
-| Option        | Type            | Description                                                                 |
-| :------------ | :-------------- | :-------------------------------------------------------------------------- |
-| `type`        | string          | `local` or `remote`                                                         |
-| `command`     | string[]        | Command + args as array                                                     |
-| `url`         | string          | Remote server URL                                                           |
-| `headers`     | object          | HTTP headers                                                                |
-| `environment` | object          | Environment variables                                                       |
-| `enabled`     | boolean         | Enable/disable the server                                                   |
-| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                 |
-| `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth |
+| Option        | Type            | Description                                                                              |
+| :------------ | :-------------- | :--------------------------------------------------------------------------------------- |
+| `type`        | string          | `local` or `remote`                                                                      |
+| `command`     | string[]        | Command + args as array                                                                  |
+| `url`         | string          | Remote server URL                                                                        |
+| `headers`     | object          | HTTP headers                                                                             |
+| `environment` | object          | Environment variables                                                                    |
+| `enabled`     | boolean         | Enable/disable the server                                                                |
+| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                              |
+| `cwd`         | string          | Working directory for the server process; relative paths resolve from the workspace root |
+| `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth              |
 
 ## Format Differences from Other Agents
 
@@ -98,7 +99,7 @@ A top-level `tools` object enables or disables tools by name (boolean values). P
 }
 ```
 
-Keys are tool names with boolean values. Glob/wildcard pattern support is not documented in the current upstream config reference.
+Keys are tool names with boolean values. Glob patterns are supported: `"*"` matches zero or more characters, `"?"` matches exactly one character. MCP tools are addressable via `"servername_*"` (tools register with a `<servername>_` prefix).
 
 ## CLI
 

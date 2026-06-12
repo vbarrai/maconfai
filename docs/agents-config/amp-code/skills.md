@@ -2,7 +2,7 @@
 
 # Amp Code — Skills Guide
 
-> Official source: [ampcode.com/news/agent-skills](https://ampcode.com/news/agent-skills)
+> Official source: [ampcode.com/manual#agent-skills](https://ampcode.com/manual#agent-skills)
 
 ## Overview
 
@@ -49,9 +49,9 @@ Amp Code does **not** support any frontmatter-based invocation control. The only
 
 The model decides when to invoke a skill based on the `name` and `description` fields. Skill priority is determined by location: project-specific skills override user-wide skills, which override built-in skills.
 
-## Built-in Skill
+## Built-in Skills
 
-- **building-skills**: helps create project-specific or user-specific skills
+The upstream manual lists example bundled skills (Agent Sandbox, Agent Skill Creator, BigQuery, Tmux, Web Browser) but does not enumerate a fixed set. Treat any specific built-in name as subject to change.
 
 ## Sources
 

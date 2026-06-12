@@ -10,11 +10,12 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 
 ## Transport Types
 
-| Type              | Description                    | Typical usage                                                                    |
-| :---------------- | :----------------------------- | :------------------------------------------------------------------------------- |
-| `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python)                                                |
-| `sse`             | Server-Sent Events via HTTP    | **Deprecated** — use HTTP servers instead, where available                       |
-| `streamable-http` | Bidirectional HTTP streaming   | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs. |
+| Type              | Description                           | Typical usage                                                                                                                    |
+| :---------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------- |
+| `stdio`           | Communication via stdin/stdout        | Local processes (Node.js, Python)                                                                                                |
+| `sse`             | Server-Sent Events via HTTP           | **Deprecated** — use HTTP servers instead, where available                                                                       |
+| `streamable-http` | Bidirectional HTTP streaming          | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs.                                                 |
+| `ws`              | WebSocket (persistent, bidirectional) | MCP servers that push events; must be configured via `claude mcp add-json` or `.mcp.json` — not via `claude mcp add --transport` |
 
 ## Configuration
 
@@ -85,11 +86,13 @@ For global MCP servers available across all projects:
 
 | Scope               | Storage                                   | Access                 | Shareable         |
 | :------------------ | :---------------------------------------- | :--------------------- | :---------------- |
-| **Local** (default) | `~/.claude.json` (under the project path) | You, this project      | No                |
-| **Project**         | `.mcp.json` (project root)                | The team, this project | Yes (committable) |
-| **User**            | `~/.claude.json` (global)                 | You, all projects      | No                |
+| **local** (default) | `~/.claude.json` (under the project path) | You, this project      | No                |
+| **project**         | `.mcp.json` (project root)                | The team, this project | Yes (committable) |
+| **user**            | `~/.claude.json` (global)                 | You, all projects      | No                |
 
-**Priority**: Local > Project > User.
+> **Scope names**: older versions used `Local`/`Project`/`User` (capitalised). Current versions use lowercase `local`/`project`/`user`. The `local` scope was previously called `project`, and the `user` scope was previously called `global`.
+
+**Priority**: local > project > user > plugin-provided servers > claude.ai connectors.
 
 Project-scoped servers require approval before use.
 

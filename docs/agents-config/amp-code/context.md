@@ -20,7 +20,7 @@
 | System (Linux)                | `/etc/ampcode/AGENTS.md`                         | Always included                                     |
 | System (Windows)              | `%ProgramData%\ampcode\AGENTS.md`                | Always included                                     |
 
-> The `agents-md list` command palette entry shows the active guidance files for the current session.
+> The `amp config agents-md list` CLI command (also available as a command palette entry) shows the active guidance files for the current session.
 
 ## Fallback File Names
 
@@ -47,11 +47,11 @@ globs:
 - Absolute imports via `@/`
 ```
 
-Files with glob specifications are only loaded when Amp has accessed matching files. Without globs, the file loads whenever referenced.
+Files with glob specifications are only loaded when Amp has accessed matching files. Without globs, the file loads whenever referenced. Glob patterns are implicitly prefixed with `**/` unless they start with `../` or `./`, and matching is relative to the AGENTS.md file's location.
 
 ## Cross-References (`@`)
 
-Reference other files within AGENTS.md:
+Reference other files within AGENTS.md. Note: `@`-mentions inside code blocks are ignored (to avoid false positives).
 
 ```markdown
 See @doc/style.md and @specs/\*_/_.md

@@ -39,14 +39,13 @@ Instructions for the agent...
 
 **Frontmatter fields:**
 
-| Field           | Required | Description                                                                                              |
-| :-------------- | :------- | :------------------------------------------------------------------------------------------------------- |
-| `name`          | Yes      | Skill identifier — regex `^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars, must match the parent directory name    |
-| `description`   | Yes      | 1-1024 characters, triggers discovery                                                                    |
-| `license`       | No       | License identifier                                                                                       |
-| `allowed-tools` | No       | List of allowed tools — _unverified; possibly inherited from Claude Code, not in current Open Code docs_ |
-| `compatibility` | No       | Agent compatibility list                                                                                 |
-| `metadata`      | No       | Arbitrary string-to-string pairs for skill-specific metadata (e.g., `audience`, `workflow`)              |
+| Field           | Required | Description                                                                                           |
+| :-------------- | :------- | :---------------------------------------------------------------------------------------------------- |
+| `name`          | Yes      | Skill identifier — regex `^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars, must match the parent directory name |
+| `description`   | Yes      | 1-1024 characters, triggers discovery                                                                 |
+| `license`       | No       | License identifier                                                                                    |
+| `compatibility` | No       | Agent compatibility list                                                                              |
+| `metadata`      | No       | Arbitrary string-to-string pairs for skill-specific metadata (e.g., `audience`, `workflow`)           |
 
 > Unknown frontmatter fields are ignored, so skills can carry agent-specific metadata without breaking discovery.
 
