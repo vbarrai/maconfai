@@ -18,6 +18,10 @@ Codex supports a hooks system aligned with Claude Code's hooks: lifecycle events
 | `PostToolUse`       | Fires after a tool call completes                 |
 | `UserPromptSubmit`  | Fires when the user submits a prompt              |
 | `Stop`              | Fires when the session is about to stop           |
+| `SubagentStart`     | Fires when a sub-agent is launched                |
+| `SubagentStop`      | Fires when a sub-agent finishes                   |
+| `PreCompact`        | Fires before context compaction                   |
+| `PostCompact`       | Fires after context compaction                    |
 
 ## Configuration Locations
 
@@ -90,6 +94,20 @@ A hook may emit a JSON object on stdout to influence Codex:
 | `permissionDecision` | Decision for `PermissionRequest` events   |
 | `decision`           | Generic decision (e.g., allow/deny)       |
 | `reason`             | Human-readable rationale for the decision |
+
+Event-specific outputs use a nested `hookSpecificOutput` object:
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Not allowed"
+  }
+}
+```
+
+**Exit code 2**: a hook that exits with code `2` and writes text to stderr will block/deny the action as an alternative to JSON output.
 
 ## Commit Attribution
 

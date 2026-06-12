@@ -63,7 +63,11 @@ See @README.md for the project overview and @package.json for npm commands.
 
 - Relative paths resolved from the file containing the import
 - Absolute paths and `~` supported
-- **Max depth**: 5 levels of recursive imports
+- **Max depth**: four hops of recursive imports
+
+### HTML Comments
+
+Block-level HTML comments (`<!-- notes -->`) are stripped from `CLAUDE.md` before the file is injected into Claude's context. They are preserved when the Read tool reads the file directly, making them useful for author notes that should not affect the model.
 
 ## Recommended Format
 
@@ -249,6 +253,7 @@ User rules (`~/.claude/rules/`) are loaded before project rules (project takes p
 | :--------------------------------------------- | :------------------------------------------------------------------- |
 | `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` | When set, CLAUDE.md files in `--add-dir` directories are also loaded |
 | `CLAUDE_CODE_DISABLE_AUTO_MEMORY`              | Disable auto-memory writes/loads                                     |
+| `CLAUDE_CODE_NEW_INIT`                         | Set to `1` to enable an interactive multi-phase `/init` flow         |
 
 ## CLI — Commands and Flags
 

@@ -19,8 +19,8 @@ Hooks are shell commands, HTTP endpoints, or LLM prompts defined by the user tha
 | `PreToolUse`          | Before a tool executes. Can block it                    | Yes        |
 | `PermissionRequest`   | When a permission dialog appears                        | Yes        |
 | `PermissionDenied`    | When a permission is denied (supports `retry: true`)    | No         |
-| `PostToolUse`         | After a tool has succeeded                              | No         |
-| `PostToolUseFailure`  | After a tool has failed                                 | No         |
+| `PostToolUse`         | After a tool has succeeded                              | Yes        |
+| `PostToolUseFailure`  | After a tool has failed                                 | Yes        |
 | `PostToolBatch`       | After a parallel batch of tool calls completes          | No         |
 | `Notification`        | When Claude Code sends a notification                   | No         |
 | `Elicitation`         | When a tool requests user input (MCP elicitation)       | Yes        |
@@ -40,6 +40,7 @@ Hooks are shell commands, HTTP endpoints, or LLM prompts defined by the user tha
 | `WorktreeRemove`      | When a worktree is removed                              | No         |
 | `PreCompact`          | Before context compaction                               | No         |
 | `PostCompact`         | After context compaction                                | No         |
+| `MessageDisplay`      | When an assistant message is displayed to the user      | No         |
 | `SessionEnd`          | When a session ends                                     | No         |
 
 ## Configuration
@@ -111,6 +112,7 @@ Sends the JSON input as a POST to a URL.
 | `timeout`        | No       | Seconds before cancellation (default: 600; `UserPromptSubmit` defaults to 30) |
 | `headers`        | No       | HTTP headers (supports `$VAR_NAME` for env variables)                         |
 | `allowedEnvVars` | No       | Environment variables allowed in headers                                      |
+| `statusMessage`  | No       | Message displayed during execution                                            |
 
 ### Prompt (`type: "prompt"`)
 
@@ -127,12 +129,14 @@ Sends a prompt to a Claude model for single-turn evaluation.
 
 Invokes a tool exposed by a configured MCP server.
 
-| Field    | Required | Description                     |
-| :------- | :------- | :------------------------------ |
-| `type`   | Yes      | `"mcp_tool"`                    |
-| `server` | Yes      | MCP server name                 |
-| `tool`   | Yes      | Tool name on that server        |
-| `input`  | No       | Input object passed to the tool |
+| Field           | Required | Description                           |
+| :-------------- | :------- | :------------------------------------ |
+| `type`          | Yes      | `"mcp_tool"`                          |
+| `server`        | Yes      | MCP server name                       |
+| `tool`          | Yes      | Tool name on that server              |
+| `input`         | No       | Input object passed to the tool       |
+| `statusMessage` | No       | Message displayed during execution    |
+| `once`          | No       | If `true`, runs only once per session |
 
 ### Agent (`type: "agent"`)
 
@@ -149,22 +153,24 @@ Launches a sub-agent with tool access (Read, Grep, Glob) to verify conditions.
 
 The `matcher` field is a regex that filters when the hook triggers. Use `"*"`, `""`, or omit `matcher` to match everything.
 
-| Event                                            | What the matcher filters | Examples                                                                                                                                           |
-| :----------------------------------------------- | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PreToolUse`, `PostToolUse`, `PermissionRequest` | Tool name                | `Bash`, `Edit\|Write`, `mcp__.*`                                                                                                                   |
-| `SessionStart`                                   | How the session started  | `startup`, `resume`, `clear`, `compact`                                                                                                            |
-| `SessionEnd`                                     | Why the session ended    | `clear`, `resume`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`                                                           |
-| `Notification`                                   | Notification type        | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog`                                                                           |
-| `SubagentStart`, `SubagentStop`                  | Agent type               | `Bash`, `Explore`, `Plan`                                                                                                                          |
-| `ConfigChange`                                   | Config source            | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills`                                                                 |
-| `InstructionsLoaded`                             | Load trigger             | `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`                                                                       |
-| `PreCompact`                                     | Trigger                  | `manual`, `auto`                                                                                                                                   |
-| `StopFailure`                                    | Failure reason           | `rate_limit`, `authentication_failed`, `oauth_org_not_allowed`, `billing_error`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown` |
-| `FileChanged`                                    | Watched filenames        | Literal filename watch list — **not** a regex or glob                                                                                              |
+| Event                                            | What the matcher filters | Examples                                                                                                                                                                            |
+| :----------------------------------------------- | :----------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PreToolUse`, `PostToolUse`, `PermissionRequest` | Tool name                | `Bash`, `Edit\|Write`, `mcp__.*`                                                                                                                                                    |
+| `SessionStart`                                   | How the session started  | `startup`, `resume`, `clear`, `compact`                                                                                                                                             |
+| `SessionEnd`                                     | Why the session ended    | `clear`, `resume`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`                                                                                            |
+| `Notification`                                   | Notification type        | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog`, `elicitation_complete`, `elicitation_response`                                                            |
+| `SubagentStart`, `SubagentStop`                  | Agent type               | `Bash`, `Explore`, `Plan`                                                                                                                                                           |
+| `ConfigChange`                                   | Config source            | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills`                                                                                                  |
+| `InstructionsLoaded`                             | Load trigger             | `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`                                                                                                        |
+| `PreCompact`                                     | Trigger                  | `manual`, `auto`                                                                                                                                                                    |
+| `StopFailure`                                    | Failure reason           | `rate_limit`, `authentication_failed`, `oauth_org_not_allowed`, `billing_error`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown`, `overloaded`, `model_not_found` |
+| `FileChanged`                                    | Watched filenames        | Literal filename watch list — **not** a regex or glob                                                                                                                               |
 
 ### Matcher Semantics
 
 A matcher containing only letters, digits, `_`, or `|` is matched as an exact string (or union of exact strings). Any other character turns the matcher into a regex.
+
+> **Caution (fail-open)**: patterns with arguments (e.g. `Bash(git push *)`) fail open — they match every tool call, not just the specified argument pattern. Use the `if` field for argument-level filtering instead.
 
 ### Matcher for MCP Tools
 
@@ -245,8 +251,9 @@ On exit 0, stdout JSON can control behavior:
 
 ### Other Event Output
 
-- `PostToolUse`: `updatedMCPToolOutput` (for MCP tools), `additionalContext`.
+- `PostToolUse`: `updatedToolOutput` (for MCP tools — replaces old `updatedMCPToolOutput`), `additionalContext`.
 - `UserPromptSubmit`: `sessionTitle`, `additionalContext`.
+- `SessionStart`: `watchPaths` (array of paths to watch for `FileChanged` events), `reloadSkills` (if `true`, triggers a skills reload), `initialUserMessage` (auto-submitted user message at session start).
 - `PermissionDenied`: `retry: true` to retry the tool call after the user revisits permissions.
 - `PermissionRequest`: `decision` object with `behavior` (`allow | deny | ask`) and `updatedInput` (mutated tool input). _Additional decision sub-fields are not documented upstream._
 - `Elicitation` / `ElicitationResult`: `action` (`accept | decline | cancel`) and `content`.

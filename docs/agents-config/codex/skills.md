@@ -103,17 +103,23 @@ Commands: `/skills` to list, `$` to mention a skill.
 [[skills.config]]
 name = "my-skill"
 enabled = false
+
+# Optionally pin by absolute path instead of name:
+[[skills.config]]
+path = "/path/to/skill/SKILL.md"
+name = "my-skill"
+enabled = false
 ```
 
 ## Built-in System Skills
 
 Codex ships with skills under the SYSTEM scope (bundled with the binary; exact on-disk location depends on the install):
 
-| Skill              | Description                                                                                                                               |
-| :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| `$create-plan`     | Helps plan complex tasks                                                                                                                  |
-| `$skill-creator`   | Helps create new skills                                                                                                                   |
-| `$skill-installer` | Installs skills from a GitHub repository, a local path, or the [curated list](https://github.com/openai/skills/tree/main/skills/.curated) |
+| Skill                     | Description                                                                                                                                                                |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `$create-plan`            | Helps plan complex tasks                                                                                                                                                   |
+| `$skill-creator`          | Helps create new skills                                                                                                                                                    |
+| `$skill-installer [name]` | Installs a named or interactively selected skill from a GitHub repository, a local path, or the [curated list](https://github.com/openai/skills/tree/main/skills/.curated) |
 
 ## Skills + MCP
 

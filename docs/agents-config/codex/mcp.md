@@ -36,8 +36,6 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 
 ```
 
-> **Note**: `supports_parallel_tool_calls`, `default_tools_approval_mode`, and per-tool `[mcp_servers.<name>.tools.<tool>] approval_mode` keys are **not** documented in the upstream config reference. They appear in community examples; treat as unverified until confirmed against `codex-rs` sources.
-
 ## Top-Level Config Keys
 
 | Key                           | Type   | Description                                 |
@@ -45,6 +43,16 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 | `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener   |
 | `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows   |
 | `mcp_oauth_credentials_store` | string | Preferred credential store for OAuth tokens |
+
+## Plugin-Bundled MCP Servers
+
+Plugins can provide their own MCP servers scoped to that plugin:
+
+```toml
+[plugins."my-plugin".mcp_servers.my-server]
+command = "npx"
+args = ["-y", "@myplugin/server"]
+```
 
 ## Supported Transports
 
@@ -55,27 +63,29 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 
 ## Per-Server Options
 
-| Option                     | Type     | Description                                                 |
-| :------------------------- | :------- | :---------------------------------------------------------- |
-| `command`                  | string   | stdio command                                               |
-| `args`                     | string[] | Command arguments                                           |
-| `env`                      | table    | Environment variables                                       |
-| `env_vars`                 | string[] | Allow/forward list of env vars passed through to the server |
-| `cwd`                      | string   | Working directory                                           |
-| `url`                      | string   | Streamable HTTP URL                                         |
-| `bearer_token_env_var`     | string   | Env variable for Bearer token                               |
-| `http_headers`             | table    | Static HTTP headers                                         |
-| `env_http_headers`         | table    | HTTP headers from env variables                             |
-| `scopes`                   | string[] | OAuth scopes requested during authorization                 |
-| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                         |
-| `experimental_environment` | string   | `"local"` or `"remote"`                                     |
-| `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                   |
-| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds   |
-| `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                             |
-| `enabled`                  | bool     | Enable/disable the server                                   |
-| `required`                 | bool     | If `true`, fail startup if the server is unavailable        |
-| `disabled_tools`           | string[] | List of tools to disable                                    |
-| `enabled_tools`            | string[] | Allowlist of tools (complement of `disabled_tools`)         |
+| Option                        | Type     | Description                                                      |
+| :---------------------------- | :------- | :--------------------------------------------------------------- |
+| `command`                     | string   | stdio command                                                    |
+| `args`                        | string[] | Command arguments                                                |
+| `env`                         | table    | Environment variables                                            |
+| `env_vars`                    | string[] | Allow/forward list of env vars passed through to the server      |
+| `cwd`                         | string   | Working directory                                                |
+| `url`                         | string   | Streamable HTTP URL                                              |
+| `bearer_token_env_var`        | string   | Env variable for Bearer token                                    |
+| `http_headers`                | table    | Static HTTP headers                                              |
+| `env_http_headers`            | table    | HTTP headers from env variables                                  |
+| `scopes`                      | string[] | OAuth scopes requested during authorization                      |
+| `oauth_resource`              | string   | OAuth resource indicator (RFC 8707)                              |
+| `experimental_environment`    | string   | `"local"` or `"remote"`                                          |
+| `startup_timeout_sec`         | number   | Startup timeout in seconds (default: 10s)                        |
+| `startup_timeout_ms`          | number   | Alias of `startup_timeout_sec`, expressed in milliseconds        |
+| `tool_timeout_sec`            | number   | Per-tool timeout (default: 60s)                                  |
+| `enabled`                     | bool     | Enable/disable the server                                        |
+| `required`                    | bool     | If `true`, fail startup if the server is unavailable             |
+| `disabled_tools`              | string[] | List of tools to disable                                         |
+| `enabled_tools`               | string[] | Allowlist of tools (complement of `disabled_tools`)              |
+| `default_tools_approval_mode` | string   | Default approval mode for all tools: `auto`, `prompt`, `approve` |
+| `tools.<tool>.approval_mode`  | string   | Per-tool override for approval mode: `auto`, `prompt`, `approve` |
 
 ## Project-Scoped Config
 
@@ -84,19 +94,12 @@ A project-scoped `.codex/config.toml` is allowed for trusted projects; settings 
 ## CLI MCP
 
 ```bash
-codex mcp              # List servers
-codex mcp add          # Add a server
-codex mcp remove       # Remove a server          (Needs verification)
-codex mcp authenticate # Authenticate (OAuth)     (Needs verification)
+codex mcp                                     # List servers
+codex mcp add <name> [--env VAR=VAL ...] -- <command>  # Add a stdio server
+/mcp                                          # In-TUI command: display active servers
 ```
 
-## Codex as an MCP Server
-
-```bash
-codex mcp-serve        # Needs verification
-```
-
-Exposes `codex()` and `codex-reply()` tools to other MCP clients.
+> **Note**: `codex mcp remove`, `codex mcp authenticate`, and `codex mcp-serve` are not confirmed in the upstream reference — treat as unverified.
 
 ## Sources
 

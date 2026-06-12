@@ -218,7 +218,7 @@ Blocking/allowing hooks return:
 }
 ```
 
-`permission` options: `"allow"`, `"deny"`, `"ask"` (prompts user approval — some hooks don't support it and fall back to deny).
+`permission` options: `"allow"`, `"deny"`, `"ask"`. Note: `"ask"` is supported for `beforeShellExecution` and `beforeMCPExecution` but is **not reliably enforced for `preToolUse`** — it falls back to deny for that event.
 
 ### Additional Output Fields
 
@@ -229,6 +229,9 @@ Blocking/allowing hooks return:
 | `env`                     | `sessionStart`       | Environment variables injected into the session                              |
 | `additional_context`      | `sessionStart`       | Extra context string appended to the session                                 |
 | `updated_mcp_tool_output` | `postToolUse`        | Redacted/modified MCP tool output (for PII/secret stripping after execution) |
+| `additional_context`      | `postToolUse`        | Extra context string injected after the tool result                          |
+| `user_message`            | `preCompact`         | Message to show the user when compaction occurs                              |
+| `pluginPaths`             | `workspaceOpen`      | Absolute paths to plugin directories to load for the current workspace       |
 
 ### Follow-Up Automation
 
@@ -312,6 +315,10 @@ The script returns `permission: "deny"` for git commands, `permission: "ask"` fo
 | **User**               | `~/.cursor/hooks.json`                                                                                  | Personal hooks                                 |
 | **MDM**                | macOS: `/Library/Application Support/Cursor/`, Linux: `/etc/cursor/`, Windows: `C:\ProgramData\Cursor\` | System-wide                                    |
 | **Cloud** (Enterprise) | Web dashboard                                                                                           | Auto-syncs every 30 min, supports OS targeting |
+
+## Cloud Agent Support
+
+The following hooks are **not** supported in cloud/remote agent environments: `sessionStart`, `sessionEnd`, `beforeSubmitPrompt`, `beforeTabFileRead`, `afterTabFileEdit`, `workspaceOpen`, `beforeMCPExecution`, `afterMCPExecution`, `afterAgentResponse`, `afterAgentThought`, and `stop`. All other hooks work in both local and cloud modes.
 
 ## Debugging
 
