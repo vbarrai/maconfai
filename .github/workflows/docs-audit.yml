@@ -1,0 +1,26 @@
+name: Docs audit
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Monday morning (UTC)
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # OIDC — lets the action mint a claude[bot] token
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the skill branches from origin/main
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: "/docs-audit"
+          claude_args: >-
+            --model claude-sonnet-4-6
+            --allowedTools "Bash(git:*),Bash(gh:*),Bash(ls:*),Read,Glob,Grep,Edit,Write,WebFetch,WebSearch,Agent"
