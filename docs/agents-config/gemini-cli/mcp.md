@@ -49,9 +49,8 @@
 | `headers`      | object   | HTTP headers for `url`/`httpUrl`                              |
 | `timeout`      | number   | Timeout in milliseconds (default: 600,000)                    |
 | `trust`        | bool     | Trust — bypass tool call confirmations                        |
-| `description`  | string   | Server description                                            |
 | `includeTools` | string[] | Tool allowlist (if specified, only these tools are available) |
-| `excludeTools` | string[] | Tool blocklist                                                |
+| `excludeTools` | string[] | Tool blocklist. When both `includeTools` and `excludeTools` are specified, `excludeTools` takes precedence. |
 
 ## Trust
 
@@ -92,8 +91,8 @@ Gemini CLI supports OAuth 2.0 authentication for remote MCP servers via:
 | `oauth.authorizationUrl` | Authorization endpoint                                                                        |
 | `oauth.tokenUrl`         | Token endpoint                                                                                |
 | `oauth.redirectUri`      | Redirect URI                                                                                  |
-| `oauth.tokenParamName`   | Parameter name for token exchange                                                             |
-| `oauth.audiences`        | Allowed token audiences                                                                       |
+| `oauth.tokenParamName`   | Parameter name for token exchange _(unverified — not confirmed in current upstream docs)_     |
+| `oauth.audiences`        | Allowed token audiences _(unverified — not confirmed in current upstream docs)_               |
 
 ## CLI MCP
 
@@ -127,6 +126,16 @@ Flags for `gemini mcp add`: `-s, --scope user|project` (default `project`), `-t,
 | `allowed`       | string[] | Allowlist of authorized MCP servers   |
 | `excluded`      | string[] | Blocklist of excluded MCP servers     |
 | `serverCommand` | string   | Global command to start an MCP server |
+
+## MCP Prompts as Slash Commands
+
+MCP servers can expose prompts that function as slash commands in the Gemini CLI chat interface:
+
+```
+/prompt-name --arg1="value" --arg2="value"
+```
+
+Users can invoke these the same way as built-in slash commands.
 
 ## Sources
 

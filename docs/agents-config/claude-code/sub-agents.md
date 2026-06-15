@@ -82,17 +82,17 @@ For each vulnerability found:
 | `description`     | **Yes**  | What the agent does and when to use it (used by Claude to route work to the agent)                     |
 | `tools`           | No       | Tools allowed without asking permission (comma-separated string or YAML list)                          |
 | `disallowedTools` | No       | Tools explicitly forbidden                                                                             |
-| `model`           | No       | Model to use. Accepts `inherit` (keep current) or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6` |
+| `model`           | No       | Model to use. Accepts `inherit` (keep current), short aliases (`sonnet`, `opus`, `haiku`, `fable`), or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6` |
 | `permissionMode`  | No       | `default` \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                     |
 | `maxTurns`        | No       | Maximum turns the subagent may take                                                                    |
 | `skills`          | No       | Skills to preload                                                                                      |
-| `mcpServers`      | No       | MCP servers to load for this subagent                                                                  |
+| `mcpServers`      | No       | MCP servers to load for this subagent. Each entry is either a server name string (reference) or an inline definition object keyed by server name. |
 | `memory`          | No       | Memory scope: `user` \| `project` \| `local`                                                           |
 | `background`      | No       | If `true`, runs as a background task                                                                   |
 | `effort`          | No       | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                      |
 | `isolation`       | No       | `worktree` to run in an isolated git worktree                                                          |
 | `color`           | No       | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`      |
-| `initialPrompt`   | No       | Initial prompt seeded into the subagent's context                                                      |
+| `initialPrompt`   | No       | Initial prompt auto-submitted as the first user turn when this agent runs as the main session agent (via `--agent` or the `agent` setting). Not injected when spawned as a subagent. |
 | `hooks`           | No       | Hooks specific to the agent's lifecycle                                                                |
 
 > **Fork mode** is a Skill feature (not a subagent frontmatter field). It is invoked via the `/fork` slash command or by setting `CLAUDE_CODE_FORK_SUBAGENT=1`.
@@ -308,7 +308,8 @@ You are a unit testing expert. For each modified file:
 | Variable                               | Description                                         |
 | :------------------------------------- | :-------------------------------------------------- |
 | `CLAUDE_CODE_SUBAGENT_MODEL`           | Override the model used by subagents                |
-| `CLAUDE_CODE_FORK_SUBAGENT`            | If set to `1`, enable fork-mode subagent invocation |
+| `CLAUDE_CODE_FORK_SUBAGENT`            | Fork-mode subagent invocation. Default-on since v2.1.161; set to `0` to disable. |
+| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Disable all built-in bundled agents                |
 | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` | Disable `background: true` subagents                |
 | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable experimental agent-teams behavior            |
 

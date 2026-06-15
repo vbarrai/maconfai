@@ -23,6 +23,7 @@ Hooks are shell commands, HTTP endpoints, or LLM prompts defined by the user tha
 | `PostToolUseFailure`  | After a tool has failed                                 | No         |
 | `PostToolBatch`       | After a parallel batch of tool calls completes          | No         |
 | `Notification`        | When Claude Code sends a notification                   | No         |
+| `MessageDisplay`      | When a message is displayed to the user                 | No         |
 | `Elicitation`         | When a tool requests user input (MCP elicitation)       | Yes        |
 | `ElicitationResult`   | After an elicitation dialog resolves                    | No         |
 | `SubagentStart`       | When a sub-agent is launched                            | No         |
@@ -97,7 +98,7 @@ Executes a shell command. JSON input arrives on stdin.
 | `asyncRewake`   | No       | If `true` (async only), re-wakes Claude when the hook completes                        |
 | `shell`         | No       | Shell to execute in: `bash` (default) or `powershell`                                  |
 | `statusMessage` | No       | Message displayed during execution                                                     |
-| `once`          | No       | If `true`, runs only once per session                                                  |
+| `once`          | No       | If `true`, runs only once per session. Applies to skills/agents only.                  |
 | `if`            | No       | Permission-rule filter — runs only when the active permission rules match              |
 
 ### HTTP (`type: "http"`)
@@ -153,13 +154,13 @@ The `matcher` field is a regex that filters when the hook triggers. Use `"*"`, `
 | :----------------------------------------------- | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PreToolUse`, `PostToolUse`, `PermissionRequest` | Tool name                | `Bash`, `Edit\|Write`, `mcp__.*`                                                                                                                   |
 | `SessionStart`                                   | How the session started  | `startup`, `resume`, `clear`, `compact`                                                                                                            |
-| `SessionEnd`                                     | Why the session ended    | `clear`, `resume`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`                                                           |
+| `SessionEnd`                                     | Why the session ended    | `clear`, `resume`, `logout`, `prompt_input_exit`, `other`                                                                                          |
 | `Notification`                                   | Notification type        | `permission_prompt`, `idle_prompt`, `auth_success`, `elicitation_dialog`                                                                           |
 | `SubagentStart`, `SubagentStop`                  | Agent type               | `Bash`, `Explore`, `Plan`                                                                                                                          |
 | `ConfigChange`                                   | Config source            | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills`                                                                 |
 | `InstructionsLoaded`                             | Load trigger             | `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`                                                                       |
 | `PreCompact`                                     | Trigger                  | `manual`, `auto`                                                                                                                                   |
-| `StopFailure`                                    | Failure reason           | `rate_limit`, `authentication_failed`, `oauth_org_not_allowed`, `billing_error`, `invalid_request`, `server_error`, `max_output_tokens`, `unknown` |
+| `StopFailure`                                    | Failure reason           | `rate_limit`, `overloaded`, `authentication_failed`                                                                                                |
 | `FileChanged`                                    | Watched filenames        | Literal filename watch list — **not** a regex or glob                                                                                              |
 
 ### Matcher Semantics
@@ -245,6 +246,7 @@ On exit 0, stdout JSON can control behavior:
 
 ### Other Event Output
 
+- `SessionStart`: `hookSpecificOutput` may include `initialUserMessage` (string), `watchPaths` (array of paths to watch for `FileChanged` events), and `reloadSkills` (boolean).
 - `PostToolUse`: `updatedMCPToolOutput` (for MCP tools), `additionalContext`.
 - `UserPromptSubmit`: `sessionTitle`, `additionalContext`.
 - `PermissionDenied`: `retry: true` to retry the tool call after the user revisits permissions.
@@ -266,7 +268,7 @@ On exit 0, stdout JSON can control behavior:
 | `${CLAUDE_PLUGIN_ROOT}` | Plugin root                                                                                                                           |
 | `${CLAUDE_PLUGIN_DATA}` | Plugin-scoped data directory                                                                                                          |
 | `$CLAUDE_CODE_REMOTE`   | `"true"` in a remote web environment                                                                                                  |
-| `$CLAUDE_ENV_FILE`      | Path to a file available in `SessionStart`, `CwdChanged`, `FileChanged` where hooks can persist env vars for subsequent Bash commands |
+| `$CLAUDE_ENV_FILE`      | Path to a file available in `Setup`, `SessionStart`, `CwdChanged`, `FileChanged` where hooks can persist env vars for subsequent Bash commands |
 | `$CLAUDE_EFFORT`        | Current reasoning effort level (`low`, `medium`, `high`, `xhigh`, `max`)                                                              |
 
 ## Hooks in Skills and Agents

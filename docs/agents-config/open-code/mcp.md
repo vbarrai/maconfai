@@ -46,10 +46,10 @@ MCP servers are configured in `opencode.json` under the `mcp` key:
 
 ## Configuration Locations
 
-| Scope   | Path                               | Priority |
-| :------ | :--------------------------------- | :------- |
-| Global  | `~/.config/opencode/opencode.json` | Lower    |
-| Project | `./opencode.json`                  | Highest  |
+| Scope   | Path                                     | Priority |
+| :------ | :--------------------------------------- | :------- |
+| Global  | `~/.config/opencode/opencode.json[c]`    | Lower    |
+| Project | `./opencode.json` or `./opencode.jsonc`  | Highest  |
 
 Configurations merge — later configs override earlier ones only for conflicting keys.
 
@@ -62,6 +62,7 @@ Configurations merge — later configs override earlier ones only for conflictin
 | `url`         | string          | Remote server URL                                                           |
 | `headers`     | object          | HTTP headers                                                                |
 | `environment` | object          | Environment variables                                                       |
+| `cwd`         | string          | Working directory for the server process; relative paths resolve from the workspace |
 | `enabled`     | boolean         | Enable/disable the server                                                   |
 | `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                 |
 | `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth |
@@ -98,7 +99,7 @@ A top-level `tools` object enables or disables tools by name (boolean values). P
 }
 ```
 
-Keys are tool names with boolean values. Glob/wildcard pattern support is not documented in the current upstream config reference.
+Keys are tool names with boolean values. Glob patterns are supported — e.g. `"my-mcp*": false` disables all servers matching the pattern.
 
 ## CLI
 

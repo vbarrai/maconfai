@@ -16,18 +16,22 @@ Amp supports the open Agent Skills standard with progressive disclosure:
 
 ## Locations
 
-| Scope            | Path                                      | Compatibility |
-| :--------------- | :---------------------------------------- | :------------ |
-| Project          | `.agents/skills/<name>/SKILL.md`          | Standard      |
-| User             | `~/.config/agents/skills/<name>/SKILL.md` | Standard      |
-| Project (compat) | `.claude/skills/<name>/SKILL.md`          | Claude Code   |
-| User (compat)    | `~/.claude/skills/<name>/SKILL.md`        | Claude Code   |
+| Scope                  | Path                                      | Compatibility |
+| :--------------------- | :---------------------------------------- | :------------ |
+| Project                | `.agents/skills/<name>/SKILL.md`          | Standard      |
+| User                   | `~/.config/agents/skills/<name>/SKILL.md` | Standard      |
+| User (legacy)          | `~/.agents/skills/<name>/SKILL.md`        | Standard      |
+| User (Amp-specific)    | `~/.config/amp/skills/<name>/SKILL.md`    | Amp Code      |
+| Project (compat)       | `.claude/skills/<name>/SKILL.md`          | Claude Code   |
+| User (compat)          | `~/.claude/skills/<name>/SKILL.md`        | Claude Code   |
 
-**Priority**: Project > User > Built-in.
+**Priority** (first match wins): `~/.config/agents/skills/` > `~/.agents/skills/` > `~/.config/amp/skills/` > `.agents/skills/` > `.claude/skills/` > `~/.claude/skills/` > plugins/built-in.
 
 ## Installation
 
-Via the command palette: `skill: add` — installs from GitHub, git URL, or local path.
+Via the command palette:
+- `skill: add` — installs from GitHub, git URL, or local path
+- `skill: list` (Ctrl+O) — view all installed skills and their status
 
 ## MCP in Skills
 

@@ -63,7 +63,11 @@ See @README.md for the project overview and @package.json for npm commands.
 
 - Relative paths resolved from the file containing the import
 - Absolute paths and `~` supported
-- **Max depth**: 5 levels of recursive imports
+- **Max depth**: 4 hops of recursive imports
+
+### HTML Comments
+
+Block-level HTML comments (`<!-- ... -->`) in CLAUDE.md are stripped before the content is injected into Claude's context. Comments inside code blocks are preserved.
 
 ## Recommended Format
 

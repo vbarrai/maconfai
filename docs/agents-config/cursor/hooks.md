@@ -107,7 +107,7 @@ Returns `{ ok: boolean, reason?: string }`.
 | :-------------- | :--------------------- | :------------------- |
 | `workspaceOpen` | When a workspace opens | No (fire-and-forget) |
 
-App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g. `conversation_id`, `generation_id`, `transcript_path`) from the universal input.
+App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g. `conversation_id`, `generation_id`, `model`, `transcript_path`) from the universal input.
 
 ### Tool Execution
 
@@ -312,6 +312,18 @@ The script returns `permission: "deny"` for git commands, `permission: "ask"` fo
 | **User**               | `~/.cursor/hooks.json`                                                                                  | Personal hooks                                 |
 | **MDM**                | macOS: `/Library/Application Support/Cursor/`, Linux: `/etc/cursor/`, Windows: `C:\ProgramData\Cursor\` | System-wide                                    |
 | **Cloud** (Enterprise) | Web dashboard                                                                                           | Auto-syncs every 30 min, supports OS targeting |
+
+## Cloud Agent (Background Agent) Support
+
+Not all hooks are available when running in Cursor's cloud/background agents. The following events are **not** supported in cloud agents:
+
+`sessionStart`, `sessionEnd`, `beforeSubmitPrompt`, `beforeTabFileRead`, `afterTabFileEdit`, `workspaceOpen`, `beforeMCPExecution`, `afterMCPExecution`, `afterAgentResponse`, `afterAgentThought`, `stop`
+
+Prompt-based hooks (`type: "prompt"`) also do not run in cloud agents.
+
+The following events **are** supported in cloud agents:
+
+`beforeShellExecution`, `afterShellExecution`, `beforeReadFile`, `afterFileEdit`, `preToolUse`, `postToolUse`, `postToolUseFailure`, `subagentStart`, `subagentStop`, `preCompact`
 
 ## Debugging
 

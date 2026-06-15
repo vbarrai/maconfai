@@ -47,7 +47,11 @@ globs:
 - Absolute imports via `@/`
 ```
 
-Files with glob specifications are only loaded when Amp has accessed matching files. Without globs, the file loads whenever referenced.
+Files with glob specifications are only loaded when Amp has accessed matching files. Without globs, the file loads whenever @-mentioned.
+
+Globs implicitly prefix with `**/` unless the pattern starts with `../` or `./`. For example, `*.ts` matches any TypeScript file in any directory.
+
+> **Note**: `@`-mentions inside code blocks are ignored to avoid false positives.
 
 ## Cross-References (`@`)
 

@@ -47,13 +47,14 @@ Instructions that Claude will follow when the Skill is invoked.
 | Field                      | Required    | Description                                                                                                                                             |
 | :------------------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `name`                     | No          | Display name. Lowercase, digits, and hyphens only (max 64 chars). If omitted, uses the directory name.                                                  |
-| `description`              | Recommended | What the Skill does and when to use it. Claude uses this field to decide when to load the Skill. Combined with `when_to_use`, truncated at 1,536 chars. |
+| `description`              | Recommended | What the Skill does and when to use it. Claude uses this field to decide when to load the Skill. Combined with `when_to_use`, truncated at 1,536 chars. If omitted, uses the first paragraph of markdown content. |
 | `when_to_use`              | No          | Additional guidance on when Claude should invoke the Skill. Appended to `description` in the listing (counts toward the 1,536-char cap).                |
 | `argument-hint`            | No          | Hint displayed during auto-completion. E.g., `[issue-number]`, `[filename] [format]`.                                                                   |
 | `arguments`                | No          | Named positional arguments (space-separated string or YAML list). E.g., `arguments: [issue, branch]` → enables `$issue`, `$branch` substitution.        |
-| `disable-model-invocation` | No          | `true` = prevents Claude from automatically loading this Skill. For manual workflows (`/deploy`, `/commit`). Default: `false`.                          |
+| `disable-model-invocation` | No          | `true` = prevents Claude from automatically loading this Skill, and also prevents it from being preloaded into subagents. For manual workflows (`/deploy`, `/commit`). Default: `false`. |
 | `user-invocable`           | No          | `false` = hidden from the `/` menu. For background knowledge. Default: `true`.                                                                          |
 | `allowed-tools`            | No          | Tools Claude can use without asking permission when the Skill is active. Space-separated string or YAML list. E.g., `Read Grep Glob`.                   |
+| `disallowed-tools`         | No          | Tools removed from Claude's available pool while the Skill is active. Space-separated string or YAML list. Restriction clears on next user message.     |
 | `model`                    | No          | Model to use when the Skill is active. `inherit` keeps the active model.                                                                                |
 | `effort`                   | No          | Reasoning effort budget. Options: `low`, `medium`, `high`, `xhigh`, `max`.                                                                              |
 | `paths`                    | No          | Glob patterns limiting when the Skill activates (e.g., `["src/**/*.ts"]`). Also accepts a comma-separated string.                                       |
@@ -145,11 +146,13 @@ git diff --stat
 ```
 ````
 
-Shell execution can be disabled globally via the `disableSkillShellExecution` setting.
+Shell execution can be disabled globally via the `disableSkillShellExecution` setting. This does not affect bundled or managed skills.
 
 ### `$ARGUMENTS` Quoting
 
 `$ARGUMENTS` uses shell-style quoting: wrap multi-word values in quotes to keep them together (e.g., `/fix-issue "migration step 3"`).
+
+If `$ARGUMENTS` is not present in the skill content, arguments are appended at the end as `ARGUMENTS: <value>`.
 
 ## Execution in a Sub-agent
 
@@ -204,6 +207,9 @@ Reference them from `SKILL.md`:
 | `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs          |
 | `/review`                   | Reviews a pull request                              |
 | `/security-review`          | Runs a security review of pending changes           |
+| `/run`                      | Launches and drives the project app                 |
+| `/verify`                   | Verifies a code change works in the real app        |
+| `/run-skill-generator`      | Generates a new skill from a description            |
 
 `/init`, `/review`, and `/security-review` are also available via the Skill tool.
 

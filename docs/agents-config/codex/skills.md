@@ -10,7 +10,7 @@ Codex supports the open Agent Skills standard with progressive disclosure:
 
 | Level               | When Loaded                 | Budget                                                     |
 | :------------------ | :-------------------------- | :--------------------------------------------------------- |
-| **1. Metadata**     | At startup                  | ~8,000 characters total when the context window is unknown |
+| **1. Metadata**     | At startup                  | ~2% of context window (8,000 characters when context window is unknown) |
 | **2. Instructions** | When the skill is triggered | SKILL.md body                                              |
 | **3. Resources**    | On demand                   | Referenced files, scripts                                  |
 
@@ -118,6 +118,10 @@ Codex ships with skills under the SYSTEM scope (bundled with the binary; exact o
 ## Skills + MCP
 
 Skills and MCP complement each other: skills define repeatable workflows, MCP connects them to external systems (issue trackers, design tools, documentation servers). Declare MCP dependencies in `agents/openai.yaml` for automatic installation.
+
+## Distribution via Plugins
+
+For distribution beyond a single repo, bundle skills into Codex plugins (see the [Codex plugin build guide](https://developers.openai.com/codex/plugins/build)). Users can also discover and install community skills via the `$skill-installer` built-in skill.
 
 ## Cross-Platform Compatibility
 

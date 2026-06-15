@@ -49,7 +49,8 @@ OAuth-enabled remote servers use the redirect URI `http://localhost:8976/oauth/c
 - `amp mcp add <name> <url>` — register a remote (HTTP/SSE) server
 - `amp mcp approve <server>` — approve a workspace-scoped server
 - `amp mcp doctor` — diagnose MCP server configuration and connectivity
-- `amp mcp oauth login <server>` / `amp mcp oauth logout <server>` — manage OAuth sessions for remote servers
+- `amp mcp oauth login <server> [--server-url <url>] [--client-id <id>] [--client-secret <secret>] [--scopes "<s1>,<s2>"]` — authenticate with an OAuth remote server; tokens stored in `~/.amp/oauth/` and refreshed automatically
+- `amp mcp oauth logout <server>` — revoke OAuth session for a remote server
 
 ## MCP Permissions
 
@@ -58,8 +59,8 @@ Granular rule-based permissions system. Rules match against the server's `comman
 ```json
 {
   "amp.mcpPermissions": [
-    { "matches": { "command": "npx * @modelcontextprotocol/server-github*" }, "action": "allow" },
-    { "matches": { "url": "https://mcp.example.com/*" }, "action": "block" }
+    { "matches": { "command": "npx", "args": "* @modelcontextprotocol/server-github*" }, "action": "allow" },
+    { "matches": { "url": "https://mcp.example.com/*" }, "action": "reject" }
   ]
 }
 ```

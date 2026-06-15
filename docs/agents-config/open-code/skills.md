@@ -44,7 +44,7 @@ Instructions for the agent...
 | `name`          | Yes      | Skill identifier — regex `^[a-z0-9]+(-[a-z0-9]+)*$`, 1–64 chars, must match the parent directory name    |
 | `description`   | Yes      | 1-1024 characters, triggers discovery                                                                    |
 | `license`       | No       | License identifier                                                                                       |
-| `allowed-tools` | No       | List of allowed tools — _unverified; possibly inherited from Claude Code, not in current Open Code docs_ |
+| `allowed-tools` | No       | Not supported in Open Code (Claude Code-only field); ignored if present |
 | `compatibility` | No       | Agent compatibility list                                                                                 |
 | `metadata`      | No       | Arbitrary string-to-string pairs for skill-specific metadata (e.g., `audience`, `workflow`)              |
 
@@ -91,20 +91,6 @@ Custom agent frontmatter can set its own `permission.skill` block, and `opencode
 ```
 
 To disable the skill tool entirely for an agent, set `tools: { skill: false }` in the agent configuration.
-
-## MCP in Skills
-
-Skills can bundle MCP servers via an `mcp.json` file in the skill directory. Servers start at launch but tools remain hidden until the skill is loaded.
-
-```
-my-skill/
-├── SKILL.md
-├── mcp.json          # Bundled MCP servers (lazy-loaded)
-├── scripts/
-│   └── validate.sh
-└── references/
-    └── api-docs.md
-```
 
 ## Cross-Platform Compatibility
 

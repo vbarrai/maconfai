@@ -63,17 +63,17 @@ However, Gemini CLI provides **runtime skill management** via slash commands:
 | `/skills list [all] [nodesc]`               | List skills (explicit form; `all` includes disabled, `nodesc` omits descriptions) |
 | `/skills disable <name>`                    | Disable a skill for the current session                                           |
 | `/skills enable <name>`                     | Re-enable a previously disabled skill                                             |
-| `/skills link <path>`                       | Symlink a skill from a local directory                                            |
+| `/skills link <path> [--scope user\|workspace]` | Symlink a skill from a local directory                                        |
 | `/skills reload` (alias: `/skills refresh`) | Refresh skill discovery                                                           |
 
 And via terminal commands:
 
 | Command                                                    | Description                                                                      |
 | :--------------------------------------------------------- | :------------------------------------------------------------------------------- |
-| `gemini skills list`                                       | List all installed skills                                                        |
-| `gemini skills link <path> --scope `                       | Symlink a local skill (`workspace` / `user`)                                     |
-| `gemini skills install <src> [--consent]`                  | Install from URL, path, or `.skill` bundle (`--consent` pre-approves activation) |
-| `gemini skills uninstall <name> [--scope user\|workspace]` | Uninstall a skill from the given scope                                           |
+| `gemini skills list [--all]`                                                  | List all installed skills (`--all` includes disabled)                                                                               |
+| `gemini skills link <path> [--scope user\|workspace]`                         | Symlink a local skill (`workspace` / `user`)                                                                                        |
+| `gemini skills install <src> [--consent] [--path <subdir>]`                   | Install from URL, path, or `.skill` bundle (`--consent` pre-approves activation; `--path` picks a subdirectory within the source)   |
+| `gemini skills uninstall <name> [--scope user\|workspace]`                    | Uninstall a skill from the given scope                                                                                              |
 
 All skill activations require **explicit user consent** via the policy engine — Gemini always prompts for confirmation before injecting a skill.
 

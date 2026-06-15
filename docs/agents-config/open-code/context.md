@@ -30,13 +30,23 @@ The explicit lookup order is:
 
 ## Disabling Claude Code Compatibility
 
-Open Code's Claude Code interop layer can be opted out via environment variables. _Note: these variables were observed in source/changelog but are not in the current upstream config reference; treat as unverified until confirmed against the canonical docs._
+Open Code's Claude Code interop layer can be opted out via environment variables:
 
 | Variable                              | Effect                                                                 |
 | :------------------------------------ | :--------------------------------------------------------------------- |
 | `OPENCODE_DISABLE_CLAUDE_CODE`        | Disable all Claude Code compatibility behaviors                        |
 | `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skip loading `CLAUDE.md` fallback prompts (`AGENTS.md` only)           |
 | `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` | Skip discovering skills from `.claude/skills/` and `~/.claude/skills/` |
+
+## Modular Instructions (`@filepath`)
+
+Inside `AGENTS.md`, reference external files with `@filepath` notation for lazy loading:
+
+```markdown
+See @docs/api-reference.md for the full API spec.
+```
+
+Referenced files are loaded on demand when the agent needs them.
 
 ## Custom Instruction Files
 
@@ -53,7 +63,7 @@ Specify custom instruction files in `opencode.json` as an **array of paths or gl
 
 ## Auto-Generation
 
-Use the `/init` command in Open Code to auto-generate an `AGENTS.md` file for your project.
+Use the `/init` command in Open Code to generate an `AGENTS.md` file. If an `AGENTS.md` already exists, `/init` will improve it in place rather than overwriting it.
 
 ## Recommended Format
 

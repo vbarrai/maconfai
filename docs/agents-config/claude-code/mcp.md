@@ -15,6 +15,7 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 | `stdio`           | Communication via stdin/stdout | Local processes (Node.js, Python)                                                |
 | `sse`             | Server-Sent Events via HTTP    | **Deprecated** — use HTTP servers instead, where available                       |
 | `streamable-http` | Bidirectional HTTP streaming   | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs. |
+| `ws`              | WebSocket (persistent)         | Persistent bidirectional connections. Accepts `url`, `headers`, `headersHelper`, `timeout`, `alwaysLoad`. |
 
 ## Configuration
 
@@ -80,6 +81,7 @@ For global MCP servers available across all projects:
 | `headersHelper` | No             | Shell command whose stdout produces headers dynamically (e.g. for short-lived auth tokens) |
 | `oauth`         | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl, scopes }`           |
 | `alwaysLoad`    | No             | If `true`, the server is exempt from Tool Search deferral and its tools always load        |
+| `timeout`       | No             | Per-server timeout in milliseconds per tool call. Values below 1000 are ignored; falls back to `MCP_TOOL_TIMEOUT`. |
 
 ## Scopes
 
@@ -209,6 +211,7 @@ export MY_API_TOKEN="sk-..."
 | Variable                      | Description                                                                                                    |
 | :---------------------------- | :------------------------------------------------------------------------------------------------------------- |
 | `MCP_TIMEOUT`                 | Per-server connection/request timeout                                                                          |
+| `MCP_TOOL_TIMEOUT`            | Default per-tool call timeout (fallback when per-server `timeout` field is absent or below 1000)               |
 | `MCP_CLIENT_SECRET`           | OAuth client secret (alternative to `--client-secret`)                                                         |
 | `MCP_CONNECTION_NONBLOCKING`  | If set, MCP connection failures do not block session start                                                     |
 | `ENABLE_TOOL_SEARCH`          | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded) |

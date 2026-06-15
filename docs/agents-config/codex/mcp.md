@@ -36,15 +36,15 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 
 ```
 
-> **Note**: `supports_parallel_tool_calls`, `default_tools_approval_mode`, and per-tool `[mcp_servers.<name>.tools.<tool>] approval_mode` keys are **not** documented in the upstream config reference. They appear in community examples; treat as unverified until confirmed against `codex-rs` sources.
+> **Note**: `startup_timeout_ms`, `scopes`, and `oauth_resource` are not currently in the upstream config reference — treat as unverified.
 
 ## Top-Level Config Keys
 
-| Key                           | Type   | Description                                 |
-| :---------------------------- | :----- | :------------------------------------------ |
-| `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener   |
-| `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows   |
-| `mcp_oauth_credentials_store` | string | Preferred credential store for OAuth tokens |
+| Key                           | Type   | Description                                              |
+| :---------------------------- | :----- | :------------------------------------------------------- |
+| `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener                |
+| `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows _(unverified)_ |
+| `mcp_oauth_credentials_store` | string | Preferred credential store for OAuth tokens _(unverified)_ |
 
 ## Supported Transports
 
@@ -66,16 +66,18 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 | `bearer_token_env_var`     | string   | Env variable for Bearer token                               |
 | `http_headers`             | table    | Static HTTP headers                                         |
 | `env_http_headers`         | table    | HTTP headers from env variables                             |
-| `scopes`                   | string[] | OAuth scopes requested during authorization                 |
-| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707)                         |
+| `scopes`                   | string[] | OAuth scopes requested during authorization _(unverified)_  |
+| `oauth_resource`           | string   | OAuth resource indicator (RFC 8707) _(unverified)_          |
 | `experimental_environment` | string   | `"local"` or `"remote"`                                     |
 | `startup_timeout_sec`      | number   | Startup timeout in seconds (default: 10s)                   |
-| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds   |
+| `startup_timeout_ms`       | number   | Alias of `startup_timeout_sec`, expressed in milliseconds _(unverified)_ |
 | `tool_timeout_sec`         | number   | Per-tool timeout (default: 60s)                             |
 | `enabled`                  | bool     | Enable/disable the server                                   |
 | `required`                 | bool     | If `true`, fail startup if the server is unavailable        |
-| `disabled_tools`           | string[] | List of tools to disable                                    |
-| `enabled_tools`            | string[] | Allowlist of tools (complement of `disabled_tools`)         |
+| `disabled_tools`                        | string[] | List of tools to disable                                    |
+| `enabled_tools`                         | string[] | Allowlist of tools (complement of `disabled_tools`)         |
+| `default_tools_approval_mode`           | string   | Default approval mode for all tools: `auto`, `prompt`, `approve` |
+| `tools.<tool>.approval_mode`            | string   | Per-tool approval mode: `auto`, `prompt`, `approve`         |
 
 ## Project-Scoped Config
 
@@ -86,17 +88,18 @@ A project-scoped `.codex/config.toml` is allowed for trusted projects; settings 
 ```bash
 codex mcp              # List servers
 codex mcp add          # Add a server
+codex mcp login        # Authenticate with an OAuth-enabled server
 codex mcp remove       # Remove a server          (Needs verification)
 codex mcp authenticate # Authenticate (OAuth)     (Needs verification)
 ```
 
 ## Codex as an MCP Server
 
+> **Note**: `codex mcp-serve` and the `codex()`/`codex-reply()` tools described here are not documented in the upstream reference — treat as unverified.
+
 ```bash
 codex mcp-serve        # Needs verification
 ```
-
-Exposes `codex()` and `codex-reply()` tools to other MCP clients.
 
 ## Sources
 
