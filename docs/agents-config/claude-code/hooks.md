@@ -19,8 +19,8 @@ Hooks are shell commands, HTTP endpoints, or LLM prompts defined by the user tha
 | `PreToolUse`          | Before a tool executes. Can block it                    | Yes        |
 | `PermissionRequest`   | When a permission dialog appears                        | Yes        |
 | `PermissionDenied`    | When a permission is denied (supports `retry: true`)    | No         |
-| `PostToolUse`         | After a tool has succeeded                              | Yes        |
-| `PostToolUseFailure`  | After a tool has failed                                 | Yes        |
+| `PostToolUse`         | After a tool has succeeded                              | No         |
+| `PostToolUseFailure`  | After a tool has failed                                 | No         |
 | `PostToolBatch`       | After a parallel batch of tool calls completes          | No         |
 | `Notification`        | When Claude Code sends a notification                   | No         |
 | `Elicitation`         | When a tool requests user input (MCP elicitation)       | Yes        |
@@ -168,7 +168,7 @@ The `matcher` field is a regex that filters when the hook triggers. Use `"*"`, `
 
 ### Matcher Semantics
 
-A matcher containing only letters, digits, `_`, or `|` is matched as an exact string (or union of exact strings). Any other character turns the matcher into a regex.
+A matcher containing only letters, digits, `_`, spaces, `,`, or `|` is matched as an exact string (or union of exact strings). Any other character turns the matcher into a regex.
 
 > **Caution (fail-open)**: patterns with arguments (e.g. `Bash(git push *)`) fail open — they match every tool call, not just the specified argument pattern. Use the `if` field for argument-level filtering instead.
 
@@ -202,6 +202,7 @@ All hooks receive these fields as JSON (stdin for command, body for HTTP):
 | `cwd`             | Current working directory                                                                 |
 | `permission_mode` | Permission mode: `default`, `plan`, `acceptEdits`, `auto`, `dontAsk`, `bypassPermissions` |
 | `hook_event_name` | Event name                                                                                |
+| `model`           | Active model identifier (present in `SessionStart` and other events)                      |
 | `effort`          | Reasoning effort, shape `{level: low\|medium\|high\|xhigh\|max}`                          |
 
 Additional fields for sub-agents:
@@ -213,11 +214,11 @@ Additional fields for sub-agents:
 
 ### Exit Codes (command hooks)
 
-| Code      | Meaning                                                                                                                                                                                                                                                                                                                                                                           |
-| :-------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0**     | Success. Claude Code parses stdout for optional JSON                                                                                                                                                                                                                                                                                                                              |
-| **2**     | Blocks the action for the events that support blocking (`PreToolUse`, `PermissionRequest`, `UserPromptSubmit`, `UserPromptExpansion`, `Stop`, `SubagentStop`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `PostToolBatch`, `PreCompact`, `Elicitation`, `ElicitationResult`, `WorktreeCreate`); for non-blocking events, exit 2 just shows stderr to the user |
-| **Other** | Non-blocking error. stderr displayed in verbose mode                                                                                                                                                                                                                                                                                                                              |
+| Code      | Meaning                                                                                                                                                                                                                                                                                                                                                          |
+| :-------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0**     | Success. Claude Code parses stdout for optional JSON                                                                                                                                                                                                                                                                                                             |
+| **2**     | Blocks the action for the events that support blocking (`PreToolUse`, `PermissionRequest`, `UserPromptSubmit`, `UserPromptExpansion`, `Stop`, `SubagentStop`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `ConfigChange`, `PreCompact`, `Elicitation`, `ElicitationResult`, `WorktreeCreate`); for non-blocking events, exit 2 just shows stderr to the user |
+| **Other** | Non-blocking error. stderr displayed in verbose mode                                                                                                                                                                                                                                                                                                             |
 
 ### JSON Output
 

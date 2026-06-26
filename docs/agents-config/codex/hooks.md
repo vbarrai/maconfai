@@ -27,14 +27,15 @@ Codex supports a hooks system aligned with Claude Code's hooks: lifecycle events
 
 Hooks can be defined in any of the following locations (merged in precedence order):
 
-| Location                                        | Scope                                                                           |
-| :---------------------------------------------- | :------------------------------------------------------------------------------ |
-| `~/.codex/hooks.json`                           | User-level                                                                      |
-| `~/.codex/config.toml` (inline `[hooks]` table) | User-level                                                                      |
-| `<repo>/.codex/hooks.json`                      | Project-level                                                                   |
-| `<repo>/.codex/config.toml` (inline `[hooks]`)  | Project-level                                                                   |
-| `requirements.toml`                             | Admin/policy. Set `allow_managed_hooks_only = true` to ignore lower-scope hooks |
-| `.codex-plugin/plugin.json`                     | Plugin manifest contributing hooks                                              |
+| Location                                        | Scope                                                                                                                                  |
+| :---------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| `~/.codex/hooks.json`                           | User-level                                                                                                                             |
+| `~/.codex/config.toml` (inline `[hooks]` table) | User-level                                                                                                                             |
+| `<repo>/.codex/hooks.json`                      | Project-level                                                                                                                          |
+| `<repo>/.codex/config.toml` (inline `[hooks]`)  | Project-level                                                                                                                          |
+| `requirements.toml`                             | Admin/policy. Set `allow_managed_hooks_only = true` to ignore lower-scope hooks. Set `[features].hooks = true` to force hooks enabled. |
+| `hooks/hooks.json` (plugin root)                | Default hooks path inside a plugin directory                                                                                           |
+| `.codex-plugin/plugin.json`                     | Plugin manifest — can override the default hooks path                                                                                  |
 
 ## Structure
 
@@ -62,38 +63,54 @@ Each event maps to a list of matcher groups; each matcher group has one or more 
 
 ### Fields
 
-| Field           | Type   | Description                                    |
-| :-------------- | :----- | :--------------------------------------------- |
-| `matcher`       | string | Pattern to match against tool name or context  |
-| `type`          | string | Handler type — currently only `"command"`      |
-| `command`       | string | Shell command to execute                       |
-| `timeout`       | number | Timeout in seconds (default: 600)              |
-| `statusMessage` | string | Optional message displayed while the hook runs |
+| Field            | Type   | Description                                                                 |
+| :--------------- | :----- | :-------------------------------------------------------------------------- |
+| `matcher`        | string | Pattern to match against tool name or context                               |
+| `type`           | string | Handler type — currently only `"command"`                                   |
+| `command`        | string | Shell command to execute                                                    |
+| `commandWindows` | string | Optional Windows-specific override command (also `command_windows` in TOML) |
+| `timeout`        | number | Timeout in seconds (default: 600)                                           |
+| `statusMessage`  | string | Optional message displayed while the hook runs                              |
 
 ## Hook stdin JSON
 
 Hooks receive a JSON payload on stdin:
 
-| Field             | Description                                  |
-| :---------------- | :------------------------------------------- |
-| `session_id`      | Current Codex session id                     |
-| `transcript_path` | Path to the session transcript               |
-| `cwd`             | Working directory                            |
-| `hook_event_name` | Name of the lifecycle event                  |
-| `turn_id`         | Identifier for the current conversation turn |
+### Common Fields
+
+| Field             | Description                                                                   |
+| :---------------- | :---------------------------------------------------------------------------- |
+| `session_id`      | Current Codex session id                                                      |
+| `transcript_path` | Path to the session transcript                                                |
+| `cwd`             | Working directory                                                             |
+| `hook_event_name` | Name of the lifecycle event                                                   |
+| `turn_id`         | Identifier for the current conversation turn                                  |
+| `model`           | Active model slug                                                             |
+| `permission_mode` | `"default"`, `"acceptEdits"`, `"plan"`, `"dontAsk"`, or `"bypassPermissions"` |
+
+### Event-Specific Fields
+
+| Event(s)                                         | Additional fields                                                   |
+| :----------------------------------------------- | :------------------------------------------------------------------ |
+| `PreToolUse`, `PostToolUse`, `PermissionRequest` | `tool_name`, `tool_input`, `tool_response`                          |
+| `PreCompact`, `PostCompact`                      | `trigger`                                                           |
+| `SubagentStart`, `SubagentStop`                  | `agent_type`, `source`                                              |
+| `SubagentStop`, `Stop`                           | `stop_hook_active`, `last_assistant_message`                        |
+| `SessionStart`                                   | `trigger` — values: `"startup"`, `"resume"`, `"clear"`, `"compact"` |
 
 ## Hook outputs
 
 A hook may emit a JSON object on stdout to influence Codex:
 
-| Field                | Description                               |
-| :------------------- | :---------------------------------------- |
-| `continue`           | Whether to continue the operation         |
-| `stopReason`         | Reason to stop (if `continue` is false)   |
-| `systemMessage`      | Message injected as a system message      |
-| `permissionDecision` | Decision for `PermissionRequest` events   |
-| `decision`           | Generic decision (e.g., allow/deny)       |
-| `reason`             | Human-readable rationale for the decision |
+| Field                | Description                                                                      |
+| :------------------- | :------------------------------------------------------------------------------- |
+| `continue`           | Whether to continue the operation                                                |
+| `stopReason`         | Reason to stop (if `continue` is false)                                          |
+| `systemMessage`      | Message injected as a system message                                             |
+| `suppressOutput`     | If `true`, suppresses hook stdout from display (parsed; currently unimplemented) |
+| `permissionDecision` | Decision for `PermissionRequest` events                                          |
+| `decision`           | Generic decision (e.g., allow/deny)                                              |
+| `reason`             | Human-readable rationale for the decision                                        |
 
 Event-specific outputs use a nested `hookSpecificOutput` object:
 
@@ -107,7 +124,23 @@ Event-specific outputs use a nested `hookSpecificOutput` object:
 }
 ```
 
-**Exit code 2**: a hook that exits with code `2` and writes text to stderr will block/deny the action as an alternative to JSON output.
+**Exit code behavior**:
+
+- **Exit 0 + JSON**: Codex parses and applies the JSON output.
+- **Exit 0 + plain text**: Codex treats the output as additional context (not JSON-parsed).
+- **Exit 2 + stderr**: Blocks/denies the action as an alternative to JSON output.
+- **Any other non-zero**: Hook failure; Codex continues normally.
+
+## Plugin Environment Variables
+
+Hook processes inside a plugin receive these additional environment variables:
+
+| Variable             | Description                      |
+| :------------------- | :------------------------------- |
+| `PLUGIN_ROOT`        | Absolute path to the plugin root |
+| `PLUGIN_DATA`        | Plugin-scoped data directory     |
+| `CLAUDE_PLUGIN_ROOT` | Alias for `PLUGIN_ROOT` (compat) |
+| `CLAUDE_PLUGIN_DATA` | Alias for `PLUGIN_DATA` (compat) |
 
 ## Commit Attribution
 

@@ -12,13 +12,13 @@ Rules are persistent instructions that the Cursor agent sees at the beginning of
 
 ### By scope
 
-| Type                  | Storage                                       | Applies to                              |
-| :-------------------- | :-------------------------------------------- | :-------------------------------------- |
-| **Project**           | `.cursor/rules/*.mdc` or `.cursor/rules/*.md` | This repo only (versionable)            |
-| **Imported**          | `.cursor/rules/imported/<repoName>/`          | Rules imported from remote repositories |
-| **User**              | Cursor Settings > Rules                       | All your projects                       |
-| **Team**              | Team Dashboard                                | All team members                        |
-| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root                  | This repo (plain markdown)              |
+| Type                  | Storage                              | Applies to                                                                                                            |
+| :-------------------- | :----------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Project**           | `.cursor/rules/*.mdc`                | This repo only (versionable). Plain `.md` files in this directory are silently ignored — only `.mdc` files are valid. |
+| **Imported**          | `.cursor/rules/imported/<repoName>/` | Rules imported from remote repositories                                                                               |
+| **User**              | Cursor Settings > Rules              | All your projects (Agent/Chat mode only — not Inline Edit or Cursor Tab)                                              |
+| **Team**              | Team Dashboard                       | All team members                                                                                                      |
+| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root         | This repo (plain markdown)                                                                                            |
 
 ### By activation mode
 
@@ -86,6 +86,10 @@ A simple alternative to `.mdc` files: an `AGENTS.md` file in plain markdown at t
 - Single quotes
 - Functional components only
 ```
+
+## Creating Rules
+
+Use the `/create-rule` slash command in Agent chat to create a new rule from the current conversation context. Cursor will prompt for the rule name and activation mode.
 
 ## Recommended organization
 

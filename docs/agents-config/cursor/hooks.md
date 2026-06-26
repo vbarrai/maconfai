@@ -148,7 +148,7 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `subagentStart` | Before subagent spawning | Yes        |
 | `subagentStop`  | When subagent completes  | No         |
 
-`subagentStart` input includes `subagent_type`, task description, and parent conversation ID. `subagentStop` can trigger auto-continue via `followup_message` and receives status, duration, file modifications, and `loop_count`.
+`subagentStart` input includes `subagent_type`, task description, parent conversation ID, and `git_branch`. `subagentStop` can trigger auto-continue via `followup_message` and receives status, duration, file modifications, and `loop_count`.
 
 ### Prompt & Context
 
@@ -156,6 +156,8 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | :------------------- | :--------------------------------------- | :----------------- |
 | `beforeSubmitPrompt` | After user sends, before backend request | Yes                |
 | `preCompact`         | Before context window compaction         | No (observational) |
+
+`preCompact` input includes `is_first_compaction` (boolean).
 
 ### Agent Response Tracking
 
@@ -198,6 +200,8 @@ Every hook receives:
   "conversation_id": "stable-id",
   "generation_id": "changes-per-message",
   "model": "claude-sonnet-4-20250514",
+  "model_id": "string (optional)",
+  "model_params": "[{id, value}] (optional)",
   "hook_event_name": "hookName",
   "cursor_version": "1.7.2",
   "workspace_roots": ["/path"],
@@ -218,7 +222,7 @@ Blocking/allowing hooks return:
 }
 ```
 
-`permission` options: `"allow"`, `"deny"`, `"ask"`. Note: `"ask"` is supported for `beforeShellExecution` and `beforeMCPExecution` but is **not reliably enforced for `preToolUse`** — it falls back to deny for that event.
+`permission` options: `"allow"`, `"deny"`, `"ask"`. Note: `"ask"` is supported for `beforeShellExecution` and `beforeMCPExecution` but is **not reliably enforced for `preToolUse`** — it falls back to deny for that event. `subagentStart` supports only `"allow"` or `"deny"` (no `"ask"`).
 
 ### Additional Output Fields
 
@@ -319,6 +323,8 @@ The script returns `permission: "deny"` for git commands, `permission: "ask"` fo
 ## Cloud Agent Support
 
 The following hooks are **not** supported in cloud/remote agent environments: `sessionStart`, `sessionEnd`, `beforeSubmitPrompt`, `beforeTabFileRead`, `afterTabFileEdit`, `workspaceOpen`, `beforeMCPExecution`, `afterMCPExecution`, `afterAgentResponse`, `afterAgentThought`, and `stop`. All other hooks work in both local and cloud modes.
+
+Cloud agents support **command-based hooks only** — prompt-based (`type: "prompt"`) hooks are not supported in cloud environments.
 
 ## Debugging
 
