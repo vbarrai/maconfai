@@ -6,7 +6,7 @@ const clean = (s: string) =>
     .replace(/\x1B\[\??[0-9;]*[a-zA-Z]/g, '')
     .replace(/[^\S\n]+$/gm, '')
     .replace(/\/[^\s]*maconfai-e2e-[^\s/]+\/source/g, '<source>')
-    .replace(/[◒◐◓◑]  [^\n◇◆]*(?=[◇◆])/g, '')
+    .replace(/[◒◐◓◑]  [^\n◇◆]*(?:\n|(?=[◇◆]))/g, '')
 
 function renderMultiselect(opts: any): string {
   const lines = [`◆  ${clean(opts.message)}`]

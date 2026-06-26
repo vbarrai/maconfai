@@ -40,8 +40,8 @@ OAuth-enabled remote servers use the redirect URI `http://localhost:8976/oauth/c
 
 ## Scopes
 
-- **User / global settings** — entries in the user `settings.json` apply across all workspaces and load without prompting.
-- **Workspace** — entries in `.amp/settings.json` apply only to that workspace and require explicit approval (via `amp mcp approve <server>` or the UI) before they are loaded.
+- **User / global settings** — entries in the user `settings.json` (or `settings.jsonc`) apply across all workspaces and load without prompting.
+- **Workspace** — entries in `.amp/settings.json` (or `.amp/settings.jsonc`) apply only to that workspace and require explicit approval (via `amp mcp approve <server>` or the UI) before they are loaded.
 
 ## CLI
 
@@ -58,17 +58,22 @@ Granular rule-based permissions system. Rules match against the server's `comman
 ```json
 {
   "amp.mcpPermissions": [
-    { "matches": { "command": "npx * @modelcontextprotocol/server-github*" }, "action": "allow" },
-    { "matches": { "url": "https://mcp.example.com/*" }, "action": "block" }
+    {
+      "matches": { "command": "npx", "args": "* @modelcontextprotocol/server-github*" },
+      "action": "allow"
+    },
+    { "matches": { "url": "https://mcp.example.com/*" }, "action": "reject" }
   ]
 }
 ```
+
+> **Note**: `matches` uses separate `"command"` and `"args"` fields — do not conflate them into a single `"command"` glob. Valid `action` values are `"allow"` and `"reject"` (not `"block"`).
 
 **First matching rule wins**; default = allow.
 
 ## MCP on the Command Line
 
-`--mcp-config` takes an inline JSON string (no `-x` required):
+`--mcp-config` takes an inline JSON string:
 
 ```bash
 amp --mcp-config '{"mcpServers":{"github":{"command":"npx","args":["-y","@modelcontextprotocol/server-github"]}}}'

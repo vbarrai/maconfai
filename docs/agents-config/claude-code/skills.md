@@ -44,23 +44,24 @@ Instructions that Claude will follow when the Skill is invoked.
 
 ## Frontmatter Fields
 
-| Field                      | Required    | Description                                                                                                                                             |
-| :------------------------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`                     | No          | Display name. Lowercase, digits, and hyphens only (max 64 chars). If omitted, uses the directory name.                                                  |
-| `description`              | Recommended | What the Skill does and when to use it. Claude uses this field to decide when to load the Skill. Combined with `when_to_use`, truncated at 1,536 chars. |
-| `when_to_use`              | No          | Additional guidance on when Claude should invoke the Skill. Appended to `description` in the listing (counts toward the 1,536-char cap).                |
-| `argument-hint`            | No          | Hint displayed during auto-completion. E.g., `[issue-number]`, `[filename] [format]`.                                                                   |
-| `arguments`                | No          | Named positional arguments (space-separated string or YAML list). E.g., `arguments: [issue, branch]` → enables `$issue`, `$branch` substitution.        |
-| `disable-model-invocation` | No          | `true` = prevents Claude from automatically loading this Skill. For manual workflows (`/deploy`, `/commit`). Default: `false`.                          |
-| `user-invocable`           | No          | `false` = hidden from the `/` menu. For background knowledge. Default: `true`.                                                                          |
-| `allowed-tools`            | No          | Tools Claude can use without asking permission when the Skill is active. Space-separated string or YAML list. E.g., `Read Grep Glob`.                   |
-| `model`                    | No          | Model to use when the Skill is active. `inherit` keeps the active model.                                                                                |
-| `effort`                   | No          | Reasoning effort budget. Options: `low`, `medium`, `high`, `xhigh`, `max`.                                                                              |
-| `paths`                    | No          | Glob patterns limiting when the Skill activates (e.g., `["src/**/*.ts"]`). Also accepts a comma-separated string.                                       |
-| `shell`                    | No          | Shell used for `` !`...` `` injection and script execution. `bash` (default) or `powershell` (requires `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`).            |
-| `context`                  | No          | `fork` = run in an isolated sub-agent.                                                                                                                  |
-| `agent`                    | No          | Type of sub-agent to use with `context: fork`. Options: `Explore`, `Plan`, `general-purpose` (default), or a custom agent from `.claude/agents/`.       |
-| `hooks`                    | No          | Hooks tied to the Skill's lifecycle.                                                                                                                    |
+| Field                      | Required    | Description                                                                                                                                                        |
+| :------------------------- | :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                     | No          | Display name. Lowercase, digits, and hyphens only (max 64 chars). If omitted, uses the directory name.                                                             |
+| `description`              | Recommended | What the Skill does and when to use it. Claude uses this field to decide when to load the Skill. Combined with `when_to_use`, truncated at 1,536 chars.            |
+| `when_to_use`              | No          | Additional guidance on when Claude should invoke the Skill. Appended to `description` in the listing (counts toward the 1,536-char cap).                           |
+| `argument-hint`            | No          | Hint displayed during auto-completion. E.g., `[issue-number]`, `[filename] [format]`.                                                                              |
+| `arguments`                | No          | Named positional arguments (space-separated string or YAML list). E.g., `arguments: [issue, branch]` → enables `$issue`, `$branch` substitution.                   |
+| `disable-model-invocation` | No          | `true` = prevents Claude from automatically loading this Skill. For manual workflows (`/deploy`, `/commit`). Default: `false`.                                     |
+| `user-invocable`           | No          | `false` = hidden from the `/` menu. For background knowledge. Default: `true`.                                                                                     |
+| `allowed-tools`            | No          | Tools Claude can use without asking permission when the Skill is active. Space-separated string or YAML list. E.g., `Read Grep Glob`.                              |
+| `disallowed-tools`         | No          | Tools removed from Claude's available pool while the Skill is active. The restriction clears when you send your next message. Space-separated string or YAML list. |
+| `model`                    | No          | Model to use when the Skill is active. `inherit` keeps the active model.                                                                                           |
+| `effort`                   | No          | Reasoning effort budget. Options: `low`, `medium`, `high`, `xhigh`, `max`.                                                                                         |
+| `paths`                    | No          | Glob patterns limiting when the Skill activates (e.g., `["src/**/*.ts"]`). Also accepts a comma-separated string.                                                  |
+| `shell`                    | No          | Shell used for `` !`...` `` injection and script execution. `bash` (default) or `powershell` (requires `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`).                       |
+| `context`                  | No          | `fork` = run in an isolated sub-agent.                                                                                                                             |
+| `agent`                    | No          | Type of sub-agent to use with `context: fork`. Options: `Explore`, `Plan`, `general-purpose` (default), or a custom agent from `.claude/agents/`.                  |
+| `hooks`                    | No          | Hooks tied to the Skill's lifecycle.                                                                                                                               |
 
 ## Where to Store Skills
 
@@ -109,11 +110,11 @@ Usage: `/fix-issue 123`
 
 ## Invocation Control
 
-| Frontmatter                      | You invoke | Claude invokes | Loaded in context                             |
-| :------------------------------- | :--------- | :------------- | :-------------------------------------------- |
-| (default)                        | Yes        | Yes            | Description always, content on invocation     |
-| `disable-model-invocation: true` | Yes        | No             | Neither description nor content until invoked |
-| `user-invocable: false`          | No         | Yes            | Description always, content on invocation     |
+| Frontmatter                      | You invoke | Claude invokes | Loaded in context                                            |
+| :------------------------------- | :--------- | :------------- | :----------------------------------------------------------- |
+| (default)                        | Yes        | Yes            | Description always, content on invocation                    |
+| `disable-model-invocation: true` | Yes        | No             | Description not in context; full skill loads when you invoke |
+| `user-invocable: false`          | No         | Yes            | Description always, content on invocation                    |
 
 ## Dynamic Context Injection
 
@@ -204,6 +205,9 @@ Reference them from `SKILL.md`:
 | `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs          |
 | `/review`                   | Reviews a pull request                              |
 | `/security-review`          | Runs a security review of pending changes           |
+| `/run`                      | Launches and drives the project's app               |
+| `/verify`                   | Verifies a code change works by running the app     |
+| `/run-skill-generator`      | Generates a new skill via the skill creator flow    |
 
 `/init`, `/review`, and `/security-review` are also available via the Skill tool.
 
