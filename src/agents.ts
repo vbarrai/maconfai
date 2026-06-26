@@ -36,6 +36,8 @@ export const agents: Record<AgentType, AgentConfig> = {
     mcpConfigPath: '.codex/config.toml',
     mcpEnvSyntax: 'bare',
     mcpConfigFormat: 'codex',
+    hooksConfigPath: '.codex/hooks.json',
+    hooksConfigFormat: 'settings',
   },
   'open-code': {
     name: 'open-code',
@@ -71,7 +73,8 @@ export function detectProjectAgents(cwd = process.cwd()): AgentType[] {
     existsSync(join(cwd, '.cursor/skills'))
   )
     result.push('cursor')
-  if (existsSync(join(cwd, '.codex/config.toml'))) result.push('codex')
+  if (existsSync(join(cwd, '.codex/config.toml')) || existsSync(join(cwd, '.codex/hooks.json')))
+    result.push('codex')
   if (existsSync(join(cwd, 'opencode.json')) || existsSync(join(cwd, '.opencode/skills')))
     result.push('open-code')
   return result

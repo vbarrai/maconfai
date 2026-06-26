@@ -67,6 +67,16 @@ export const hookBlockRmCursor: Record<string, HookGroup> = {
   },
 }
 
+export const hookBlockRmCodex: Record<string, HookGroup> = {
+  'block-rm': {
+    codex: {
+      PreToolUse: [
+        { matcher: 'Bash', hooks: [{ type: 'command', command: '.codex/hooks/block-rm.sh' }] },
+      ],
+    },
+  },
+}
+
 export const hookLintOnEdit: Record<string, HookGroup> = {
   'lint-on-edit': {
     'claude-code': {

@@ -75,7 +75,7 @@ Project-specific facts the `release` skill relies on (the skill is generic; the 
 - **Canonical dir**: `.agents/skills/<name>/` — single source of truth for skill files
 - **Agent dirs**: `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.gemini/skills/`, `.amp/skills/` — symlinked to canonical dir
 - **MCP servers**: Defined in `mcps/<name>/mcp.json` directories or root `mcp.json`, merged into agent config files (`.mcp.json` for Claude Code, `.cursor/mcp.json` for Cursor, `opencode.json` for Open Code)
-- **Hooks**: Defined in `hooks/<name>/hooks.json` directories or root `hooks.json`, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor). Companion files (scripts, configs) in `hooks/<name>/` are automatically copied to `.agents/hooks/<name>/`
+- **Hooks**: Defined in `hooks/<name>/hooks.json` directories or root `hooks.json`, merged into agent config files (`.claude/settings.json` for Claude Code, `.cursor/hooks.json` for Cursor, `.codex/hooks.json` for Codex). Codex uses the `settings` format (same `{ hooks: {...} }` shape as Claude Code, no `version` wrapper). Companion files (scripts, configs) in `hooks/<name>/` are automatically copied to `.agents/hooks/<name>/`
 - **Trusted**: Per-config `trusted?: boolean` in `ai-lock.json` (on every skill/MCP/hook entry), set installer-side (never declared by the source). Gates `maconfai update`: trusted configs update blindly; non-trusted configs are **blocked** (reported, not changed); `update --include-untrusted` updates all. The gate rule is `trusted !== false` — a **missing** `trusted` (entries installed before the field existed) is grandfathered as trusted. New installs default to non-trusted; `--trusted` or the interactive prompt opts in. `add{,Mcp,Hook}ToLock` preserve `trusted` when the caller omits it (so update never resets it); `install.ts:resolveTrust` defaults new configs to non-trusted while preserving a reinstalled config's existing trust.
 - **CLI flags**: `-y`/`--yes` (skip prompts), `--trusted` (mark installed configs trusted), `--skills=a,b` (filter skills), `--agents=claude-code,cursor` (filter agents), `--mcps=mcp1,mcp2` (filter MCP servers), `--hooks=hook1,hook2` (filter hooks), `--include-untrusted` (on `update`: bypass the trust gate)
 
@@ -276,6 +276,15 @@ tests/
   codex/
     skills/
       install-single.test.ts             # Single skill to codex agent
+    hooks/
+      install-single.test.ts             # Single hook group into .codex/hooks.json
+      install-multiple.test.ts           # Multiple hook groups
+      install-with-skill.test.ts         # Hooks alongside a SKILL.md
+      install-from-dir.test.ts           # Hook from hooks/<name>/hooks.json
+      install-dir-with-files.test.ts     # Hook dir with companion scripts
+      install-dir-no-files.test.ts       # Hook dir without companion files
+      install-merge.test.ts              # Sequential installs merge hooks
+      install-skip-duplicate.test.ts     # Duplicate handlers not added twice
     mcp/
       install-single.test.ts             # Single MCP in .codex/config.toml
       install-multiple.test.ts           # Multiple MCPs in config.toml
@@ -352,7 +361,7 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 | :-------------- | :------------ | :------------ | :------------ | :------------ | :-------------- |
 | **Claude Code** | Supported     | Supported     | Not supported | Not supported | `sub-agents.md` |
 | **Cursor**      | Supported     | Supported     | Not supported | Not supported | `rules.md`      |
-| **Codex**       | Supported     | Not supported | Supported     | Not supported | —               |
+| **Codex**       | Supported     | Supported     | Supported     | Not supported | —               |
 | **Gemini CLI**  | Not supported | —             | Not supported | Not supported | —               |
 | **Amp Code**    | Not supported | —             | Not supported | Not supported | —               |
 | **Open Code**   | Supported     | Not supported | Supported     | Not supported | —               |

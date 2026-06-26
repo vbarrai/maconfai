@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — Hooks are not yet managed by maconfai for Codex. Codex hooks now share the same shape as Claude Code hooks. Adding `hooks.json` install support for Codex is a candidate roadmap item.
+> **maconfai support: Supported** — maconfai installs Codex hooks from a source `hooks.json` (root or `hooks/<name>/hooks.json`) under the `codex` key into `.codex/hooks.json`. Codex hooks share the same shape as Claude Code hooks (`{ "hooks": { "<Event>": [ { "matcher", "hooks": [...] } ] } }`), written without the Cursor-style `version` wrapper.
 
 # OpenAI Codex — Hooks Guide
 
