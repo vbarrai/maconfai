@@ -38,10 +38,10 @@ enabled_tools = ["safe_tool"]                   # Allowlist (complement of disab
 
 ## Top-Level Config Keys
 
-| Key                           | Type   | Description                                 |
-| :---------------------------- | :----- | :------------------------------------------ |
-| `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener   |
-| `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows   |
+| Key                           | Type   | Description                                                                          |
+| :---------------------------- | :----- | :----------------------------------------------------------------------------------- |
+| `mcp_oauth_callback_port`     | number | Port used for the OAuth callback listener                                            |
+| `mcp_oauth_callback_url`      | string | Full callback URL used during OAuth flows                                            |
 | `mcp_oauth_credentials_store` | string | Preferred credential store for OAuth tokens (not confirmed in current upstream docs) |
 
 ## Plugin-Bundled MCP Servers
@@ -63,30 +63,30 @@ args = ["-y", "@myplugin/server"]
 
 ## Per-Server Options
 
-| Option                        | Type     | Description                                                      |
-| :---------------------------- | :------- | :--------------------------------------------------------------- |
-| `command`                     | string   | stdio command                                                    |
-| `args`                        | string[] | Command arguments                                                |
-| `env`                         | table    | Environment variables                                            |
+| Option                        | Type              | Description                                                                                                                                                   |
+| :---------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `command`                     | string            | stdio command                                                                                                                                                 |
+| `args`                        | string[]          | Command arguments                                                                                                                                             |
+| `env`                         | table             | Environment variables                                                                                                                                         |
 | `env_vars`                    | string[] or table | Allow/forward list of env vars. Each entry can be a plain string or `{name = "VAR", source = "local" \| "remote"}` to control where the variable is forwarded |
-| `cwd`                         | string   | Working directory                                                |
-| `url`                         | string   | Streamable HTTP URL                                              |
-| `bearer_token_env_var`        | string   | Env variable for Bearer token                                    |
-| `http_headers`                | table    | Static HTTP headers                                              |
-| `env_http_headers`            | table    | HTTP headers from env variables                                  |
-| `scopes`                      | string[] | OAuth scopes requested during authorization (not confirmed in current upstream docs) |
-| `oauth_resource`              | string   | OAuth resource indicator (RFC 8707) (not confirmed in current upstream docs) |
-| `experimental_environment`    | string   | `"local"` or `"remote"`                                          |
-| `startup_timeout_sec`         | number   | Startup timeout in seconds (default: 10s)                        |
-| `startup_timeout_ms`          | number   | Alias of `startup_timeout_sec`, expressed in milliseconds (not confirmed in current upstream docs) |
-| `tool_timeout_sec`            | number   | Per-tool timeout (default: 60s)                                  |
-| `enabled`                     | bool     | Enable/disable the server                                        |
-| `required`                    | bool     | If `true`, fail startup if the server is unavailable             |
-| `disabled_tools`              | string[] | List of tools to disable                                         |
-| `enabled_tools`               | string[] | Allowlist of tools (complement of `disabled_tools`)              |
-| `default_tools_approval_mode` | string   | Default approval mode for all tools: `auto`, `prompt`, `approve` |
-| `tools.<tool>.approval_mode`  | string   | Per-tool override for approval mode: `auto`, `prompt`, `approve` |
-| `instructions`                | string   | MCP server-level instructions returned at initialization; read by Codex as additional context |
+| `cwd`                         | string            | Working directory                                                                                                                                             |
+| `url`                         | string            | Streamable HTTP URL                                                                                                                                           |
+| `bearer_token_env_var`        | string            | Env variable for Bearer token                                                                                                                                 |
+| `http_headers`                | table             | Static HTTP headers                                                                                                                                           |
+| `env_http_headers`            | table             | HTTP headers from env variables                                                                                                                               |
+| `scopes`                      | string[]          | OAuth scopes requested during authorization (not confirmed in current upstream docs)                                                                          |
+| `oauth_resource`              | string            | OAuth resource indicator (RFC 8707) (not confirmed in current upstream docs)                                                                                  |
+| `experimental_environment`    | string            | `"local"` or `"remote"`                                                                                                                                       |
+| `startup_timeout_sec`         | number            | Startup timeout in seconds (default: 10s)                                                                                                                     |
+| `startup_timeout_ms`          | number            | Alias of `startup_timeout_sec`, expressed in milliseconds (not confirmed in current upstream docs)                                                            |
+| `tool_timeout_sec`            | number            | Per-tool timeout (default: 60s)                                                                                                                               |
+| `enabled`                     | bool              | Enable/disable the server                                                                                                                                     |
+| `required`                    | bool              | If `true`, fail startup if the server is unavailable                                                                                                          |
+| `disabled_tools`              | string[]          | List of tools to disable                                                                                                                                      |
+| `enabled_tools`               | string[]          | Allowlist of tools (complement of `disabled_tools`)                                                                                                           |
+| `default_tools_approval_mode` | string            | Default approval mode for all tools: `auto`, `prompt`, `approve`                                                                                              |
+| `tools.<tool>.approval_mode`  | string            | Per-tool override for approval mode: `auto`, `prompt`, `approve`                                                                                              |
+| `instructions`                | string            | MCP server-level instructions returned at initialization; read by Codex as additional context                                                                 |
 
 ## Project-Scoped Config
 

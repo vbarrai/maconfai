@@ -12,13 +12,13 @@ Rules are persistent instructions that the Cursor agent sees at the beginning of
 
 ### By scope
 
-| Type                  | Storage                                       | Applies to                              |
-| :-------------------- | :-------------------------------------------- | :-------------------------------------- |
-| **Project**           | `.cursor/rules/*.mdc`                         | This repo only (versionable). Plain `.md` files in this directory are silently ignored — only `.mdc` files are valid. |
-| **Imported**          | `.cursor/rules/imported/<repoName>/`          | Rules imported from remote repositories |
-| **User**              | Cursor Settings > Rules                       | All your projects (Agent/Chat mode only — not Inline Edit or Cursor Tab) |
-| **Team**              | Team Dashboard                                | All team members                        |
-| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root                  | This repo (plain markdown)              |
+| Type                  | Storage                              | Applies to                                                                                                            |
+| :-------------------- | :----------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Project**           | `.cursor/rules/*.mdc`                | This repo only (versionable). Plain `.md` files in this directory are silently ignored — only `.mdc` files are valid. |
+| **Imported**          | `.cursor/rules/imported/<repoName>/` | Rules imported from remote repositories                                                                               |
+| **User**              | Cursor Settings > Rules              | All your projects (Agent/Chat mode only — not Inline Edit or Cursor Tab)                                              |
+| **Team**              | Team Dashboard                       | All team members                                                                                                      |
+| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root         | This repo (plain markdown)                                                                                            |
 
 ### By activation mode
 

@@ -38,20 +38,20 @@
 
 ## Per-Server Options
 
-| Key            | Type     | Description                                                                           |
-| :------------- | :------- | :------------------------------------------------------------------------------------ |
-| `command`      | string   | Command to start the stdio server                                                     |
-| `args`         | string[] | Command arguments                                                                     |
-| `env`          | object   | Process environment variables                                                         |
-| `cwd`          | string   | Working directory                                                                     |
-| `url`          | string   | SSE server URL                                                                        |
-| `httpUrl`      | string   | Streamable HTTP server URL                                                            |
-| `headers`      | object   | HTTP headers for `url`/`httpUrl`                                                      |
-| `timeout`      | number   | Timeout in milliseconds (default: 600,000 = 10 minutes)                               |
-| `trust`        | bool     | Trust — bypass tool call confirmations                                                |
+| Key            | Type     | Description                                                                                                          |
+| :------------- | :------- | :------------------------------------------------------------------------------------------------------------------- |
+| `command`      | string   | Command to start the stdio server                                                                                    |
+| `args`         | string[] | Command arguments                                                                                                    |
+| `env`          | object   | Process environment variables                                                                                        |
+| `cwd`          | string   | Working directory                                                                                                    |
+| `url`          | string   | SSE server URL                                                                                                       |
+| `httpUrl`      | string   | Streamable HTTP server URL                                                                                           |
+| `headers`      | object   | HTTP headers for `url`/`httpUrl`                                                                                     |
+| `timeout`      | number   | Timeout in milliseconds (default: 600,000 = 10 minutes)                                                              |
+| `trust`        | bool     | Trust — bypass tool call confirmations                                                                               |
 | `description`  | string   | Server description (not reflected in current upstream per-server properties table — treat as potentially unverified) |
-| `includeTools` | string[] | Tool allowlist (if specified, only these tools are available)                         |
-| `excludeTools` | string[] | Tool blocklist                                                                        |
+| `includeTools` | string[] | Tool allowlist (if specified, only these tools are available)                                                        |
+| `excludeTools` | string[] | Tool blocklist                                                                                                       |
 
 ## Trust
 

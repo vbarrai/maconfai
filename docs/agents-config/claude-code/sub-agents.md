@@ -307,13 +307,13 @@ You are a unit testing expert. For each modified file:
 
 ## Environment Variables
 
-| Variable                               | Description                                                                        |
-| :------------------------------------- | :--------------------------------------------------------------------------------- |
-| `CLAUDE_CODE_SUBAGENT_MODEL`           | Override the model used by subagents                                               |
-| `CLAUDE_CODE_FORK_SUBAGENT`            | If set to `1`, enable fork-mode subagent invocation                                |
-| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` | Disable `background: true` subagents                                               |
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable experimental agent-teams behavior                                           |
-| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Set to `1` to remove all built-in subagent types in non-interactive / SDK mode  |
+| Variable                                  | Description                                                                    |
+| :---------------------------------------- | :----------------------------------------------------------------------------- |
+| `CLAUDE_CODE_SUBAGENT_MODEL`              | Override the model used by subagents                                           |
+| `CLAUDE_CODE_FORK_SUBAGENT`               | If set to `1`, enable fork-mode subagent invocation                            |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`    | Disable `background: true` subagents                                           |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`    | Enable experimental agent-teams behavior                                       |
+| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Set to `1` to remove all built-in subagent types in non-interactive / SDK mode |
 
 ## Sources
 

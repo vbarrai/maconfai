@@ -209,17 +209,17 @@ export MY_API_TOKEN="sk-..."
 
 ## Environment Variables
 
-| Variable                           | Description                                                                                                                   |
-| :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_TIMEOUT`                      | Per-server connection/startup timeout                                                                                         |
-| `MCP_TOOL_TIMEOUT`                 | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`    |
-| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`| Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable (v2.1.187+) |
-| `MCP_CLIENT_SECRET`                | OAuth client secret (alternative to `--client-secret`)                                                                        |
-| `MCP_CONNECTION_NONBLOCKING`       | If set, MCP connection failures do not block session start                                                                    |
-| `ENABLE_TOOL_SEARCH`               | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded)               |
-| `ENABLE_CLAUDEAI_MCP_SERVERS`      | Enable claude.ai-hosted MCP servers                                                                                           |
-| `CLAUDE_CODE_MCP_SERVER_NAME`      | Server name override when Claude Code runs as an MCP server                                                                   |
-| `CLAUDE_CODE_MCP_SERVER_URL`       | Server URL override when Claude Code runs as an MCP server                                                                    |
+| Variable                            | Description                                                                                                                                 |
+| :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MCP_TIMEOUT`                       | Per-server connection/startup timeout                                                                                                       |
+| `MCP_TOOL_TIMEOUT`                  | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                   |
+| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable (v2.1.187+) |
+| `MCP_CLIENT_SECRET`                 | OAuth client secret (alternative to `--client-secret`)                                                                                      |
+| `MCP_CONNECTION_NONBLOCKING`        | If set, MCP connection failures do not block session start                                                                                  |
+| `ENABLE_TOOL_SEARCH`                | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded)                              |
+| `ENABLE_CLAUDEAI_MCP_SERVERS`       | Enable claude.ai-hosted MCP servers                                                                                                         |
+| `CLAUDE_CODE_MCP_SERVER_NAME`       | Server name override when Claude Code runs as an MCP server                                                                                 |
+| `CLAUDE_CODE_MCP_SERVER_URL`        | Server URL override when Claude Code runs as an MCP server                                                                                  |
 
 > **Reserved name**: `workspace` is reserved and cannot be used as a server name.
 
