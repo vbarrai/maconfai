@@ -1,9 +1,10 @@
 ---
 name: pre-commit-checks
-version: 1.0.0
+version: 1.1.0
 description: >-
   TRIGGER when about to run git commit, git push, gh pr create, or any PR creation command.
-  Enforces all quality checks (typecheck, lint, format, tests) before any commit, push, or PR.
+  Enforces all quality checks (typecheck, lint, format, tests, package version availability)
+  before any commit, push, or PR.
   DO NOT TRIGGER for read-only git operations (status, log, diff, branch).
 user-invocable: false
 ---
@@ -53,6 +54,24 @@ npx vitest run
 ```
 
 Runs the full test suite once (no watch mode). All tests must pass.
+
+### 5. Package Version Availability (before push / PR)
+
+```
+./scripts/version-check.sh
+```
+
+Fails if the `version` in `package.json` is already published on npm. Because every merge to `main` must carry an unpublished version, this gate must pass before pushing or opening a PR (it is the same check CI runs on `main`).
+
+If it fails, do **not** weaken or skip it. Bump `package.json` per the **`bump-package-version`** skill — almost always:
+
+```
+pnpm version patch --no-git-tag-version
+```
+
+Then re-run `./scripts/version-check.sh` to confirm it exits 0, and stage `package.json` (and `pnpm-lock.yaml` if it changed) so the bump rides with the same commit/PR.
+
+> Note: this check requires network access (it queries npm). Run it as part of the push/PR gate, not necessarily on every local commit. Checks 1–4 still apply to every commit.
 
 ## Failure Handling
 
