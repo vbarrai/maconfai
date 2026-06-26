@@ -1,6 +1,6 @@
 ---
 name: docs-audit
-version: 1.3.0
+version: 1.4.0
 description: >-
   TRIGGER when the user asks to check, verify, audit, refresh, or update the agent documentation
   under `docs/agents-config/`, or wants to know whether upstream agent configuration has drifted
@@ -121,10 +121,16 @@ Procedure:
 1. **Show the report first.** Present the executive summary and prioritized action list to the user before touching any files, so they know what the PR will contain.
 2. **Branch from `main`.** Make sure the working tree is clean (`git status`), then `git fetch origin` and create a new branch from `origin/main`: `git checkout -b docs/audit-YYYY-MM-DD origin/main`. Use today's date. If a branch with that name exists, append `-2`, `-3`, etc.
 3. **Apply edits.** Make exactly the edits described in the prioritized action list — nothing more. Preserve the `> **maconfai support: …**` and `> Official source: …` banners. If an upstream URL has changed, update the `Official source:` line too.
-4. **Commit.** One commit, message `docs: audit agent configs against upstream (YYYY-MM-DD)`. List the affected files and a one-line summary of each change in the commit body.
-5. **Push and open the PR** with `gh pr create --base main`. The PR body should embed the full report (executive summary + detailed findings + action list) so reviewers see the upstream evidence behind every edit. Title: `docs: refresh agent config docs (YYYY-MM-DD audit)`.
-6. **Enable auto-merge** so the PR merges into `main` on its own once CI is green: `gh pr merge --auto --squash`. `main` is protected by required status checks (`test`, `typecheck`, `lint-and-format`) but no longer requires a human review, so a passing CI run is the only gate. If CI fails, the PR stays open for a human to inspect — auto-merge never merges a red PR.
-7. **Return the PR URL** to the user**, noting that it will auto-merge when CI passes.
+4. **Run the CI gate locally — before opening the PR.** The PR auto-merges on a green CI run (step 7), so it must already be green. `main`'s required checks are `test`, `typecheck`, and `lint-and-format` (the last runs `pnpm prettier`, so unformatted Markdown is the usual failure). Run, in order:
+   1. `pnpm prettier:format` — auto-fix formatting of the files you just edited (this is what most often turns a doc PR red).
+   2. `pnpm check` — `typecheck` + `lint` + `prettier` (check mode) + `knip`.
+   3. `pnpm test -- --run` — the test suite.
+
+   If `pnpm check` or the tests fail for a reason your edits caused and you cannot fix without going beyond the audit's scope, **stop and surface the failure** — do not open a red PR. Doc-only edits should never break `typecheck`/`test`; if they do, something is wrong with the edit. (`pnpm` is available because the workflow runs `setup-pnpm` before this skill; when running locally, the user already has it.)
+5. **Commit.** One commit, message `docs: audit agent configs against upstream (YYYY-MM-DD)`. List the affected files and a one-line summary of each change in the commit body. Include any formatting-only changes from `pnpm prettier:format` in the same commit.
+6. **Push and open the PR** with `gh pr create --base main`. The PR body should embed the full report (executive summary + detailed findings + action list) so reviewers see the upstream evidence behind every edit. Title: `docs: refresh agent config docs (YYYY-MM-DD audit)`.
+7. **Enable auto-merge** so the PR merges into `main` on its own once CI is green: `gh pr merge --auto --squash`. `main` is protected by required status checks (`test`, `typecheck`, `lint-and-format`) but no longer requires a human review, so a passing CI run is the only gate. Because step 4 already ran the gate locally, CI should be green on the first run. If CI fails anyway, the PR stays open for a human to inspect — auto-merge never merges a red PR.
+8. **Return the PR URL** to the user, noting that it will auto-merge when CI passes.
 
 If any step fails (dirty working tree, push rejected, `gh` not authenticated, auto-merge not enabled on the repo), stop and surface the error — do not try to work around it. The audit report itself is still valuable even without the PR.
 
