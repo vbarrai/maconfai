@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — MCP configuration is not managed by maconfai. Reference only.
+> **maconfai support: Supported** — MCP server installation for Cursor is fully implemented, merged into `.cursor/mcp.json` with `${VAR}` → `${env:VAR}` env translation.
 
 # Cursor — MCP Servers Guide
 

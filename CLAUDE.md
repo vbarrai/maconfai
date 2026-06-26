@@ -359,8 +359,8 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 
 | Agent           | skills        | hooks         | mcp           | context       | Other           |
 | :-------------- | :------------ | :------------ | :------------ | :------------ | :-------------- |
-| **Claude Code** | Supported     | Supported     | Not supported | Not supported | `sub-agents.md` |
-| **Cursor**      | Supported     | Supported     | Not supported | Not supported | `rules.md`      |
+| **Claude Code** | Supported     | Supported     | Supported     | Not supported | `sub-agents.md` |
+| **Cursor**      | Supported     | Supported     | Supported     | Not supported | `rules.md`      |
 | **Codex**       | Supported     | Supported     | Supported     | Not supported | —               |
 | **Gemini CLI**  | Not supported | —             | Not supported | Not supported | —               |
 | **Amp Code**    | Not supported | —             | Not supported | Not supported | —               |

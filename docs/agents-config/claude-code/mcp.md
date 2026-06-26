@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — MCP configuration is not managed by maconfai. Reference only.
+> **maconfai support: Supported** — MCP server installation for Claude Code is fully implemented, merged into `.mcp.json` with `${VAR}` env vars kept bare.
 
 # Claude Code — MCP Servers Guide
 
