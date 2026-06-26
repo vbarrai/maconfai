@@ -1,6 +1,6 @@
 ---
 name: docs-audit
-version: 1.2.0
+version: 1.3.0
 description: >-
   TRIGGER when the user asks to check, verify, audit, refresh, or update the agent documentation
   under `docs/agents-config/`, or wants to know whether upstream agent configuration has drifted
@@ -14,7 +14,7 @@ disable-model-invocation: true
 
 # Documentation Audit
 
-Audit the internal agent documentation in `docs/agents-config/` against the official upstream sources, report drift, and — when drift is found — open a pull request from `main` with the proposed documentation updates so a human can review and merge.
+Audit the internal agent documentation in `docs/agents-config/` against the official upstream sources, report drift, and — when drift is found — open a pull request from `main` with the proposed documentation updates and enable auto-merge so it lands on `main` automatically once CI passes.
 
 ## Why this skill exists
 
@@ -123,9 +123,10 @@ Procedure:
 3. **Apply edits.** Make exactly the edits described in the prioritized action list — nothing more. Preserve the `> **maconfai support: …**` and `> Official source: …` banners. If an upstream URL has changed, update the `Official source:` line too.
 4. **Commit.** One commit, message `docs: audit agent configs against upstream (YYYY-MM-DD)`. List the affected files and a one-line summary of each change in the commit body.
 5. **Push and open the PR** with `gh pr create --base main`. The PR body should embed the full report (executive summary + detailed findings + action list) so reviewers see the upstream evidence behind every edit. Title: `docs: refresh agent config docs (YYYY-MM-DD audit)`.
-6. **Return the PR URL** to the user.
+6. **Enable auto-merge** so the PR merges into `main` on its own once CI is green: `gh pr merge --auto --squash`. `main` is protected by required status checks (`test`, `typecheck`, `lint-and-format`) but no longer requires a human review, so a passing CI run is the only gate. If CI fails, the PR stays open for a human to inspect — auto-merge never merges a red PR.
+7. **Return the PR URL** to the user**, noting that it will auto-merge when CI passes.
 
-If any step fails (dirty working tree, push rejected, `gh` not authenticated), stop and surface the error — do not try to work around it. The audit report itself is still valuable even without the PR.
+If any step fails (dirty working tree, push rejected, `gh` not authenticated, auto-merge not enabled on the repo), stop and surface the error — do not try to work around it. The audit report itself is still valuable even without the PR.
 
 ## Guardrails
 
