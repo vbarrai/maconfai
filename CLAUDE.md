@@ -126,6 +126,8 @@ tests/
     switch-agent.test.ts                 # Change agent on reinstall
     add-agent.test.ts                    # Add agent to existing install
     uninstall-deselected-skill.test.ts   # Removed skill cleaned up
+    uninstall-deselected-mcp.test.ts     # Deselected MCP cleaned up
+    uninstall-deselected-hooks.test.ts   # Deselected hooks cleaned up
     uninstall-all-skills.test.ts         # Remove all skills
     cross-agent-uninstall.test.ts        # Uninstall across agents
     multi-agent-mcps.test.ts             # MCPs to multiple agents
@@ -148,6 +150,10 @@ tests/
     remote-ref-filter.test.ts           # Remote ref: --skills filter applies to refs
     lock-tracks-remote-ref.test.ts      # Remote ref: lock tracks remote source, not proxy repo
     remote-ref-circular.test.ts        # Remote ref: circular reference is skipped with warning
+    remote-ref-yaml-source-only.test.ts # Remote ref: YAML doc with only a source field
+    remote-ref-yaml-prefix.test.ts      # Remote ref: YAML prefix field applied
+    remote-ref-yaml-include-mcps.test.ts # Remote ref: YAML include filters to mcps
+    remote-ref-yaml-include-prefix.test.ts # Remote ref: YAML include + prefix combined
     mcp-not-created-for-codex.test.ts    # Codex skips MCP config
     no-filter-selects-all.test.ts        # No filter = select everything
     nothing-to-do.test.ts               # Nothing to install
@@ -169,6 +175,7 @@ tests/
       persists-to-disk.test.ts           # Verifies file write
       preserves-installed-at.test.ts     # Keeps original installedAt
       preserves-trust.test.ts            # Keeps trusted when update omits it
+      preserves-updated-at-when-hash-unchanged.test.ts # Keeps updatedAt when hash unchanged
       optional-fields.test.ts            # Optional fields handled
       multiple-skills.test.ts            # Multiple skills in lock
     remove/
@@ -229,6 +236,7 @@ tests/
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
       install-none.test.ts               # Empty MCP list installs nothing
+      install-preserve-manual.test.ts    # User-added MCP servers preserved on install
       uninstall-single.test.ts           # Removes one server from .mcp.json, preserves others
     hooks/
       install-single.test.ts             # Single hook group
@@ -239,6 +247,7 @@ tests/
       install-dir-no-files.test.ts       # Hook dir without companion files
       install-merge.test.ts              # Sequential installs merge hooks
       install-skip-duplicate.test.ts     # Duplicate handlers not added twice
+      update-force-replace.test.ts       # Force replaces a same-matcher handler (update path)
   cursor/
     mcp/
       install-single.test.ts             # Single MCP server
@@ -252,6 +261,8 @@ tests/
       install-merge.test.ts              # Sequential installs merge MCPs
       install-skip-existing.test.ts      # Existing MCP name preserved
       install-none.test.ts               # Empty MCP list installs nothing
+      install-preserve-manual.test.ts    # User-added MCP servers preserved on install
+      uninstall-single.test.ts           # Removes one server from .cursor/mcp.json, preserves others
     hooks/
       install-single.test.ts             # Single hook group
       install-multiple.test.ts           # Multiple hook groups
@@ -281,7 +292,7 @@ tests/
     mcp/
       install-single.test.ts             # Single MCP with opencode.json format
       install-multiple.test.ts           # Multiple MCPs in opencode.json
-      install-env.test.ts                # ${VAR} kept bare in opencode.json
+      install-env.test.ts                # ${VAR} → {env:VAR} translation in opencode.json
       install-url.test.ts                # URL-based MCP (remote type)
       install-headers.test.ts            # URL + headers, env vars kept bare
       install-with-skill.test.ts         # MCP alongside a skill
@@ -351,7 +362,7 @@ Files follow the pattern `docs/agents-config/[agent-name]/[feature-name].md`. Ea
 | :---------- | :------------------------- | :---------------------------------- | :----------------------- |
 | Claude Code | `.claude/skills/<name>/`   | `~/.claude/skills/<name>/`          | `.agents/skills/<name>/` |
 | Cursor      | `.cursor/skills/<name>/`   | `~/.cursor/skills/<name>/`          | `.agents/skills/<name>/` |
-| Codex       | `.agents/skills/<name>/`   | `~/.agents/skills/<name>/`          | `.agents/skills/<name>/` |
+| Codex       | `.codex/skills/<name>/`    | `~/.agents/skills/<name>/`          | `.agents/skills/<name>/` |
 | Gemini CLI  | `.gemini/skills/<name>/`   | `~/.gemini/skills/<name>/`          | `.agents/skills/<name>/` |
 | Amp Code    | `.agents/skills/<name>/`   | `~/.config/agents/skills/<name>/`   | `.agents/skills/<name>/` |
 | Open Code   | `.opencode/skills/<name>/` | `~/.config/opencode/skills/<name>/` | `.agents/skills/<name>/` |
