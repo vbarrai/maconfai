@@ -20,8 +20,10 @@ Amp supports the open Agent Skills standard with progressive disclosure:
 | :--------------- | :---------------------------------------- | :------------ |
 | Project          | `.agents/skills/<name>/SKILL.md`          | Standard      |
 | User             | `~/.config/agents/skills/<name>/SKILL.md` | Standard      |
+| User (alt)       | `~/.agents/skills/<name>/SKILL.md`        | Standard      |
 | Project (compat) | `.claude/skills/<name>/SKILL.md`          | Claude Code   |
 | User (compat)    | `~/.claude/skills/<name>/SKILL.md`        | Claude Code   |
+| User (legacy)    | `~/.config/amp/skills/<name>/SKILL.md`    | Amp Code      |
 
 **Priority**: Project > User > Built-in.
 

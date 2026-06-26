@@ -97,7 +97,7 @@ For each vulnerability found:
 
 > **Fork mode** is a Skill feature (not a subagent frontmatter field). It is invoked via the `/fork` slash command or by setting `CLAUDE_CODE_FORK_SUBAGENT=1`.
 
-> **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is 5 for background subagents.
+> **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is 5, counting subagent levels below the main conversation regardless of foreground or background mode.
 
 > **Plugin-loaded subagents** ignore `hooks`, `mcpServers`, and `permissionMode`.
 
@@ -307,12 +307,13 @@ You are a unit testing expert. For each modified file:
 
 ## Environment Variables
 
-| Variable                               | Description                                         |
-| :------------------------------------- | :-------------------------------------------------- |
-| `CLAUDE_CODE_SUBAGENT_MODEL`           | Override the model used by subagents                |
-| `CLAUDE_CODE_FORK_SUBAGENT`            | If set to `1`, enable fork-mode subagent invocation |
-| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` | Disable `background: true` subagents                |
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable experimental agent-teams behavior            |
+| Variable                               | Description                                                                        |
+| :------------------------------------- | :--------------------------------------------------------------------------------- |
+| `CLAUDE_CODE_SUBAGENT_MODEL`           | Override the model used by subagents                                               |
+| `CLAUDE_CODE_FORK_SUBAGENT`            | If set to `1`, enable fork-mode subagent invocation                                |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` | Disable `background: true` subagents                                               |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | Enable experimental agent-teams behavior                                           |
+| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Set to `1` to remove all built-in subagent types in non-interactive / SDK mode  |
 
 ## Sources
 

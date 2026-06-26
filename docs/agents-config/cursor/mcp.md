@@ -121,7 +121,7 @@ Remote MCP servers can authenticate via OAuth using an `auth` object:
 | `CLIENT_SECRET` | No       | OAuth client secret             |
 | `scopes`        | No       | List of OAuth scopes to request |
 
-The OAuth redirect URL is fixed to `cursor://anysphere.cursor-mcp/oauth/callback`.
+The OAuth redirect URL is fixed to `https://www.cursor.com/agents/mcp/oauth/callback`.
 
 ### Environment variables
 
@@ -230,6 +230,14 @@ Beyond **~40 MCP tools** loaded simultaneously, the agent loses accuracy. Unlike
 - Check server status in **Cursor Settings > MCP**
 - Green dot = connected, red = error
 - Logs available in **Output > MCP** (⌘/Ctrl + Shift + U)
+
+## Enterprise MCP Allowlist
+
+Enterprise deployments can restrict approved MCP servers via command patterns (stdio) or URL patterns (remote), with per-tool allowlists. This is configured at the MDM/enterprise policy level.
+
+## Supported Protocol Features
+
+Cursor supports the following MCP protocol features: Tools, Prompts, Resources, Roots, Elicitation, and Apps (interactive UI views from MCP tools).
 
 ## Comparison with Claude Code
 

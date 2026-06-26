@@ -99,17 +99,15 @@ Commands: `/skills` to list, `$` to mention a skill.
 
 ## Disabling a Skill
 
+The upstream-confirmed syntax uses `path` + `enabled`:
+
 ```toml
 [[skills.config]]
-name = "my-skill"
-enabled = false
-
-# Optionally pin by absolute path instead of name:
-[[skills.config]]
 path = "/path/to/skill/SKILL.md"
-name = "my-skill"
 enabled = false
 ```
+
+> **Note**: referencing a skill by `name` alone (without `path`) is not documented in the current upstream reference — use `path` to reliably identify the skill.
 
 ## Built-in System Skills
 
@@ -117,7 +115,7 @@ Codex ships with skills under the SYSTEM scope (bundled with the binary; exact o
 
 | Skill                     | Description                                                                                                                                                                |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$create-plan`            | Helps plan complex tasks                                                                                                                                                   |
+| `$create-plan`            | Helps plan complex tasks (not confirmed in current upstream skills reference — may be a SYSTEM skill subject to change)                                                     |
 | `$skill-creator`          | Helps create new skills                                                                                                                                                    |
 | `$skill-installer [name]` | Installs a named or interactively selected skill from a GitHub repository, a local path, or the [curated list](https://github.com/openai/skills/tree/main/skills/.curated) |
 
