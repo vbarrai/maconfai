@@ -27,7 +27,7 @@ maconfai is a CLI tool that installs agent configurations (skills, MCP servers, 
 | :---------- | :----- | :------------------------- | :----------------------------------- |
 | claude-code | Yes    | Yes (bare `${VAR}`)        | Yes (`.claude/settings.json` format) |
 | cursor      | Yes    | Yes (`${env:VAR}` prefix)  | Yes (`.cursor/hooks.json` dedicated) |
-| codex       | Yes    | No                         | No                                   |
+| codex       | Yes    | Yes (`.codex/config.toml`, bare `${VAR}`) | Yes (`.codex/hooks.json`, settings format) |
 | open-code   | Yes    | Yes (opencode.json format) | No                                   |
 
 ### Source Modules and Their Exports

@@ -17,6 +17,7 @@ export interface HookGroup {
   description?: string
   'claude-code'?: HookEvents
   cursor?: HookEvents
+  codex?: HookEvents
 }
 
 export interface RemoteRef {
