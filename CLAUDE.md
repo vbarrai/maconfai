@@ -29,6 +29,7 @@ CLI tool to install, update, and uninstall any type of agent configuration from 
 - `pnpm run dev` — Run CLI in dev mode (`node --experimental-strip-types src/cli.ts`)
 - `pnpm prettier` — Check formatting (CI)
 - `pnpm prettier:format` — Format all files with Prettier
+- `./scripts/version-check.sh` — Fail if `package.json` version is already published on npm (the `version-check` CI gate; also run by the `pre-commit-checks` skill before push/PR). Fix a failure with the `bump-package-version` skill.
 
 ## Release
 
