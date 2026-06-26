@@ -17,10 +17,14 @@ jobs:
         with:
           fetch-depth: 0 # the skill branches from origin/main
 
+      # Install pnpm + deps so the skill can run the CI gate (prettier/check/test)
+      # locally and only open the PR once it is green — same setup the CI uses.
+      - uses: ./.github/actions/setup-pnpm
+
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: '/docs-audit'
           claude_args: >-
             --model claude-sonnet-4-6
-            --allowedTools "Bash(git:*),Bash(gh:*),Bash(ls:*),Read,Glob,Grep,Edit,Write,WebFetch,WebSearch,Agent"
+            --allowedTools "Bash(git:*),Bash(gh:*),Bash(ls:*),Bash(pnpm:*),Read,Glob,Grep,Edit,Write,WebFetch,WebSearch,Agent"
