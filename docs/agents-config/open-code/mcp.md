@@ -46,26 +46,26 @@ MCP servers are configured in `opencode.json` under the `mcp` key:
 
 ## Configuration Locations
 
-| Scope   | Path                               | Priority |
-| :------ | :--------------------------------- | :------- |
-| Global  | `~/.config/opencode/opencode.json` | Lower    |
-| Project | `./opencode.json`                  | Highest  |
+| Scope   | Path                                             | Priority |
+| :------ | :----------------------------------------------- | :------- |
+| Global  | `~/.config/opencode/opencode.json` (or `.jsonc`) | Lower    |
+| Project | `./opencode.json` (or `./opencode.jsonc`)        | Highest  |
 
-Configurations merge — later configs override earlier ones only for conflicting keys.
+Both `.json` and `.jsonc` (JSON with comments) are accepted filenames. Configurations merge — later configs override earlier ones only for conflicting keys.
 
 ## Per-Server Options
 
-| Option        | Type            | Description                                                                              |
-| :------------ | :-------------- | :--------------------------------------------------------------------------------------- |
-| `type`        | string          | `local` or `remote`                                                                      |
-| `command`     | string[]        | Command + args as array                                                                  |
-| `url`         | string          | Remote server URL                                                                        |
-| `headers`     | object          | HTTP headers                                                                             |
-| `environment` | object          | Environment variables                                                                    |
-| `enabled`     | boolean         | Enable/disable the server                                                                |
-| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                              |
-| `cwd`         | string          | Working directory for the server process; relative paths resolve from the workspace root |
-| `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth              |
+| Option        | Type            | Description                                                                                                                                                     |
+| :------------ | :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`        | string          | `local` or `remote`                                                                                                                                             |
+| `command`     | string[]        | Command + args as array                                                                                                                                         |
+| `url`         | string          | Remote server URL                                                                                                                                               |
+| `headers`     | object          | HTTP headers                                                                                                                                                    |
+| `environment` | object          | Environment variables                                                                                                                                           |
+| `enabled`     | boolean         | Enable/disable the server                                                                                                                                       |
+| `timeout`     | number          | Per-server request timeout in milliseconds (default `5000`)                                                                                                     |
+| `cwd`         | string          | Working directory for the server process; relative paths resolve from the workspace root                                                                        |
+| `oauth`       | boolean\|object | `false` to opt out, or `{ clientId, clientSecret, scope }` for inline OAuth. `clientId` supports `{env:VAR_NAME}` interpolation (e.g., `"{env:MY_CLIENT_ID}"`). |
 
 ## Format Differences from Other Agents
 

@@ -25,11 +25,11 @@ Amp supports the open Agent Skills standard with progressive disclosure:
 | User (compat)    | `~/.claude/skills/<name>/SKILL.md`        | Claude Code   |
 | User (legacy)    | `~/.config/amp/skills/<name>/SKILL.md`    | Amp Code      |
 
-**Priority**: Project > User > Built-in.
+**Priority**: User > Project > Built-in. When the same skill name exists in both a user and a project directory, the user-level skill takes precedence.
 
 ## Installation
 
-Via the command palette: `skill: add` — installs from GitHub, git URL, or local path.
+Use the built-in `building-skills` skill (ask Amp to create or install a skill and specify the scope). The `skill: list` command palette entry lists installed skills.
 
 ## MCP in Skills
 
@@ -49,11 +49,11 @@ my-skill/
 
 Amp Code does **not** support any frontmatter-based invocation control. The only recognized frontmatter fields are `name` and `description`. There is no equivalent to Claude Code's `disable-model-invocation`, `user-invocable`, or `allowed-tools`.
 
-The model decides when to invoke a skill based on the `name` and `description` fields. Skill priority is determined by location: project-specific skills override user-wide skills, which override built-in skills.
+The model decides when to invoke a skill based on the `name` and `description` fields.
 
 ## Built-in Skills
 
-The upstream manual lists example bundled skills (Agent Sandbox, Agent Skill Creator, BigQuery, Tmux, Web Browser) but does not enumerate a fixed set. Treat any specific built-in name as subject to change.
+The confirmed built-in skill is `building-skills` (helps create new skills). The upstream manual also mentions example bundled skills (Agent Sandbox, BigQuery, Tmux, Web Browser) but does not enumerate a fixed set — treat specific names as subject to change.
 
 ## Sources
 

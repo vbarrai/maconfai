@@ -32,13 +32,11 @@ description: What the skill does and when to use it.
 
 | Field                      | Required | Description                                                                                                                                              |
 | :------------------------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | Yes      | Skill name (lowercase, digits, hyphens). Must match parent folder name. Max 64 chars.                                                                    |
-| `description`              | Yes      | What the Skill does and when to use it. Max 1024 chars.                                                                                                  |
+| `name`                     | Yes      | Skill name (lowercase, digits, hyphens). Must match parent folder name.                                                                                  |
+| `description`              | Yes      | What the Skill does and when to use it.                                                                                                                  |
 | `disable-model-invocation` | No       | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`.                   |
 | `paths`                    | No       | Glob patterns scoping the skill to matching files. Accepts a comma-separated string (`"**/*.py, scripts/**"`) or a YAML list (`paths:\n  - "**/*.tsx"`). |
 | `globs`                    | No       | Legacy alias for `paths` (same semantics).                                                                                                               |
-| `license`                  | No       | License name or reference to a bundled license file. _Note: not currently documented upstream; may not be enforced._                                     |
-| `compatibility`            | No       | Environment requirements (system packages, network access, etc.). _Note: not currently documented upstream; may not be enforced._                        |
 | `metadata`                 | No       | Arbitrary key-value mapping for additional metadata.                                                                                                     |
 
 ## Where to store Skills
