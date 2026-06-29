@@ -20,7 +20,8 @@
     "lint": "oxlint src/",
     "prettier": "prettier --check .",
     "prettier:format": "prettier --write .",
-    "check": "pnpm typecheck && pnpm lint && pnpm prettier && pnpm knip",
+    "check:banners": "node --experimental-strip-types scripts/check-banners.ts",
+    "check": "pnpm typecheck && pnpm lint && pnpm prettier && pnpm knip && pnpm check:banners",
     "ci": "pnpm check && pnpm test -- --run && pnpm build"
   },
   "devDependencies": {

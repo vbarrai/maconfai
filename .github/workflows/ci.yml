@@ -19,6 +19,7 @@ jobs:
       - run: pnpm prettier
       - run: pnpm lint
       - run: pnpm knip
+      - run: pnpm check:banners
 
   typecheck:
     runs-on: ubuntu-latest
