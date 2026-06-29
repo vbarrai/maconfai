@@ -27,7 +27,9 @@ The `plugin` field is an **array of npm package names**:
 }
 ```
 
-> Plugins listed in the `plugin` array of `opencode.json` are installed automatically using Bun at startup — no user-authored `package.json` is required. A `package.json` in `.opencode/` is only needed for **local** plugins (`.opencode/plugins/<name>.ts`) that import external npm packages.
+> Plugins listed in the `plugin` array of `opencode.json` are installed automatically using Bun at startup — no user-authored `package.json` is required. A `package.json` in `.opencode/` is only needed for **local** plugins (`.opencode/plugins/<name>.ts`) that import external npm packages. npm plugins are cached at `~/.cache/opencode/node_modules/`.
+
+**Plugin load order**: global config → project config → global plugin directory → project plugin directory.
 
 ## Common Hook Events
 

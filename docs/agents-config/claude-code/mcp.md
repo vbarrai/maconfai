@@ -119,6 +119,10 @@ claude mcp list
 claude mcp get my-server
 claude mcp remove my-server
 
+# OAuth authentication (v2.1.186+)
+claude mcp login my-server
+claude mcp logout my-server
+
 # Reset project approval choices
 claude mcp reset-project-choices
 ```
@@ -209,17 +213,17 @@ export MY_API_TOKEN="sk-..."
 
 ## Environment Variables
 
-| Variable                            | Description                                                                                                                                 |
-| :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
-| `MCP_TIMEOUT`                       | Per-server connection/startup timeout                                                                                                       |
-| `MCP_TOOL_TIMEOUT`                  | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                   |
-| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable (v2.1.187+) |
-| `MCP_CLIENT_SECRET`                 | OAuth client secret (alternative to `--client-secret`)                                                                                      |
-| `MCP_CONNECTION_NONBLOCKING`        | If set, MCP connection failures do not block session start                                                                                  |
-| `ENABLE_TOOL_SEARCH`                | Tool Search deferral mode: `true` \| `false` \| `auto` \| `auto:<N>` (defer when more than N tools are loaded)                              |
-| `ENABLE_CLAUDEAI_MCP_SERVERS`       | Enable claude.ai-hosted MCP servers                                                                                                         |
-| `CLAUDE_CODE_MCP_SERVER_NAME`       | Server name override when Claude Code runs as an MCP server                                                                                 |
-| `CLAUDE_CODE_MCP_SERVER_URL`        | Server URL override when Claude Code runs as an MCP server                                                                                  |
+| Variable                            | Description                                                                                                                                                           |
+| :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_TIMEOUT`                       | Per-server connection/startup timeout                                                                                                                                 |
+| `MCP_TOOL_TIMEOUT`                  | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                                             |
+| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable; stdio servers are exempt (v2.1.187+) |
+| `MCP_CLIENT_SECRET`                 | OAuth client secret (alternative to `--client-secret`)                                                                                                                |
+| `MCP_CONNECTION_NONBLOCKING`        | If set, MCP connection failures do not block session start                                                                                                            |
+| `ENABLE_TOOL_SEARCH`                | Tool Search deferral mode: `true` (always defer) \| `false` (load upfront) \| `auto` (defer when >10% of context is tools) \| `auto:<N>` (defer when >N tools loaded) |
+| `ENABLE_CLAUDEAI_MCP_SERVERS`       | Enable claude.ai-hosted MCP servers; `disableClaudeAiConnectors: true` in settings achieves the same effect persistently                                              |
+| `CLAUDE_CODE_MCP_SERVER_NAME`       | Server name override when Claude Code runs as an MCP server                                                                                                           |
+| `CLAUDE_CODE_MCP_SERVER_URL`        | Server URL override when Claude Code runs as an MCP server                                                                                                            |
 
 > **Reserved name**: `workspace` is reserved and cannot be used as a server name.
 

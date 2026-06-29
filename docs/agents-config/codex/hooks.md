@@ -90,13 +90,15 @@ Hooks receive a JSON payload on stdin:
 
 ### Event-Specific Fields
 
-| Event(s)                                         | Additional fields                                                   |
-| :----------------------------------------------- | :------------------------------------------------------------------ |
-| `PreToolUse`, `PostToolUse`, `PermissionRequest` | `tool_name`, `tool_input`, `tool_response`                          |
-| `PreCompact`, `PostCompact`                      | `trigger`                                                           |
-| `SubagentStart`, `SubagentStop`                  | `agent_type`, `source`                                              |
-| `SubagentStop`, `Stop`                           | `stop_hook_active`, `last_assistant_message`                        |
-| `SessionStart`                                   | `trigger` — values: `"startup"`, `"resume"`, `"clear"`, `"compact"` |
+| Event(s)                          | Additional fields                                                   |
+| :-------------------------------- | :------------------------------------------------------------------ |
+| `PreToolUse`, `PermissionRequest` | `tool_name`, `tool_input`                                           |
+| `PostToolUse`                     | `tool_name`, `tool_input`, `tool_response`                          |
+| `PreCompact`, `PostCompact`       | `trigger`                                                           |
+| `SubagentStart`                   | `agent_id`, `agent_type`, `turn_id`                                 |
+| `SubagentStop`                    | `agent_id`, `agent_type`, `turn_id`, `agent_transcript_path`        |
+| `SubagentStop`, `Stop`            | `stop_hook_active`, `last_assistant_message`                        |
+| `SessionStart`                    | `trigger` — values: `"startup"`, `"resume"`, `"clear"`, `"compact"` |
 
 ## Hook outputs
 
@@ -130,6 +132,8 @@ Event-specific outputs use a nested `hookSpecificOutput` object:
 - **Exit 0 + plain text**: Codex treats the output as additional context (not JSON-parsed).
 - **Exit 2 + stderr**: Blocks/denies the action as an alternative to JSON output.
 - **Any other non-zero**: Hook failure; Codex continues normally.
+
+Multiple hooks matching the same event run **concurrently**. Handlers with `async: true` are fire-and-forget (they do not block the agent loop).
 
 ## Plugin Environment Variables
 

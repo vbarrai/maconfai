@@ -110,8 +110,8 @@ Sends the JSON input as a POST to a URL.
 | `type`           | Yes      | `"http"`                                                                      |
 | `url`            | Yes      | Endpoint URL                                                                  |
 | `timeout`        | No       | Seconds before cancellation (default: 600; `UserPromptSubmit` defaults to 30) |
-| `headers`        | No       | HTTP headers (supports `$VAR_NAME` for env variables)                         |
-| `allowedEnvVars` | No       | Environment variables allowed in headers                                      |
+| `headers`        | No       | HTTP headers (supports `$VAR_NAME` for env variable interpolation)            |
+| `allowedEnvVars` | No       | List of env var names that are allowed to be interpolated into `headers`      |
 | `statusMessage`  | No       | Message displayed during execution                                            |
 
 ### Prompt (`type: "prompt"`)

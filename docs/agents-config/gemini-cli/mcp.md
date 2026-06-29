@@ -63,7 +63,7 @@ gemini trust    # Mark the current folder as trusted
 
 ## Server Status Values
 
-A server can be in one of four states: `DISCONNECTED`, `CONNECTING`, `CONNECTED`, or `Disabled`.
+A server connection can be in one of three states: `DISCONNECTED`, `CONNECTING`, or `CONNECTED`.
 
 ## MCP Tool Naming
 
@@ -95,16 +95,17 @@ The following are **top-level** per-server fields (not nested under `oauth`):
 
 The following are nested under `oauth`:
 
-| Field                    | Description                       |
-| :----------------------- | :-------------------------------- |
-| `oauth.scopes`           | Requested scopes                  |
-| `oauth.clientId`         | OAuth client ID                   |
-| `oauth.clientSecret`     | OAuth client secret               |
-| `oauth.authorizationUrl` | Authorization endpoint            |
-| `oauth.tokenUrl`         | Token endpoint                    |
-| `oauth.redirectUri`      | Redirect URI                      |
-| `oauth.tokenParamName`   | Parameter name for token exchange |
-| `oauth.audiences`        | Allowed token audiences           |
+| Field                    | Description                                       |
+| :----------------------- | :------------------------------------------------ |
+| `oauth.enabled`          | Enable or disable OAuth for this server (boolean) |
+| `oauth.scopes`           | Requested scopes                                  |
+| `oauth.clientId`         | OAuth client ID                                   |
+| `oauth.clientSecret`     | OAuth client secret                               |
+| `oauth.authorizationUrl` | Authorization endpoint                            |
+| `oauth.tokenUrl`         | Token endpoint                                    |
+| `oauth.redirectUri`      | Redirect URI                                      |
+| `oauth.tokenParamName`   | Parameter name for token exchange                 |
+| `oauth.audiences`        | Allowed token audiences                           |
 
 ## CLI MCP
 

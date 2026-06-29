@@ -176,7 +176,8 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `preToolUse`, `postToolUse`, `postToolUseFailure` | Tool type                  | `Shell`, `Read`, `Write`, `Grep`, `Delete`, `Task`, `MCP:<tool_name>` |
 | `subagentStart`, `subagentStop`                   | Subagent type              | `generalPurpose`, `explore`, `shell`                                  |
 | `beforeShellExecution`, `afterShellExecution`     | Shell command text (regex) | `curl\|wget\|nc`                                                      |
-| `beforeReadFile`, `afterFileEdit`                 | Tool type                  | `TabRead`, `Read`, `TabWrite`, `Write`                                |
+| `beforeReadFile`, `afterFileEdit`                 | Tool type                  | `Shell`, `Read`, `Write`, `Grep`, `Delete`, `Task`, `MCP:<tool_name>` |
+| `beforeTabFileRead`, `afterTabFileEdit`           | (no documented matcher)    | —                                                                     |
 | `beforeSubmitPrompt`                              | Fixed value                | `UserPromptSubmit`                                                    |
 | `stop`, `afterAgentResponse`, `afterAgentThought` | Fixed value                | `Stop`, `AgentResponse`, `AgentThought`                               |
 
@@ -222,7 +223,7 @@ Blocking/allowing hooks return:
 }
 ```
 
-`permission` options: `"allow"`, `"deny"`, `"ask"`. Note: `"ask"` is supported for `beforeShellExecution` and `beforeMCPExecution` but is **not reliably enforced for `preToolUse`** — it falls back to deny for that event. `subagentStart` supports only `"allow"` or `"deny"` (no `"ask"`).
+`permission` options: `"allow"`, `"deny"`, `"ask"`. `"ask"` is only supported for `beforeShellExecution` and `beforeMCPExecution`; it is **not supported for `preToolUse`** (falls back to deny). `subagentStart` supports only `"allow"` or `"deny"`.
 
 ### Additional Output Fields
 

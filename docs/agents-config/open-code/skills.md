@@ -25,7 +25,7 @@ Open Code supports the open Agent Skills standard with progressive disclosure:
 | User (compat)      | `~/.claude/skills/<name>/SKILL.md`          | Claude Code   |
 | User (standard)    | `~/.agents/skills/<name>/SKILL.md`          | Standard      |
 
-Open Code walks up from the current working directory to the git worktree root, loading matching skills found along the way. All three project variants (`.opencode/skills/`, `.claude/skills/`, `.agents/skills/`) and all three user variants are scanned simultaneously — they are not separate tiers with strict precedence.
+Open Code walks up from the current working directory to the git worktree root, loading matching skills found along the way. Skills are resolved in priority order: project-local paths first (`.opencode/skills/` → `.claude/skills/` → `.agents/skills/`), then user-global paths. If the same skill name exists in multiple locations, the higher-priority location wins.
 
 ## SKILL.md Format
 

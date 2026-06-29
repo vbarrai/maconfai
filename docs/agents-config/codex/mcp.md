@@ -86,7 +86,7 @@ args = ["-y", "@myplugin/server"]
 | `enabled_tools`               | string[]          | Allowlist of tools (complement of `disabled_tools`)                                                                                                           |
 | `default_tools_approval_mode` | string            | Default approval mode for all tools: `auto`, `prompt`, `approve`                                                                                              |
 | `tools.<tool>.approval_mode`  | string            | Per-tool override for approval mode: `auto`, `prompt`, `approve`                                                                                              |
-| `instructions`                | string            | MCP server-level instructions returned at initialization; read by Codex as additional context                                                                 |
+| `instructions`                | string            | MCP server-level instructions returned at initialization; read by Codex as additional context (not confirmed in current upstream docs)                        |
 
 ## Project-Scoped Config
 
