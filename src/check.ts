@@ -477,11 +477,18 @@ export async function runCheck(
             const targetAgents = (entry.agents as AgentType[] | undefined)?.length
               ? (entry.agents as AgentType[])
               : fallbackAgents
+            // What this update wrote, per agent. Without it the lock would lose the handlers
+            // it recorded at install: status could no longer compare them with the disk, and
+            // nothing could tell which handlers to take out again.
+            const installedHandlers: Record<string, unknown> = {}
             for (const agent of targetAgents) {
               const agentKey = agent as keyof HookGroup
               const hookEvents = hookGroup[agentKey]
               if (hookEvents && typeof hookEvents === 'object' && !Array.isArray(hookEvents)) {
                 await installHooks(hookEvents as Record<string, unknown[]>, agent, { force: true })
+                // Same rule as the install path: an agent without a hooks config gets nothing
+                // written, so nothing is recorded for it either.
+                if (agents[agent]?.hooksConfigPath) installedHandlers[agent] = hookEvents
               }
             }
 
@@ -499,6 +506,7 @@ export async function runCheck(
               folderPath,
               folderHash,
               agents: targetAgents,
+              handlers: installedHandlers,
             })
 
             successCount++
