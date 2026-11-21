@@ -1,4 +1,4 @@
-import { isAbsolute, resolve } from 'path'
+import { isAbsolute, posix, resolve, sep } from 'path'
 
 interface ParsedSource {
   type: 'github' | 'local'
@@ -92,4 +92,10 @@ export function getOwnerRepo(parsed: ParsedSource): string | null {
   } catch {
     return null
   }
+}
+
+// A lock path is relative to the repository root: a sub-path source discovers its
+// skills under the sub-path, so their own relative path is prefixed with it.
+export function repoRelativePath(subpath: string | undefined, relPath: string): string {
+  return posix.join(subpath ?? '', relPath.split(sep).join('/')).replace(/(.)\/$/, '$1')
 }

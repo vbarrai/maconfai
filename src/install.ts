@@ -22,7 +22,7 @@ import {
   removeMcpFromLock,
   removeHookFromLock,
 } from './lock.ts'
-import { getOwnerRepo } from './source-parser.ts'
+import { getOwnerRepo, repoRelativePath } from './source-parser.ts'
 import { installMcpServers, uninstallMcpServers, listInstalledMcpServerNames } from './mcp.ts'
 import { installHooks, installHookFiles, uninstallHooks } from './hooks.ts'
 import type { Skill, AgentType, McpServerConfig, HookGroup } from './types.ts'
@@ -629,9 +629,7 @@ export async function runInstall(args: string[]): Promise<void> {
           const ctx = skillCtxMap.get(skill.name)
           const skillRelPath = ctx
             ? ctx.skillRelPath
-            : parsed.subpath
-              ? `${parsed.subpath}/skills/${skill.name}`
-              : `skills/${skill.name}`
+            : repoRelativePath(parsed.subpath, relative(skillsDir, skill.path))
           let skillFolderHash = ''
           try {
             skillFolderHash = await getTreeHash(ctx ? ctx.repoDir : skillsDir, skillRelPath)
