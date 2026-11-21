@@ -721,7 +721,14 @@ export async function runInstall(args: string[]): Promise<void> {
         for (const agent of targetAgents) {
           const agentKey = agent as keyof HookGroup
           const events = entry.group[agentKey]
-          if (events && typeof events === 'object' && !Array.isArray(events)) {
+          // An agent without a hooks config gets nothing written, so nothing may be recorded
+          // for it either: a lock claiming a handler that is not on disk is never repaired.
+          if (
+            agents[agent].hooksConfigPath &&
+            events &&
+            typeof events === 'object' &&
+            !Array.isArray(events)
+          ) {
             installedHandlers[agent] = events
           }
         }

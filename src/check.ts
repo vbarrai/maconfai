@@ -28,6 +28,16 @@ import { agents, detectProjectAgents } from './agents.ts'
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
 
+// The lock records handlers for an agent whose hooks config is absent: a version without hooks
+// support for that agent (Codex before .codex/hooks.json) recorded them without writing
+// anything. The folder hash is then current, so only this check gets the file written.
+function hasMissingHooksConfig(entry: HookLockEntry): boolean {
+  return Object.keys(entry.handlers ?? {}).some((a) => {
+    const path = Object.hasOwn(agents, a) ? agents[a as AgentType].hooksConfigPath : undefined
+    return path !== undefined && !existsSync(path)
+  })
+}
+
 function detectAgentsForSkill(skillName: string): AgentType[] {
   return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, skillName)))
 }
@@ -136,7 +146,7 @@ export async function runCheck(
       blocked.push({ name: `hook: ${groupName}` })
       continue
     }
-    if (!entry.folderHash || !entry.folderPath) {
+    if (!entry.folderHash || !entry.folderPath || hasMissingHooksConfig(entry)) {
       hookUpdates.push({ groupName, entry })
       continue
     }
