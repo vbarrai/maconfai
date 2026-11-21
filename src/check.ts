@@ -1,10 +1,10 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { parseSource, getOwnerRepo } from './source-parser.ts'
 import { guardHomeDir } from './home-dir.ts'
-import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
+import { cloneRepo, cleanupTempDir, getLocalTreeHash, getTreeHash } from './git.ts'
 import {
   discoverSkills,
   discoverMcpServers,
@@ -37,6 +37,70 @@ function hasMissingHooksConfig(entry: HookLockEntry): boolean {
     const path = Object.hasOwn(agents, a) ? agents[a as AgentType].hooksConfigPath : undefined
     return path !== undefined && !existsSync(path)
   })
+}
+
+const knownAgents = (names: string[] | undefined): AgentType[] =>
+  (names ?? []).filter((a): a is AgentType => Object.hasOwn(agents, a))
+
+// A tracked skill whose link or copy is gone from an agent's skills dir (a broken symlink
+// counts as gone). The hash cannot see this, so only this check gets it restored. An agent
+// whose skills dir is absent altogether (gitignored, not in this checkout) is not "missing":
+// restoring it would reinstall on every run of a fresh clone.
+function hasMissingSkillFiles(name: string, entry: SkillLockEntry): boolean {
+  return knownAgents(entry.agents).some((a) => {
+    const skillsDir = agents[a].skillsDir
+    return existsSync(skillsDir) && !existsSync(join(skillsDir, sanitizeName(name)))
+  })
+}
+
+// Same for an MCP server: an agent the lock targets has no MCP config file, though the
+// directory that holds it is there.
+function hasMissingMcpConfig(entry: McpLockEntry): boolean {
+  return knownAgents(entry.agents).some((a) => {
+    const path = agents[a].mcpConfigPath
+    return path !== undefined && existsSync(dirname(path)) && !existsSync(path)
+  })
+}
+
+// A local source recorded on another machine (a committed lock, CI): only its author can
+// update it, so it is skipped and reported, never counted as a failure.
+function isAbsentLocalSource(entry: { source: string; sourceUrl?: string }): boolean {
+  const localDir = localSourceDir(entry)
+  return localDir !== undefined && !existsSync(localDir)
+}
+
+// Where to fetch an entry from. An old or hand-edited lock may lack `sourceUrl`: fall back
+// to `source` (owner/repo, or the path a local install was given) rather than crash.
+function entrySourceUrl(entry: { source: string; sourceUrl?: string }): string {
+  return entry.sourceUrl || entry.source
+}
+
+// The local directory a lock entry was installed from, if it came from one.
+function localSourceDir(entry: { source: string; sourceUrl?: string }): string | undefined {
+  const parsed = parseSource(entrySourceUrl(entry))
+  return parsed.type === 'local' ? parsed.localPath : undefined
+}
+
+function isLocalSource(entry: { source: string; sourceUrl?: string }): boolean {
+  return localSourceDir(entry) !== undefined
+}
+
+// GitHub knows nothing of a local source: hash its files on disk, as install copies them.
+async function fetchLatestHash(
+  entry: { source: string; sourceUrl: string; ref?: string },
+  folderPath: string,
+  token: string | null,
+): Promise<string | null> {
+  const localDir = localSourceDir(entry)
+  if (localDir) return sourceFolderHash(true, localDir, folderPath)
+  return fetchSkillFolderHash(entry.source, folderPath, token, entry.ref)
+}
+
+// The hash recorded after an update: from the files of a local source (a skill path naming
+// its SKILL.md stands for the folder, as on GitHub), from the clone otherwise.
+function sourceFolderHash(isLocal: boolean, dir: string, folderPath: string): Promise<string> {
+  if (!isLocal) return getTreeHash(dir, folderPath)
+  return getLocalTreeHash(dir, folderPath.replace(/(^|\/)SKILL\.md$/, ''))
 }
 
 // Skills are installed under their sanitized name, while the lock is keyed by the raw name.
@@ -97,6 +161,7 @@ export async function runCheck(
   const hookUpdates: Array<{ groupName: string; entry: HookLockEntry }> = []
   const skipped: Array<{ name: string; reason: string }> = []
   const blocked: Array<{ name: string }> = []
+  const absent: Array<{ name: string; source: string }> = []
   const errors: Array<{ name: string; error: string }> = []
 
   // A config is gated unless it is trusted. Missing trusted (grandfathered entries
@@ -109,12 +174,21 @@ export async function runCheck(
       blocked.push({ name })
       continue
     }
-    if (!entry.skillFolderHash || !entry.skillPath) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (hasMissingSkillFiles(name, entry)) {
+      skillUpdates.push({ name, entry })
+      continue
+    }
+    // An empty hash from a local source only means install could not hash it: compare anyway.
+    if (!entry.skillPath || (!entry.skillFolderHash && !isLocalSource(entry))) {
       skipped.push({ name, reason: 'No version hash' })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(entry.source, entry.skillPath, token, entry.ref)
+      const latestHash = await fetchLatestHash(entry, entry.skillPath, token)
       if (!latestHash) {
         errors.push({ name, error: 'Could not fetch from GitHub' })
         continue
@@ -131,17 +205,20 @@ export async function runCheck(
       blocked.push({ name: `MCP: ${serverName}` })
       continue
     }
-    if (!entry.folderHash || !entry.folderPath) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name: `MCP: ${serverName}`, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (
+      !entry.folderPath ||
+      (!entry.folderHash && !isLocalSource(entry)) ||
+      hasMissingMcpConfig(entry)
+    ) {
       mcpUpdates.push({ serverName, entry })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(
-        entry.source,
-        entry.folderPath,
-        token,
-        entry.ref,
-      )
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token)
       if (latestHash && latestHash !== entry.folderHash) {
         mcpUpdates.push({ serverName, entry })
       }
@@ -154,17 +231,20 @@ export async function runCheck(
       blocked.push({ name: `hook: ${groupName}` })
       continue
     }
-    if (!entry.folderHash || !entry.folderPath || hasMissingHooksConfig(entry)) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name: `hook: ${groupName}`, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (
+      !entry.folderPath ||
+      (!entry.folderHash && !isLocalSource(entry)) ||
+      hasMissingHooksConfig(entry)
+    ) {
       hookUpdates.push({ groupName, entry })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(
-        entry.source,
-        entry.folderPath,
-        token,
-        entry.ref,
-      )
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token)
       if (latestHash && latestHash !== entry.folderHash) {
         hookUpdates.push({ groupName, entry })
       }
@@ -176,7 +256,7 @@ export async function runCheck(
 
   const totalUpdates = skillUpdates.length + mcpUpdates.length + hookUpdates.length
 
-  if (totalUpdates === 0 && errors.length === 0 && blocked.length === 0) {
+  if (totalUpdates === 0 && errors.length === 0 && blocked.length === 0 && absent.length === 0) {
     p.log.success(pc.green('All skills, MCPs, and hooks are up to date'))
   }
 
@@ -213,13 +293,13 @@ export async function runCheck(
     }
 
     for (const u of skillUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'skill', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'skill', ...u })
     }
     for (const u of mcpUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'mcp', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'mcp', ...u })
     }
     for (const u of hookUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'hook', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'hook', ...u })
     }
 
     const updateSpinner = p.spinner()
@@ -230,14 +310,15 @@ export async function runCheck(
 
     for (const [, sourceUpdates] of updatesBySource) {
       const firstEntry = sourceUpdates[0]!.entry
-      const parsed = parseSource(firstEntry.sourceUrl)
+      const parsed = parseSource(entrySourceUrl(firstEntry))
       if (firstEntry.ref) parsed.ref = firstEntry.ref
 
       let repoDir: string
       let tempDir: string | null = null
+      const isLocal = parsed.type === 'local'
 
       try {
-        if (parsed.type === 'local') {
+        if (isLocal) {
           repoDir = parsed.localPath!
         } else {
           tempDir = await cloneRepo(parsed.url, parsed.ref)
@@ -287,7 +368,7 @@ export async function runCheck(
               const skillRelPath = entry.skillPath || `skills/${name}`
               let skillFolderHash = ''
               try {
-                skillFolderHash = await getTreeHash(repoDir, skillRelPath)
+                skillFolderHash = await sourceFolderHash(isLocal, repoDir, skillRelPath)
               } catch {}
 
               await addToLock(name, {
@@ -326,7 +407,7 @@ export async function runCheck(
             const folderPath = entry.folderPath ?? (isFromDir ? `mcps/${serverName}` : serverName)
             let folderHash = ''
             try {
-              folderHash = await getTreeHash(repoDir, folderPath)
+              folderHash = await sourceFolderHash(isLocal, repoDir, folderPath)
             } catch {}
 
             await addMcpToLock(serverName, {
@@ -370,7 +451,7 @@ export async function runCheck(
             const folderPath = entry.folderPath ?? (isFromDir ? `hooks/${groupName}` : groupName)
             let folderHash = ''
             try {
-              folderHash = await getTreeHash(repoDir, folderPath)
+              folderHash = await sourceFolderHash(isLocal, repoDir, folderPath)
             } catch {}
 
             await addHookToLock(groupName, {
@@ -421,6 +502,14 @@ export async function runCheck(
     )
     for (const b of blocked) {
       p.log.message(pc.dim(`  - ${b.name}`))
+    }
+  }
+
+  if (absent.length > 0) {
+    console.log()
+    p.log.warn(`${absent.length} item(s) skipped — local source not found on this machine`)
+    for (const a of absent) {
+      p.log.message(pc.dim(`  - ${a.name} (${a.source})`))
     }
   }
 

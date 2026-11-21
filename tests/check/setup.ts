@@ -1,4 +1,7 @@
-import { vi } from 'vitest'
+import { mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { afterAll, vi } from 'vitest'
 import {
   mocks,
   mockCloneRepo,
@@ -21,6 +24,17 @@ import {
   mockDetectProjectAgents,
 } from './check-test-utils.ts'
 
+// `check` looks at the agent dirs of the current directory (is a tracked skill still
+// there?): run from an empty one, so the repository's own .claude/ is never taken for
+// the project under test.
+const emptyCwd = mkdtempSync(join(tmpdir(), 'maconfai-check-cwd-'))
+const originalCwd = process.cwd()
+process.chdir(emptyCwd)
+afterAll(() => {
+  process.chdir(originalCwd)
+  rmSync(emptyCwd, { recursive: true, force: true })
+})
+
 vi.mock('picocolors')
 vi.mock('@clack/prompts', () => mocks)
 vi.mock('../../src/source-parser.ts', () => ({
@@ -31,6 +45,7 @@ vi.mock('../../src/git.ts', () => ({
   cloneRepo: (url: string, ref?: string) => mockCloneRepo(url, ref),
   cleanupTempDir: (dir: string) => mockCleanupTempDir(dir),
   getTreeHash: (repoDir: string, folderPath: string) => mockGetTreeHash(repoDir, folderPath),
+  getLocalTreeHash: (baseDir: string, folderPath: string) => mockGetTreeHash(baseDir, folderPath),
 }))
 vi.mock('../../src/skills.ts', () => ({
   discoverSkills: (basePath: string) => mockDiscoverSkills(basePath),

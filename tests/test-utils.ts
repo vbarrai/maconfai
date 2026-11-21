@@ -4,6 +4,7 @@ import { join, relative, sep } from 'path'
 import { homedir, tmpdir, userInfo } from 'os'
 import type { AgentType, McpServerConfig, HookGroup } from '../src/types.ts'
 import { runInstall } from '../src/install.ts'
+import { runCheck } from '../src/check.ts'
 import { agents } from '../src/agents.ts'
 import { runAdd, runRemove } from '../src/add-remove.ts'
 
@@ -310,6 +311,11 @@ export function setupScenario() {
     }
   }
 
+  // `maconfai update [args]`
+  async function whenUpdate(args: string[] = []) {
+    await inTarget(() => runCheck(args, { autoUpdate: true }))
+  }
+
   // `maconfai add <kind> <source> <names...> [args]`
   async function whenAdd(kind: ItemKind, names: string[], args: string[] = []) {
     await inTarget(() => runAdd(kind, [sourceDir, ...names, ...args]))
@@ -410,6 +416,7 @@ export function setupScenario() {
     sourceFiles,
     whenInstall,
     whenUninstall,
+    whenUpdate,
     whenAdd,
     whenRemove,
     then,

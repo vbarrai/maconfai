@@ -4,7 +4,7 @@ import { existsSync } from 'fs'
 import { join, relative } from 'path'
 import { parseSource } from './source-parser.ts'
 import { guardHomeDir } from './home-dir.ts'
-import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
+import { cloneRepo, cleanupTempDir, getLocalTreeHash, getTreeHash } from './git.ts'
 import {
   discoverSkills,
   discoverMcpServers,
@@ -142,6 +142,11 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
       spinner.stop('Repository cloned')
     }
 
+    // A local source is hashed from its files on disk, the way `update` compares it.
+    const hashFolder = (local: boolean, dir: string, path: string) =>
+      local ? getLocalTreeHash(dir, path) : getTreeHash(dir, path)
+    const isLocal = parsed.type === 'local'
+
     // Discover skills, MCP servers, and hooks
     spinner.start('Discovering skills, MCP servers, and hooks...')
     let skills = await discoverSkills(skillsDir)
@@ -189,6 +194,7 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
 
     // Resolve remote skill references (extensionless files in skills/ containing a source string)
     interface SkillCtx {
+      local: boolean
       repoDir: string
       skillRelPath: string
       source: string
@@ -241,6 +247,7 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
             resolved.push(finalSkill)
             const refOwnerRepo = getOwnerRepo(refParsed)
             skillCtxMap.set(finalSkill.name, {
+              local: refParsed.type === 'local',
               repoDir: refBase,
               skillRelPath: relative(refBase, match.path),
               source: refOwnerRepo ?? remoteRef.source,
@@ -776,7 +783,9 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
             : repoRelativePath(parsed.subpath, relative(skillsDir, skill.path))
           let skillFolderHash = ''
           try {
-            skillFolderHash = await getTreeHash(ctx ? ctx.repoDir : skillsDir, skillRelPath)
+            skillFolderHash = ctx
+              ? await hashFolder(ctx.local, ctx.repoDir, skillRelPath)
+              : await hashFolder(isLocal, skillsDir, skillRelPath)
           } catch {}
           await addToLock(skill.name, {
             source: ctx ? ctx.source : ownerRepo || source,
@@ -837,11 +846,9 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
         const mcpEntry = allMcpEntries.find((e) => e.serverName === serverName)!
         const folderPath = mcpEntry.source
         let folderHash = ''
-        if (parsed.type !== 'local') {
-          try {
-            folderHash = await getTreeHash(skillsDir, folderPath)
-          } catch {}
-        }
+        try {
+          folderHash = await hashFolder(isLocal, skillsDir, folderPath)
+        } catch {}
         await addMcpToLock(serverName, {
           source: ownerRepo || source,
           sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
@@ -925,11 +932,9 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
         for (const agent of writtenAgents) hookWrittenAgents.add(agent)
         const folderPath = entry.source
         let folderHash = ''
-        if (parsed.type !== 'local') {
-          try {
-            folderHash = await getTreeHash(skillsDir, folderPath)
-          } catch {}
-        }
+        try {
+          folderHash = await hashFolder(isLocal, skillsDir, folderPath)
+        } catch {}
         const installedHandlers: Record<string, unknown> = {}
         for (const agent of targetAgents) {
           const agentKey = agent as keyof HookGroup
