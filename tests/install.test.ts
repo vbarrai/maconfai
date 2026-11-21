@@ -83,7 +83,7 @@ describe('install', () => {
       expect(betaContent).toContain('beta')
     })
 
-    it('removes previously installed skills not in --skills', async () => {
+    it('keeps previously installed skills not in --skills', async () => {
       await givenSkill('keep', 'drop')
 
       // First install both
@@ -91,29 +91,29 @@ describe('install', () => {
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
 
-      // Re-install with only 'keep' — 'drop' should be removed
+      // Re-install with only 'keep' — --skills adds, it never removes 'drop'
       await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
     })
 
-    it('removes all skills when --skills lists none of the installed', async () => {
+    it('keeps all skills when --skills lists none of the installed', async () => {
       await givenSkill('old-a', 'old-b', 'new-c')
 
       await whenInstall({ skills: ['old-a', 'old-b'], agents: ['claude-code'] })
       expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(true)
       expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(true)
 
-      // Re-install with only 'new-c' — old skills should be removed
+      // Re-install with only 'new-c' — old skills are kept
       await whenInstall({ skills: ['new-c'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/new-c/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(false)
-      expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/old-a/SKILL.md')).toBe(true)
+      expect(await thenExists('.claude/skills/old-b/SKILL.md')).toBe(true)
     })
 
-    it('removes skills across all agents when --skills changes', async () => {
+    it('keeps skills across all agents when --skills changes', async () => {
       await givenSkill('stays', 'goes')
 
       await whenInstall({ agents: ['claude-code', 'cursor'] })
@@ -125,8 +125,8 @@ describe('install', () => {
 
       expect(await thenExists('.claude/skills/stays/SKILL.md')).toBe(true)
       expect(await thenExists('.cursor/skills/stays/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/goes/SKILL.md')).toBe(false)
-      expect(await thenExists('.cursor/skills/goes/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/goes/SKILL.md')).toBe(true)
+      expect(await thenExists('.cursor/skills/goes/SKILL.md')).toBe(true)
     })
   })
 
@@ -165,7 +165,7 @@ describe('install', () => {
       expect(await thenExists('.claude/skills/my-skill/SKILL.md')).toBe(true)
     })
 
-    it('removes unselected skills from all agents even when --agents is narrowed', async () => {
+    it('keeps skills not in --skills on all agents when --agents is narrowed', async () => {
       await givenSkill('keep', 'drop')
 
       // Install both skills to both agents
@@ -174,12 +174,12 @@ describe('install', () => {
       expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(true)
 
       // Re-install with only 'keep' and only claude-code
-      // 'drop' should be removed from ALL agents (not just claude-code)
+      // 'drop' stays on every agent: only unchecking it in the interactive list removes it
       await whenInstall({ skills: ['keep'], agents: ['claude-code'] })
 
       expect(await thenExists('.claude/skills/keep/SKILL.md')).toBe(true)
-      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(false)
-      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(false)
+      expect(await thenExists('.claude/skills/drop/SKILL.md')).toBe(true)
+      expect(await thenExists('.cursor/skills/drop/SKILL.md')).toBe(true)
     })
 
     it('installs to a single new agent without affecting others', async () => {

@@ -219,7 +219,8 @@ export async function installSkill(
 export async function uninstallSkill(
   skillName: string,
   agentType: AgentType,
-  options: { global?: boolean; cwd?: string } = {},
+  // keepCanonical: drop one agent's copy only; other agents may still symlink to the canonical dir.
+  options: { global?: boolean; cwd?: string; keepCanonical?: boolean } = {},
 ): Promise<boolean> {
   const isGlobal = options.global ?? false
   const cwd = options.cwd || process.cwd()
@@ -231,6 +232,8 @@ export async function uninstallSkill(
   if (isPathSafe(agentBase, agentDir)) {
     await rm(agentDir, { recursive: true, force: true }).catch(() => {})
   }
+
+  if (options.keepCanonical) return true
 
   // Remove canonical dir
   const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd)

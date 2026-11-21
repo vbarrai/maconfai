@@ -5,6 +5,9 @@ import { homedir, tmpdir, userInfo } from 'os'
 import type { AgentType, McpServerConfig, HookGroup } from '../src/types.ts'
 import { runInstall } from '../src/install.ts'
 import { agents } from '../src/agents.ts'
+import { runAdd, runRemove } from '../src/add-remove.ts'
+
+type ItemKind = Parameters<typeof runAdd>[0]
 
 type FileTree = Record<string, string>
 
@@ -307,6 +310,16 @@ export function setupScenario() {
     }
   }
 
+  // `maconfai add <kind> <source> <names...> [args]`
+  async function whenAdd(kind: ItemKind, names: string[], args: string[] = []) {
+    await inTarget(() => runAdd(kind, [sourceDir, ...names, ...args]))
+  }
+
+  // `maconfai remove <kind> <names...>`
+  async function whenRemove(kind: ItemKind, names: string[]) {
+    await inTarget(() => runRemove(kind, names))
+  }
+
   async function inTarget(run: () => Promise<void>) {
     const originalCwd = process.cwd()
     try {
@@ -397,6 +410,8 @@ export function setupScenario() {
     sourceFiles,
     whenInstall,
     whenUninstall,
+    whenAdd,
+    whenRemove,
     then,
     thenExists,
     targetFile,
