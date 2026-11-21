@@ -1,4 +1,4 @@
-import { it, expect, vi } from 'vitest'
+import { it, expect, vi, afterEach } from 'vitest'
 import { getLogs, lockWith, skill } from './check-test-utils.ts'
 
 vi.mock('../../src/lock.ts', () => ({
@@ -14,13 +14,19 @@ vi.mock('../../src/lock.ts', () => ({
   },
 }))
 
-it('should report fetch errors and null results', async () => {
+afterEach(() => {
+  process.exitCode = undefined
+})
+
+it('should fail on a source it cannot read, and only skip a folder the source no longer has', async () => {
   const { runCheck } = await import('../../src/check.ts')
   await runCheck()
 
   expect(getLogs()).toMatchInlineSnapshot(`
-    "warn: 2 item(s) could not be checked:
-    message:   - rate-limited: API rate limit
-    message:   - fetch-null: Could not fetch from GitHub"
+    "info: 1 item(s) skipped (no version tracking)
+    message:   - fetch-null: Not found in the source
+    error: 1 item(s) could not be checked for updates:
+    message:   - rate-limited: API rate limit"
   `)
+  expect(process.exitCode).toBe(1)
 })

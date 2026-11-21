@@ -23,7 +23,7 @@ import {
   fetchSkillFolderHash,
   getGitHubToken,
 } from './lock.ts'
-import type { SkillLockEntry, McpLockEntry, HookLockEntry } from './lock.ts'
+import type { SkillLockEntry, McpLockEntry, HookLockEntry, TreeFetch } from './lock.ts'
 import type { AgentType, HookGroup } from './types.ts'
 import { agents, detectProjectAgents } from './agents.ts'
 import { trustArg } from './trust.ts'
@@ -38,6 +38,16 @@ function hasMissingHooksConfig(entry: HookLockEntry): boolean {
     const path = Object.hasOwn(agents, a) ? agents[a as AgentType].hooksConfigPath : undefined
     return path !== undefined && !existsSync(path)
   })
+}
+
+// Only a GitHub source has a hash the GitHub API can return. Another host (GitLab, a private
+// Git server) never had one to compare, so it is left alone instead of failing the check.
+function isGitHubSource(sourceUrl: string | undefined): boolean {
+  try {
+    return new URL(sourceUrl ?? '').hostname === 'github.com'
+  } catch {
+    return false
+  }
 }
 
 const knownAgents = (names: string[] | undefined): AgentType[] =>
@@ -87,14 +97,19 @@ function isLocalSource(entry: { source: string; sourceUrl?: string }): boolean {
 }
 
 // GitHub knows nothing of a local source: hash its files on disk, as install copies them.
+// null when there is nothing to compare with: the source no longer holds the folder, or it
+// lives on another host (GitLab, a private Git server), which has no hash to ask for.
+// An unreadable GitHub source throws.
 async function fetchLatestHash(
   entry: { source: string; sourceUrl: string; ref?: string },
   folderPath: string,
   token: string | null,
+  treeCache: Map<string, Promise<TreeFetch>>,
 ): Promise<string | null> {
   const localDir = localSourceDir(entry)
-  if (localDir) return sourceFolderHash(true, localDir, folderPath)
-  return fetchSkillFolderHash(entry.source, folderPath, token, entry.ref)
+  if (localDir) return sourceFolderHash(true, localDir, folderPath).catch(() => null)
+  if (!isGitHubSource(entrySourceUrl(entry))) return null
+  return fetchSkillFolderHash(entry.source, folderPath, token, entry.ref, treeCache)
 }
 
 // The hash recorded after an update: from the files of a local source (a skill path naming
@@ -154,6 +169,8 @@ export async function runCheck(
   spinner.stop(`Found ${parts.join(' + ')} tracked`)
 
   const token = getGitHubToken()
+  // One tree request per repository and branch for the whole run, not one per entry.
+  const treeCache = new Map<string, Promise<TreeFetch>>()
 
   spinner.start('Checking for updates...')
 
@@ -164,7 +181,12 @@ export async function runCheck(
   // label is what the report shows; arg is what `maconfai trust` takes
   const blocked: Array<{ label: string; arg: string }> = []
   const absent: Array<{ name: string; source: string }> = []
-  const errors: Array<{ name: string; error: string }> = []
+  // Entries whose latest hash could not be read (bad token, rate limit, network, missing
+  // repo). They are reported and make the run fail, but never stop the others updating.
+  const checkFailed: Array<{ name: string; error: string }> = []
+  const recordCheckFailure = (name: string, err: unknown) => {
+    checkFailed.push({ name, error: err instanceof Error ? err.message : String(err) })
+  }
 
   // A config is gated unless it is trusted. Missing trusted (grandfathered entries
   // installed before the field existed) counts as trusted.
@@ -190,14 +212,19 @@ export async function runCheck(
       continue
     }
     try {
-      const latestHash = await fetchLatestHash(entry, entry.skillPath, token)
+      const latestHash = await fetchLatestHash(entry, entry.skillPath, token, treeCache)
       if (!latestHash) {
-        errors.push({ name, error: 'Could not fetch from GitHub' })
+        // The source was read, or is not one GitHub can answer for: nothing to compare with
+        const comparable = isLocalSource(entry) || isGitHubSource(entrySourceUrl(entry))
+        skipped.push({
+          name,
+          reason: comparable ? 'Not found in the source' : 'Not a GitHub source',
+        })
         continue
       }
       if (latestHash !== entry.skillFolderHash) skillUpdates.push({ name, entry })
     } catch (err) {
-      errors.push({ name, error: err instanceof Error ? err.message : 'Unknown error' })
+      recordCheckFailure(name, err)
     }
   }
 
@@ -220,11 +247,13 @@ export async function runCheck(
       continue
     }
     try {
-      const latestHash = await fetchLatestHash(entry, entry.folderPath, token)
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token, treeCache)
       if (latestHash && latestHash !== entry.folderHash) {
         mcpUpdates.push({ serverName, entry })
       }
-    } catch {}
+    } catch (err) {
+      recordCheckFailure(`MCP: ${serverName}`, err)
+    }
   }
 
   for (const groupName of hookNames) {
@@ -246,11 +275,13 @@ export async function runCheck(
       continue
     }
     try {
-      const latestHash = await fetchLatestHash(entry, entry.folderPath, token)
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token, treeCache)
       if (latestHash && latestHash !== entry.folderHash) {
         hookUpdates.push({ groupName, entry })
       }
-    } catch {}
+    } catch (err) {
+      recordCheckFailure(`hook: ${groupName}`, err)
+    }
   }
 
   spinner.stop('Check complete')
@@ -258,7 +289,12 @@ export async function runCheck(
 
   const totalUpdates = skillUpdates.length + mcpUpdates.length + hookUpdates.length
 
-  if (totalUpdates === 0 && errors.length === 0 && blocked.length === 0 && absent.length === 0) {
+  if (
+    totalUpdates === 0 &&
+    checkFailed.length === 0 &&
+    blocked.length === 0 &&
+    absent.length === 0
+  ) {
     p.log.success(pc.green('All skills, MCPs, and hooks are up to date'))
   }
 
@@ -525,14 +561,15 @@ export async function runCheck(
     }
   }
 
-  if (errors.length > 0) {
+  if (checkFailed.length > 0) {
     console.log()
-    p.log.warn(`${errors.length} item(s) could not be checked:`)
-    for (const e of errors) {
-      p.log.message(pc.dim(`  - ${e.name}: ${e.error}`))
+    process.exitCode = 1
+    p.log.error(pc.red(`${checkFailed.length} item(s) could not be checked for updates:`))
+    for (const f of checkFailed) {
+      p.log.message(`  - ${f.name}: ${f.error}`)
     }
   }
 
   console.log()
-  p.outro(pc.green('Done!'))
+  p.outro(checkFailed.length > 0 ? pc.red('Done, with errors') : pc.green('Done!'))
 }

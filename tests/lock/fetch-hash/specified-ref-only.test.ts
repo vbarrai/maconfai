@@ -14,7 +14,7 @@ beforeEach(() => {
 })
 
 function notOk() {
-  return { ok: false, status: 404 }
+  return new Response('', { status: 404, statusText: 'Not Found' })
 }
 
 it('only tries the specified ref, no fallback', async () => {
@@ -22,7 +22,10 @@ it('only tries the specified ref, no fallback', async () => {
 
   mockFetch.mockResolvedValueOnce(notOk())
 
-  await fetchSkillFolderHash('owner/repo', 'skills/s/SKILL.md', null, 'develop')
+  // The ref does not exist: an error names it, and neither main nor master is tried
+  await expect(
+    fetchSkillFolderHash('owner/repo', 'skills/s/SKILL.md', null, 'develop'),
+  ).rejects.toThrow('repository or ref (develop) not found')
 
   expect(mockFetch.mock.calls.map((c) => c[0])).toMatchInlineSnapshot(`
     [

@@ -176,46 +176,106 @@ export function getGitHubToken(): string | null {
   }
 }
 
+// One GitHub tree, read once: either the tree, or why it could not be read.
+export type TreeFetch =
+  | { ok: true; sha: string; tree: Array<{ path: string; type: string; sha: string }> }
+  | { ok: false; status?: number; reason: string }
+
+async function fetchTree(
+  ownerRepo: string,
+  branch: string,
+  token?: string | null,
+): Promise<TreeFetch> {
+  try {
+    const url = `https://api.github.com/repos/${ownerRepo}/git/trees/${branch}?recursive=1`
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'maconfai',
+    }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const response = await fetch(url, { headers })
+    if (!response.ok) {
+      const rateLimited = response.headers.get('x-ratelimit-remaining') === '0'
+      return {
+        ok: false,
+        status: response.status,
+        reason: `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}${rateLimited ? ' (rate limit exceeded)' : ''}`,
+      }
+    }
+    const data = (await response.json()) as Omit<Extract<TreeFetch, { ok: true }>, 'ok'>
+    return { ok: true, sha: data.sha, tree: data.tree }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: `network error: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
 export async function fetchSkillFolderHash(
   ownerRepo: string,
   skillPath: string,
   token?: string | null,
   ref?: string | null,
+  // Shared by the caller across entries, so a source with 40 entries costs one request per
+  // branch instead of 40 (an unauthenticated client only gets 60 requests an hour).
+  treeCache?: Map<string, Promise<TreeFetch>>,
 ): Promise<string | null> {
   let folderPath = skillPath.replace(/\\/g, '/')
   if (folderPath.endsWith('/SKILL.md')) folderPath = folderPath.slice(0, -9)
   else if (folderPath.endsWith('SKILL.md')) folderPath = folderPath.slice(0, -8)
   if (folderPath.endsWith('/')) folderPath = folderPath.slice(0, -1)
 
-  const branches = ref ? [ref] : ['main', 'master']
+  // HEAD is the repository's default branch: tried last, for a source whose default
+  // branch is neither main nor master (develop, trunk…).
+  const branches = ref ? [ref] : ['main', 'master', 'HEAD']
+  // Why each branch could not be read. Without a single readable tree the hash is unknown,
+  // and the caller must not take that for "up to date" (a bad token, a rate limit or a
+  // network failure used to look exactly like a current entry).
+  const failures: Array<{ status?: number; reason: string }> = []
+  let treeRead = false
 
   for (const branch of branches) {
-    try {
-      const url = `https://api.github.com/repos/${ownerRepo}/git/trees/${branch}?recursive=1`
-      const headers: Record<string, string> = {
-        Accept: 'application/vnd.github.v3+json',
-        'User-Agent': 'maconfai',
-      }
-      if (token) headers['Authorization'] = `Bearer ${token}`
+    // main or master was readable: HEAD is one of them, nothing more to learn.
+    if (branch === 'HEAD' && treeRead) break
 
-      const response = await fetch(url, { headers })
-      if (!response.ok) continue
-
-      const data = (await response.json()) as {
-        sha: string
-        tree: Array<{ path: string; type: string; sha: string }>
-      }
-
-      if (!folderPath) return data.sha
-
-      const entry = data.tree.find(
-        (e) => (e.type === 'tree' || e.type === 'blob') && e.path === folderPath,
-      )
-      if (entry) return entry.sha
-    } catch {
+    const key = `${ownerRepo}@${branch}`
+    let pending = treeCache?.get(key)
+    if (!pending) {
+      pending = fetchTree(ownerRepo, branch, token)
+      treeCache?.set(key, pending)
+    }
+    const result = await pending
+    if (!result.ok) {
+      failures.push(result)
       continue
     }
+    treeRead = true
+
+    if (!folderPath) return result.sha
+
+    const entry = result.tree.find(
+      (e) => (e.type === 'tree' || e.type === 'blob') && e.path === folderPath,
+    )
+    if (entry) return entry.sha
   }
 
-  return null
+  // A readable tree without the folder: the source no longer has it, not an access problem.
+  if (treeRead) return null
+
+  // A 404 on one branch only means that branch does not exist; report the more telling
+  // failure (401 bad token, 403 rate limit, network) when there is one.
+  const failure = failures.find((f) => f.status !== 404) ?? failures[failures.length - 1]!
+  const hint =
+    failure.status === 401
+      ? ' — check GITHUB_TOKEN / GH_TOKEN'
+      : failure.status === 403 && failure.reason.includes('rate limit')
+        ? ' — set GITHUB_TOKEN or run gh auth login for a higher limit'
+        : failure.status === 403
+          ? ' — the token cannot read this repository (SSO authorization or repository permission)'
+          : failure.status === 404
+            ? ` — repository or ref (${ref ?? 'default branch'}) not found, or private without access (set GITHUB_TOKEN or run gh auth login)`
+            : ''
+  throw new Error(`cannot read ${ownerRepo} from GitHub: ${failure.reason}${hint}`)
 }

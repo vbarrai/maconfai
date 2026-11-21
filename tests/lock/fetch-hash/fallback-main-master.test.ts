@@ -17,7 +17,7 @@ function okTree(tree: Array<{ path: string; type: string; sha: string }>) {
   return { ok: true, json: async () => ({ sha: 'root-sha', tree }) }
 }
 function notOk() {
-  return { ok: false, status: 404 }
+  return new Response('', { status: 404, statusText: 'Not Found' })
 }
 
 it('falls back from main to master when no ref is specified', async () => {
