@@ -699,23 +699,28 @@ export async function runInstall(args: string[]): Promise<void> {
     if (selectedSkills.length > 0) {
       spinner.start('Installing skills...')
 
+      // Count skills and agents apart: one skill written for three agents is one skill, not three
       let successCount = 0
+      const successAgents = new Set<AgentType>()
       let failCount = 0
+      const failedAgents = new Set<AgentType>()
 
       for (const skill of selectedSkills) {
         let skillSuccess = false
         for (const agent of targetAgents) {
           const result = await installSkill(skill, agent, { global: false })
           if (result.success) {
-            successCount++
+            successAgents.add(agent)
             skillSuccess = true
           } else {
             failCount++
+            failedAgents.add(agent)
             p.log.error(`Failed: ${skill.name} -> ${agents[agent].displayName}: ${result.error}`)
           }
         }
 
         if (skillSuccess) {
+          successCount++
           const ctx = skillCtxMap.get(skill.name)
           const skillRelPath = ctx
             ? ctx.skillRelPath
@@ -743,10 +748,15 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop('Done')
 
       if (successCount > 0) {
-        p.log.success(pc.green(`Installed ${successCount} skill(s)`))
+        p.log.success(
+          pc.green(`Installed ${successCount} skill(s) for ${successAgents.size} agent(s)`),
+        )
       }
       if (failCount > 0) {
-        p.log.error(pc.red(`Failed: ${failCount}`))
+        // Failures are per skill × agent copy, so say so: they are not a number of skills
+        p.log.error(
+          pc.red(`Failed: ${failCount} skill copy(ies) for ${failedAgents.size} agent(s)`),
+        )
       }
     }
 
@@ -757,9 +767,11 @@ export async function runInstall(args: string[]): Promise<void> {
       const ownedMcpNames = new Set(Object.keys(existingLock.mcpServers))
 
       const installedMcpNames = new Set<string>()
+      const mcpAgents = new Set<AgentType>()
       for (const agent of targetAgents) {
         const result = await installMcpServers(standaloneMcps, agent, { ownedNames: ownedMcpNames })
         for (const name of result.installed) installedMcpNames.add(name)
+        if (result.installed.length > 0) mcpAgents.add(agent)
       }
 
       for (const serverName of installedMcpNames) {
@@ -781,25 +793,49 @@ export async function runInstall(args: string[]): Promise<void> {
           trusted: resolveTrust(trustChoice, priorLock.mcpServers[serverName]),
         })
       }
-      spinner.stop(`Installed ${installedMcpNames.size} MCP server(s)`)
+      // Never a "Installed 0": say what was written, and name what was written nowhere
+      spinner.stop(
+        installedMcpNames.size > 0
+          ? `Installed ${installedMcpNames.size} MCP server(s) for ${mcpAgents.size} agent(s)`
+          : 'No MCP server installed',
+      )
+      const unwrittenMcps = Object.keys(standaloneMcps).filter((n) => !installedMcpNames.has(n))
+      if (unwrittenMcps.length > 0) {
+        p.log.warn(`No MCP server written for these agents: ${unwrittenMcps.join(', ')}`)
+      }
     }
 
     // Install hooks
     if (hasSelectedHooks) {
       spinner.start('Installing hooks...')
+      let installedHookCount = 0
+      const hookWrittenAgents = new Set<AgentType>()
+      // Groups no selected agent has on disk after this run: nothing written, nothing already there
+      const unwrittenHooks: string[] = []
       for (const entry of selectedHookGroups) {
         // Copy companion files (scripts, etc.) from hook directory
         if (entry.dirPath) {
           await installHookFiles(entry.dirPath, entry.groupName)
         }
 
+        // Agents where this run wrote a handler, and agents that already had them all
+        const writtenAgents: AgentType[] = []
+        let alreadyInstalled = false
         for (const agent of targetAgents) {
           const agentKey = agent as keyof HookGroup
           const hookEvents = entry.group[agentKey]
           if (hookEvents && typeof hookEvents === 'object' && !Array.isArray(hookEvents)) {
-            await installHooks(hookEvents as Record<string, unknown[]>, agent)
+            const result = await installHooks(hookEvents as Record<string, unknown[]>, agent)
+            if (result.installed.length > 0) writtenAgents.push(agent)
+            else if (agents[agent].hooksConfigPath && result.skipped.length > 0) {
+              alreadyInstalled = true
+            }
           }
         }
+        // A group counts as installed only where a handler was actually written
+        if (writtenAgents.length > 0) installedHookCount++
+        else if (!alreadyInstalled) unwrittenHooks.push(entry.groupName)
+        for (const agent of writtenAgents) hookWrittenAgents.add(agent)
         const folderPath = entry.source
         let folderHash = ''
         if (parsed.type !== 'local') {
@@ -833,7 +869,16 @@ export async function runInstall(args: string[]): Promise<void> {
           handlers: installedHandlers,
         })
       }
-      spinner.stop(`Installed ${selectedHookGroups.length} hook(s)`)
+      spinner.stop(
+        installedHookCount > 0
+          ? `Installed ${installedHookCount} hook(s) for ${hookWrittenAgents.size} agent(s)`
+          : unwrittenHooks.length < selectedHookGroups.length
+            ? 'Hooks already installed'
+            : 'No hook installed',
+      )
+      if (unwrittenHooks.length > 0) {
+        p.log.warn(`No hook written for these agents: ${unwrittenHooks.join(', ')}`)
+      }
     }
   } catch (error) {
     spinner.stop(pc.red('Error'))
