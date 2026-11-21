@@ -24,7 +24,7 @@ describeConfai(
       "[mcp_servers.github]
       command = "npx"
       args = ["-y", "@modelcontextprotocol/server-github"]
-      env = { GITHUB_TOKEN = "\${GITHUB_TOKEN}" }
+      env_vars = ["GITHUB_TOKEN"]
 
       [mcp_servers.linear]
       command = "npx"
