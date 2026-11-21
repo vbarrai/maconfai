@@ -42,6 +42,7 @@ vi.mock('../../src/skills.ts', () => ({
 vi.mock('../../src/installer.ts', () => ({
   installSkill: (skill: unknown, agent: unknown, opts: unknown) =>
     mockInstallSkill(skill, agent, opts),
+  sanitizeName: (name: string) => name,
 }))
 vi.mock('../../src/mcp.ts', () => ({
   installMcpServers: (servers: unknown, agent: unknown, opts?: unknown) =>

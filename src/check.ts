@@ -11,7 +11,7 @@ import {
   discoverHooks,
   discoverHookDirs,
 } from './skills.ts'
-import { installSkill } from './installer.ts'
+import { installSkill, sanitizeName } from './installer.ts'
 import { installMcpServers } from './mcp.ts'
 import { installHooks, installHookFiles } from './hooks.ts'
 import {
@@ -38,8 +38,10 @@ function hasMissingHooksConfig(entry: HookLockEntry): boolean {
   })
 }
 
+// Skills are installed under their sanitized name, while the lock is keyed by the raw name.
 function detectAgentsForSkill(skillName: string): AgentType[] {
-  return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, skillName)))
+  const dirName = sanitizeName(skillName)
+  return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, dirName)))
 }
 
 type AnyUpdate =
@@ -259,6 +261,11 @@ export async function runCheck(
             const skillAgents = (
               entry.agents?.length ? entry.agents : detectAgentsForSkill(name)
             ) as AgentType[]
+            if (skillAgents.length === 0) {
+              p.log.error(
+                `Skill ${name}: no agent recorded in ai-lock.json and none found on disk — reinstall it with --agents`,
+              )
+            }
 
             let skillSuccess = false
             for (const agent of skillAgents) {
