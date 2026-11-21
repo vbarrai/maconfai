@@ -19,8 +19,23 @@ describe('translateEnvVar', () => {
     expect(translateEnvVar('${GITHUB_TOKEN}', 'env-prefix')).toBe('${env:GITHUB_TOKEN}')
   })
 
-  it('converts ${VAR:-default} to ${env:VAR:-default}', () => {
-    expect(translateEnvVar('${API_KEY:-fallback}', 'env-prefix')).toBe('${env:API_KEY:-fallback}')
+  it('converts ${VAR:-default} to ${env:VAR} and reports the dropped default', () => {
+    const dropped: string[] = []
+    expect(translateEnvVar('${API_KEY:-fallback}', 'env-prefix', dropped)).toBe('${env:API_KEY}')
+    expect(dropped).toEqual(['${env:API_KEY}'])
+  })
+
+  it("leaves Cursor's own variables untouched", () => {
+    expect(
+      translateEnvVar(
+        '${workspaceFolder}${/}${userHome}${pathSeparator}${workspaceFolderBasename}',
+        'env-prefix',
+      ),
+    ).toBe('${workspaceFolder}${/}${userHome}${pathSeparator}${workspaceFolderBasename}')
+  })
+
+  it('still prefixes names that are not identifiers', () => {
+    expect(translateEnvVar('${API-KEY}', 'env-prefix')).toBe('${env:API-KEY}')
   })
 
   it('does not double-prefix already-prefixed ${env:VAR}', () => {

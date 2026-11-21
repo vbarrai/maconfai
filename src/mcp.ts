@@ -1,3 +1,4 @@
+import * as p from '@clack/prompts'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { join, dirname } from 'path'
 import type { AgentType, McpServerConfig, McpEnvSyntax } from './types.ts'
@@ -172,28 +173,55 @@ function toOpenCodeServer(server: McpServerConfig): OpenCodeMcpServer {
   return result
 }
 
-export function translateEnvVar(value: string, syntax: McpEnvSyntax): string {
+// Variables Cursor resolves itself (https://cursor.com/docs/mcp.md, "Config interpolation").
+// They are not environment variables, so they must not get the `env:` prefix.
+const CURSOR_BUILTIN_VARIABLES = new Set([
+  'workspaceFolder',
+  'userHome',
+  'workspaceFolderBasename',
+  'pathSeparator',
+  '/',
+])
+
+// env-prefix (Cursor): `${VAR}` → `${env:VAR}`, except `${env:VAR}` and Cursor's own variables,
+// left as is. Cursor documents no default-value syntax, so `${VAR:-default}` becomes
+// `${env:VAR}`, pushed to `droppedDefaults`. Only the variable is reported: the default may be
+// a secret.
+export function translateEnvVar(
+  value: string,
+  syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
+): string {
   if (syntax === 'bare') return value
   if (syntax === 'opencode-env') {
     // Open Code uses {env:VAR} (no leading $). Convert ${VAR} → {env:VAR}, skip pre-converted {env:...}.
     return value.replace(/\$\{([^}]+)\}/g, '{env:$1}')
   }
-  // env-prefix (Cursor): convert ${VAR} and ${VAR:-default} to ${env:VAR}, skip already-prefixed.
-  return value.replace(/\$\{(?!env:)([^}]+)\}/g, '${env:$1}')
+  return value.replace(/\$\{(?!env:)([^}]+)\}/g, (match, inner: string) => {
+    if (CURSOR_BUILTIN_VARIABLES.has(inner)) return match
+    const fallbackAt = inner.indexOf(':-')
+    if (fallbackAt === -1) return `\${env:${inner}}`
+    const translated = `\${env:${inner.slice(0, fallbackAt)}}`
+    droppedDefaults?.push(translated)
+    return translated
+  })
 }
 
 function translateStringFields(
   obj: Record<string, unknown>,
   syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
-      result[key] = translateEnvVar(value, syntax)
+      result[key] = translateEnvVar(value, syntax, droppedDefaults)
     } else if (Array.isArray(value)) {
-      result[key] = value.map((v) => (typeof v === 'string' ? translateEnvVar(v, syntax) : v))
+      result[key] = value.map((v) =>
+        typeof v === 'string' ? translateEnvVar(v, syntax, droppedDefaults) : v,
+      )
     } else if (value && typeof value === 'object') {
-      result[key] = translateStringFields(value as Record<string, unknown>, syntax)
+      result[key] = translateStringFields(value as Record<string, unknown>, syntax, droppedDefaults)
     } else {
       result[key] = value
     }
@@ -204,11 +232,13 @@ function translateStringFields(
 export function translateServerConfig(
   server: McpServerConfig,
   syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
 ): McpServerConfig {
   if (syntax === 'bare') return server
   return translateStringFields(
     server as unknown as Record<string, unknown>,
     syntax,
+    droppedDefaults,
   ) as unknown as McpServerConfig
 }
 
@@ -261,7 +291,17 @@ export async function installMcpServers(
       skipped.push(name)
       continue
     }
-    config.mcpServers[name] = translateServerConfig(serverConfig, agent.mcpEnvSyntax)
+    const droppedDefaults: string[] = []
+    config.mcpServers[name] = translateServerConfig(
+      serverConfig,
+      agent.mcpEnvSyntax,
+      droppedDefaults,
+    )
+    if (droppedDefaults.length > 0) {
+      p.log.warn(
+        `MCP server ${name}: ${agent.displayName} has no default-value syntax, default dropped for ${droppedDefaults.join(', ')}`,
+      )
+    }
     installed.push(name)
   }
 
