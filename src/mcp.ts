@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts'
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir, realpath } from 'fs/promises'
+import { homedir } from 'os'
 import { join, dirname } from 'path'
 import type { AgentType, McpServerConfig, McpEnvSyntax } from './types.ts'
 import { agents } from './agents.ts'
@@ -413,6 +414,82 @@ async function writeMcpConfig(filePath: string, config: McpConfigFile): Promise<
   await writeFile(filePath, JSON.stringify(config, null, 2) + '\n', 'utf-8')
 }
 
+// ── User-scope duplicates ──────────────────────────────────
+// maconfai only writes project files, but the same server name may also live in the
+// agent's own user config. Each agent then resolves it its own way (Claude Code keeps the
+// highest scope, Cursor keeps the project entry, Codex merges the fields and refuses to
+// start when the transports differ, Open Code merges the project entry over the global
+// one), so we only point the duplicate out. Paths are resolved at call time, the files are
+// read only (an unreadable file is ignored), and each one is read once per run:
+// `~/.claude.json` can weigh several MB.
+
+const userScopeCache = new Map<string, Promise<Map<string, string>>>()
+
+function serverNamesOf(servers: unknown): string[] {
+  return servers && typeof servers === 'object' ? Object.keys(servers) : []
+}
+
+async function loadUserScopeMcpServers(
+  agentType: AgentType,
+  cwd: string,
+): Promise<Map<string, string>> {
+  // name → where it is defined, as shown in the warning
+  const where = new Map<string, string>()
+  if (agentType === 'claude-code') {
+    // User scope = top-level `mcpServers`; local scope = `projects[<project path>].mcpServers`.
+    const path = join(process.env.CLAUDE_CONFIG_DIR?.trim() || homedir(), '.claude.json')
+    const config = await readMcpConfig(path)
+    for (const name of serverNamesOf(config.mcpServers)) where.set(name, `user config (${path})`)
+    const projects = config.projects as Record<string, McpConfigFile> | undefined
+    const keys = new Set([cwd, await realpath(cwd).catch(() => cwd)])
+    for (const key of keys) {
+      for (const name of serverNamesOf(projects?.[key]?.mcpServers)) {
+        where.set(name, `local scope (${path}, project ${key})`)
+      }
+    }
+  } else if (agentType === 'cursor') {
+    const path = join(homedir(), '.cursor', 'mcp.json')
+    for (const name of serverNamesOf((await readMcpConfig(path)).mcpServers))
+      where.set(name, `user config (${path})`)
+  } else if (agentType === 'codex') {
+    // A header scan rather than `parseCodexToml`, which only reads the project file we own.
+    const path = join(process.env.CODEX_HOME?.trim() || join(homedir(), '.codex'), 'config.toml')
+    const content = await readFile(path, 'utf-8').catch(() => '')
+    const header = /^\s*\[\s*mcp_servers\.(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_-]+))/gm
+    for (const match of content.matchAll(header)) {
+      where.set((match[1] ?? match[2] ?? match[3])!, `user config (${path})`)
+    }
+  } else if (agentType === 'open-code') {
+    const path = join(homedir(), '.config', 'opencode', 'opencode.json')
+    for (const name of serverNamesOf((await readMcpConfig(path)).mcp))
+      where.set(name, `user config (${path})`)
+  }
+  return where
+}
+
+async function warnUserScopeDuplicates(
+  serverNames: string[],
+  agentType: AgentType,
+  cwd: string,
+): Promise<void> {
+  if (serverNames.length === 0) return
+  const key = `${agentType}\0${homedir()}\0${process.env.CLAUDE_CONFIG_DIR ?? ''}\0${process.env.CODEX_HOME ?? ''}\0${cwd}`
+  let pending = userScopeCache.get(key)
+  if (!pending) {
+    pending = loadUserScopeMcpServers(agentType, cwd)
+    userScopeCache.set(key, pending)
+  }
+  const where = await pending
+  for (const name of serverNames) {
+    const location = where.get(name)
+    if (!location) continue
+    p.log.warn(
+      `MCP server "${name}" is also defined in your ${agents[agentType].displayName} ${location}. ` +
+        `The two definitions can conflict: keep one of them.`,
+    )
+  }
+}
+
 export async function installMcpServers(
   servers: Record<string, McpServerConfig>,
   agentType: AgentType,
@@ -426,12 +503,12 @@ export async function installMcpServers(
   const cwd = options.cwd || process.cwd()
   const configPath = join(cwd, agent.mcpConfigPath)
 
-  if (agent.mcpConfigFormat === 'opencode') {
-    return installMcpServersOpenCode(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
-  }
-
-  if (agent.mcpConfigFormat === 'codex') {
-    return installMcpServersCodex(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
+  if (agent.mcpConfigFormat === 'opencode' || agent.mcpConfigFormat === 'codex') {
+    const install =
+      agent.mcpConfigFormat === 'opencode' ? installMcpServersOpenCode : installMcpServersCodex
+    const result = await install(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
+    await warnUserScopeDuplicates(result.installed, agentType, cwd)
+    return result
   }
 
   const config = await readMcpConfig(configPath)
@@ -465,6 +542,7 @@ export async function installMcpServers(
   if (installed.length > 0) {
     await writeMcpConfig(configPath, config)
   }
+  await warnUserScopeDuplicates(installed, agentType, cwd)
 
   return { installed, skipped }
 }
