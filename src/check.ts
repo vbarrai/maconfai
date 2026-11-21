@@ -26,6 +26,7 @@ import {
 import type { SkillLockEntry, McpLockEntry, HookLockEntry } from './lock.ts'
 import type { AgentType, HookGroup } from './types.ts'
 import { agents, detectProjectAgents } from './agents.ts'
+import { trustArg } from './trust.ts'
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
 
@@ -160,7 +161,8 @@ export async function runCheck(
   const mcpUpdates: Array<{ serverName: string; entry: McpLockEntry }> = []
   const hookUpdates: Array<{ groupName: string; entry: HookLockEntry }> = []
   const skipped: Array<{ name: string; reason: string }> = []
-  const blocked: Array<{ name: string }> = []
+  // label is what the report shows; arg is what `maconfai trust` takes
+  const blocked: Array<{ label: string; arg: string }> = []
   const absent: Array<{ name: string; source: string }> = []
   const errors: Array<{ name: string; error: string }> = []
 
@@ -171,7 +173,7 @@ export async function runCheck(
   for (const name of skillNames) {
     const entry = lock.skills[name]!
     if (isBlocked(entry)) {
-      blocked.push({ name })
+      blocked.push({ label: name, arg: trustArg('skill', name, lock) })
       continue
     }
     if (isAbsentLocalSource(entry)) {
@@ -202,7 +204,7 @@ export async function runCheck(
   for (const serverName of mcpNames) {
     const entry = lock.mcpServers[serverName]!
     if (isBlocked(entry)) {
-      blocked.push({ name: `MCP: ${serverName}` })
+      blocked.push({ label: `MCP: ${serverName}`, arg: trustArg('mcp', serverName, lock) })
       continue
     }
     if (isAbsentLocalSource(entry)) {
@@ -228,7 +230,7 @@ export async function runCheck(
   for (const groupName of hookNames) {
     const entry = lock.hooks[groupName]!
     if (isBlocked(entry)) {
-      blocked.push({ name: `hook: ${groupName}` })
+      blocked.push({ label: `hook: ${groupName}`, arg: trustArg('hook', groupName, lock) })
       continue
     }
     if (isAbsentLocalSource(entry)) {
@@ -497,12 +499,14 @@ export async function runCheck(
 
   if (blocked.length > 0) {
     console.log()
-    p.log.warn(
-      `${blocked.length} item(s) blocked (not trusted) — run ${pc.cyan('maconfai update --include-untrusted')} to update anyway`,
-    )
+    p.log.warn(`${blocked.length} item(s) blocked (not trusted):`)
     for (const b of blocked) {
-      p.log.message(pc.dim(`  - ${b.name}`))
+      p.log.message(pc.dim(`  - ${b.label}`))
     }
+    // --include-untrusted only bypasses the gate for one run; trust is what keeps them updating
+    const names = blocked.map((b) => b.arg).join(' ')
+    p.log.info(`To keep them updating, run: ${pc.cyan(`maconfai trust ${names}`)}`)
+    p.log.info(`To update them once: ${pc.cyan('maconfai update --include-untrusted')}`)
   }
 
   if (absent.length > 0) {

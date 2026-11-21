@@ -5,6 +5,7 @@ import { runInstall } from './install.ts'
 import { isItemKind, runAdd, runRemove } from './add-remove.ts'
 import { runCheck } from './check.ts'
 import { runStatus } from './status.ts'
+import { runTrust, runUntrust } from './trust.ts'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
@@ -29,6 +30,10 @@ ${BOLD}Usage:${RESET}
   maconfai check                        Check for updates (prompts before installing)
   maconfai update                       Check and install updates automatically
   maconfai update --include-untrusted   Update every config, including non-trusted ones
+  maconfai trust <name...>              Mark installed configs as trusted (no install)
+  maconfai trust --all                  Mark every installed config as trusted
+  maconfai untrust <name...>            Mark installed configs as not trusted (update blocks them)
+  maconfai untrust --all                Mark every installed config as not trusted
   maconfai status                       Show what ai-lock.json installed and whether it is on disk (read-only)
 
 ${BOLD}Install Options:${RESET}
@@ -124,6 +129,14 @@ async function main(): Promise<void> {
     case 'check':
     case 'update':
       await runCheck(restArgs, { autoUpdate: command === 'update' })
+      break
+
+    case 'trust':
+      await runTrust(restArgs)
+      break
+
+    case 'untrust':
+      await runUntrust(restArgs)
       break
 
     case 'status':
