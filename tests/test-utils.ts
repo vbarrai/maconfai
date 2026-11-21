@@ -307,6 +307,23 @@ export function setupScenario() {
     }
   }
 
+  async function inTarget(run: () => Promise<void>) {
+    const originalCwd = process.cwd()
+    try {
+      process.chdir(targetDir)
+      await run()
+    } finally {
+      process.chdir(originalCwd)
+    }
+  }
+
+  // `maconfai install` without a source: the interactive uninstall. The calling test file
+  // must vi.mock('@clack/prompts') to answer, or the prompt waits on stdin until the
+  // test times out.
+  async function whenUninstall() {
+    await inTarget(() => runInstall([]))
+  }
+
   function getSourceDir() {
     return sourceDir
   }
@@ -379,6 +396,7 @@ export function setupScenario() {
     givenRemoteRef,
     sourceFiles,
     whenInstall,
+    whenUninstall,
     then,
     thenExists,
     targetFile,

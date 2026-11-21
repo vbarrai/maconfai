@@ -18,7 +18,7 @@ ${BOLD}maconfai${RESET} - Minimal skills manager
 
 ${BOLD}Usage:${RESET}
   maconfai install <source> [options]   Install skills from a GitHub repo
-  maconfai install                      Interactive uninstall
+  maconfai install                      Interactive uninstall (current project only)
   maconfai check                        Check for updates (prompts before installing)
   maconfai update                       Check and install updates automatically
   maconfai update --include-untrusted   Update every config, including non-trusted ones
@@ -33,6 +33,11 @@ ${BOLD}Install Options:${RESET}
   --mcps=mcp1,mcp2              Install specific MCP servers
   --hooks=hook1,hook2           Install specific hooks
   --branch=<name>                Use a specific branch
+
+${BOLD}Uninstall:${RESET}
+  Only the project in the current directory: its ai-lock.json and its files.
+  User-scope skills (~/.claude/skills, ~/.agents/skills…) are never touched.
+  To uninstall from another project: cd into it, then run maconfai install.
 
 ${BOLD}Update Options:${RESET}
   --include-untrusted            Update all configs, bypassing the trust gate
@@ -51,7 +56,7 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} maconfai install vercel-labs/agent-skills --branch=develop
   ${DIM}$${RESET} maconfai install vercel-labs/agent-skills -y
   ${DIM}$${RESET} npx maconfai install owner/repo
-  ${DIM}$${RESET} maconfai install                              ${DIM}# uninstall mode${RESET}
+  ${DIM}$${RESET} cd my-project && maconfai install             ${DIM}# uninstall mode (this project only)${RESET}
   ${DIM}$${RESET} maconfai check
 `)
 }

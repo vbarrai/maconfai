@@ -901,13 +901,11 @@ async function runUninstall(): Promise<void> {
 
   const spinner = p.spinner()
 
+  // Only the current directory's project: user-scope skills (~/.claude/skills,
+  // ~/.agents/skills…) are never listed nor removed. To uninstall from another
+  // project, cd into it first.
   spinner.start('Scanning installed configs...')
-  const projectSkills = await listInstalledSkills({ global: false })
-  const globalSkills = await listInstalledSkills({ global: true })
-  const allSkills = [
-    ...projectSkills.map((s) => ({ ...s, scope: 'project' as const })),
-    ...globalSkills.map((s) => ({ ...s, scope: 'global' as const })),
-  ]
+  const allSkills = await listInstalledSkills({ global: false })
   const lock = await readLock()
   const installedMcps = Object.keys(lock.mcpServers)
   const installedHooks = Object.keys(lock.hooks)
@@ -926,7 +924,7 @@ async function runUninstall(): Promise<void> {
   if (allSkills.length > 0) {
     const skillChoices = allSkills.map((s) => ({
       value: s,
-      label: `${s.name} ${pc.dim(`[${s.scope}]`)} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
+      label: `${s.name} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
     }))
 
     const selectedSkills = await p.multiselect({
@@ -1001,7 +999,7 @@ async function runUninstall(): Promise<void> {
     spinner.start('Removing skills...')
     for (const skill of skillsToRemove) {
       for (const agent of skill.agents) {
-        await uninstallSkill(skill.dirName, agent, { global: skill.scope === 'global' })
+        await uninstallSkill(skill.dirName, agent)
       }
       await removeFromLock(skill.name).catch(() => {})
     }
