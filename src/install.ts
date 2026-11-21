@@ -277,6 +277,17 @@ export async function runInstall(args: string[]): Promise<void> {
       installed.map((s) => s.name).filter((name) => Object.hasOwn(startLock.skills, name)),
     )
 
+    // With -y, a --skills/--mcps/--hooks list that names something means "only what is named":
+    // every MCP server and hook is selected only when none does. An empty list (`--mcps=`)
+    // only turns its own category off.
+    const hasContentFilter = Boolean(argSkills?.length || argMcps?.length || argHooks?.length)
+    // A category given no list in such a run is left as it is: nothing installed, nothing
+    // removed. `--mcps=x -y` keeps the installed skills and hooks, `--skills=a -y` keeps the
+    // installed MCP servers and hooks.
+    const skillsUntouched = skipPrompts && !argSkills && hasContentFilter
+    const mcpsUntouched = skipPrompts && !argMcps && hasContentFilter
+    const hooksUntouched = skipPrompts && !argHooks && hasContentFilter
+
     // Select skills (installed ones are pre-checked)
     let selectedSkills: Skill[]
     let allSkills = skills
@@ -285,6 +296,8 @@ export async function runInstall(args: string[]): Promise<void> {
       selectedSkills = []
     } else if (argSkills) {
       selectedSkills = skills.filter((s) => argSkills.includes(s.name))
+    } else if (skillsUntouched) {
+      selectedSkills = []
     } else if (skills.length === 1 || skipPrompts) {
       selectedSkills = skills
     } else {
@@ -329,7 +342,9 @@ export async function runInstall(args: string[]): Promise<void> {
       if (argMcps) {
         selectedMcpNames = new Set(argMcps)
       } else if (skipPrompts) {
-        selectedMcpNames = new Set(allMcpEntries.map((e) => e.serverName))
+        if (!mcpsUntouched) {
+          selectedMcpNames = new Set(allMcpEntries.map((e) => e.serverName))
+        }
       } else {
         const installedMcpNames = await listInstalledMcpServerNames()
 
@@ -376,7 +391,9 @@ export async function runInstall(args: string[]): Promise<void> {
       if (argHooks) {
         selectedHookNames = new Set(argHooks)
       } else if (skipPrompts) {
-        selectedHookNames = new Set(allHookEntries.map((e) => e.groupName))
+        if (!hooksUntouched) {
+          selectedHookNames = new Set(allHookEntries.map((e) => e.groupName))
+        }
       } else {
         const hookChoices = allHookEntries.map((e) => ({
           value: e.groupName,
@@ -403,6 +420,26 @@ export async function runInstall(args: string[]): Promise<void> {
         }
 
         selectedHookNames = new Set(selectedHook as string[])
+      }
+    }
+
+    // Say what a filtered -y run left out, so a script that relied on "-y installs everything"
+    // does not lose an MCP server or hook silently. What is already installed is kept, not skipped.
+    if (skipPrompts && hasContentFilter) {
+      const skipped: string[] = []
+      const skippedMcps = allMcpEntries.filter(
+        (e) =>
+          !selectedMcpNames.has(e.serverName) && !Object.hasOwn(startLock.mcpServers, e.serverName),
+      )
+      if (skippedMcps.length > 0) skipped.push(`${skippedMcps.length} MCP server(s)`)
+      const skippedHooks = allHookEntries.filter(
+        (e) => !selectedHookNames.has(e.groupName) && !Object.hasOwn(startLock.hooks, e.groupName),
+      )
+      if (skippedHooks.length > 0) skipped.push(`${skippedHooks.length} hook(s)`)
+      if (skipped.length > 0) {
+        p.log.info(
+          `Skipped ${skipped.join(' and ')} not named in --mcps/--hooks ${pc.dim('(name them to install them)')}`,
+        )
       }
     }
 
@@ -466,7 +503,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Determine skills to install and uninstall
     const selectedNames = new Set(selectedSkills.map((s) => s.name))
     const toInstall = selectedSkills
-    const toUninstall = allSkills.filter(
+    const toUninstall = (skillsUntouched ? [] : allSkills).filter(
       (s) => installedNames.has(s.name) && !selectedNames.has(s.name),
     )
 
@@ -582,7 +619,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Uninstall deselected MCP servers (present in source + lock but not selected)
     const lockForDeselect = await readLock()
     const lockedMcpNames = new Set(Object.keys(lockForDeselect.mcpServers))
-    const deselectedMcps = allMcpEntries
+    const deselectedMcps = (mcpsUntouched ? [] : allMcpEntries)
       .filter((e) => lockedMcpNames.has(e.serverName) && !selectedMcpNames.has(e.serverName))
       .map((e) => e.serverName)
     if (deselectedMcps.length > 0) {
@@ -598,7 +635,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Uninstall deselected hook groups (present in source + lock but not selected)
     const lockedHookNames = new Set(Object.keys(lockForDeselect.hooks))
-    const deselectedHooks = allHookEntries.filter(
+    const deselectedHooks = (hooksUntouched ? [] : allHookEntries).filter(
       (e) => lockedHookNames.has(e.groupName) && !selectedHookNames.has(e.groupName),
     )
     if (deselectedHooks.length > 0) {

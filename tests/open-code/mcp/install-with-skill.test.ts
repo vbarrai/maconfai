@@ -12,7 +12,7 @@ describeConfai(
         },
       })
 
-      await whenInstall({ mcps: ['linear'], agents: ['open-code'] })
+      await whenInstall({ skills: ['my-skill'], mcps: ['linear'], agents: ['open-code'] })
 
       await targetHasFiles(
         '.agents/skills/my-skill/SKILL.md',

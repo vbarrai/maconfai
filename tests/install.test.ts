@@ -355,7 +355,7 @@ describe('install', () => {
         github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
       })
 
-      await whenInstall({ skills: ['mcp-skill'], agents: ['claude-code'] })
+      await whenInstall({ skills: ['mcp-skill'], agents: ['claude-code'], mcps: ['github'] })
 
       const config = await thenMcpConfig('.mcp.json')
       expect(config.mcpServers.github.command).toBe('npx')
@@ -367,7 +367,7 @@ describe('install', () => {
         github: { command: 'npx', args: ['-y', '@mcp/github'], env: { TOKEN: '${TOKEN}' } },
       })
 
-      await whenInstall({ skills: ['mcp-skill'], agents: ['cursor'] })
+      await whenInstall({ skills: ['mcp-skill'], agents: ['cursor'], mcps: ['github'] })
 
       const config = await thenMcpConfig('.cursor/mcp.json')
       expect(config.mcpServers.github.env.TOKEN).toBe('${env:TOKEN}')
@@ -378,7 +378,11 @@ describe('install', () => {
         postgres: { command: 'npx', args: ['-y', '@mcp/pg'], env: { DB: '${DB_URL}' } },
       })
 
-      await whenInstall({ skills: ['dual-mcp'], agents: ['claude-code', 'cursor'] })
+      await whenInstall({
+        skills: ['dual-mcp'],
+        agents: ['claude-code', 'cursor'],
+        mcps: ['postgres'],
+      })
 
       const claudeConfig = await thenMcpConfig('.mcp.json')
       expect(claudeConfig.mcpServers.postgres.env.DB).toBe('${DB_URL}')
@@ -387,13 +391,17 @@ describe('install', () => {
       expect(cursorConfig.mcpServers.postgres.env.DB).toBe('${env:DB_URL}')
     })
 
-    it('installs multiple MCP servers from one skill', async () => {
+    it('installs multiple MCP servers from mcps/ directories', async () => {
       await givenSkillWithMcp('multi-mcp', {
         github: { command: 'npx', args: ['-y', '@mcp/github'] },
         postgres: { command: 'npx', args: ['-y', '@mcp/pg'] },
       })
 
-      await whenInstall({ skills: ['multi-mcp'], agents: ['claude-code'] })
+      await whenInstall({
+        skills: ['multi-mcp'],
+        agents: ['claude-code'],
+        mcps: ['github', 'postgres'],
+      })
 
       const config = await thenMcpConfig('.mcp.json')
       expect(config.mcpServers.github).toBeDefined()
