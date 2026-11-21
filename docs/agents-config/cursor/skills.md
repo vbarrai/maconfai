@@ -37,6 +37,8 @@ description: What the skill does and when to use it.
 | `disable-model-invocation` | No       | `true` = prevents the agent from automatically loading this Skill. For manual-only workflows (`/deploy`, `/commit`). Default: `false`.                   |
 | `paths`                    | No       | Glob patterns scoping the skill to matching files. Accepts a comma-separated string (`"**/*.py, scripts/**"`) or a YAML list (`paths:\n  - "**/*.tsx"`). |
 | `globs`                    | No       | Legacy alias for `paths` (same semantics).                                                                                                               |
+| `icon`                     | No       | Badge icon for Custom Modes (e.g. `code`, `terminal`, `bug`, `git-branch`, `book-open`, `beaker`, `shield`, `rocket`). Defaults to a lightning icon.     |
+| `color`                    | No       | Badge color for Custom Modes: `default`, `green`, `cyan`, `blue`, `purple`, `magenta`, `orange`, `yellow`, `red`, or `brand`.                            |
 | `metadata`                 | No       | Arbitrary key-value mapping for additional metadata.                                                                                                     |
 
 ## Where to store Skills
@@ -48,7 +50,7 @@ description: What the skill does and when to use it.
 | Project | `.agents/skills/<name>/SKILL.md`   |
 | User    | `~/.agents/skills/<name>/SKILL.md` |
 
-Cursor also recognizes the following legacy/compat paths (used for cross-tool interop): `.claude/skills/`, `.codex/skills/`, `~/.claude/skills/`, `~/.codex/skills/`.
+Cursor also recognizes the following legacy/compat paths (used for cross-tool interop): `.claude/skills/`, `.codex/skills/`, `~/.claude/skills/`, `~/.codex/skills/`. The page states no precedence order between these locations. Only `~/.cursor/skills/` can be synced to Cloud Agents; project skills, `~/.agents/skills/` and unsynced local skills stay local. Cursor walks the skills root recursively.
 
 ### Nested skills
 
@@ -124,7 +126,11 @@ Instructions for domain-specific tasks.
 
 ## Migration
 
-Cursor v2.4 ships with a built-in `/migrate-to-skills` skill that helps convert existing Rules (`.mdc`) and ad-hoc instructions into the Agent Skills format.
+Cursor v2.4 ships with a built-in `/migrate-to-skills` skill (run it in Agent chat). It converts dynamic rules ("Apply Intelligently": `alwaysApply: false` or undefined with no `globs`) into standard skills, and user-level and workspace-level slash commands into skills with `disable-model-invocation: true`. It does not migrate rules with `alwaysApply: true` or specific `globs`, nor user rules; review the output in `.cursor/skills/`.
+
+## Invocation and built-in skills
+
+Type `/` in Agent chat and select the skill, or type `/skill-name`: a skill invoked this way applies to one message. To keep a skill on for the whole session, use it as a Custom Mode (Option+Enter on Mac, Alt+Enter on Windows). Without `disable-model-invocation`, the agent may apply skills automatically when they seem relevant. Built-in skills listed upstream: `/automate`, `/autopilot`, `/canvas`, `/create-hook`, `/create-rule`, `/create-skill`, `/create-subagent`, `/cursor-blame`, `/loop`, `/migrate-to-skills`, `/review`, `/review-bugbot`, `/review-security`, `/sdk`, `/shell`, `/split-to-prs`, `/statusline`, `/update-cli-config`, `/update-cursor-settings`. Without a `description`, Cloud Agents show a warning and the agent is unlikely to select the skill automatically.
 
 ## Full example
 

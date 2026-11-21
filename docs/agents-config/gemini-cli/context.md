@@ -4,6 +4,8 @@
 
 > Official source: [geminicli.com/docs/cli/gemini-md](https://geminicli.com/docs/cli/gemini-md)
 
+> **Notice (from the official pages)**: "Gemini CLI was replaced by Antigravity CLI on June 18th, 2026" for unpaid-tier and Google One users; the details below may not apply to Antigravity.
+
 ## What is GEMINI.md?
 
 `GEMINI.md` is Gemini CLI's persistent instruction file. It contains project conventions, tech stack, commands, and any information the agent needs. All discovered GEMINI.md files are concatenated and sent to the model with every prompt.
@@ -44,8 +46,8 @@ Git workflow: @docs/git-workflow.md
 Shared guidelines: @../shared/style-guide.md
 ```
 
-- Relative and absolute paths supported
-- `~` expansion supported
+- Relative and absolute paths supported (e.g. `@./components/instructions.md`, `@../shared/style-guide.md`)
+- `~` expansion is not mentioned on the current page; see the Memory Import Processor docs for the full import rules
 
 ## Memory Commands
 

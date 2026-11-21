@@ -2,7 +2,7 @@
 
 # Amp Code — Context Files (AGENTS.md)
 
-> Official source: [ampcode.com/manual](https://ampcode.com/manual)
+> Official source: [ampcode.com/docs/customize/agents-md](https://ampcode.com/docs/customize/agents-md) (the former `ampcode.com/manual` is now only an introduction page that links to the `/docs/...` pages)
 
 ## What is AGENTS.md in Amp Code?
 
@@ -20,11 +20,15 @@
 | System (Linux)                | `/etc/ampcode/AGENTS.md`                         | Always included                                     |
 | System (Windows)              | `%ProgramData%\ampcode\AGENTS.md`                | Always included                                     |
 
-> The `amp config agents-md list` CLI command (also available as a command palette entry) shows the active guidance files for the current session.
+> The `amp config agents-md list` CLI command is not mentioned on the current official AGENTS.md page (unverified).
+
+**Global guidance in the web app**: a _Personal Global AGENTS.md_ set in Settings > Instructions also applies to threads running the Claude Code agent. A _Workspace Global AGENTS.md_ (set by admins in Workspace Settings > Instructions) loads before personal and repository guidance and does not apply to subagents, Puck or raw custom agents.
+
+**Ignoring guidance files**: set `AMP_IGNORE_GUIDANCE_FILES` to a colon-delimited list of globs matched against absolute paths (use `/` as the separator and `**` across directories; quote the value). `'*'` ignores all guidance files; ignored files can still be read explicitly with a tool.
 
 ## Fallback File Names
 
-If no `AGENTS.md` exists, Amp looks for:
+If a directory has no `AGENTS.md`, Amp includes one of:
 
 1. `AGENT.md` (without the S)
 2. `CLAUDE.md`
@@ -33,7 +37,7 @@ These legacy filenames continue to work for backward compatibility.
 
 ## Scoped Instructions with Globs
 
-AGENTS.md files support a YAML frontmatter with `globs` to target specific file types:
+A file referenced by an `@`-mention (and the AGENTS.md files themselves, per the earlier version of this doc) can carry a YAML frontmatter with `globs` to target specific file types; a mentioned file with no `globs` is always included:
 
 ```yaml
 ---
@@ -47,7 +51,7 @@ globs:
 - Absolute imports via `@/`
 ```
 
-Files with glob specifications are only loaded when Amp has accessed matching files. Without globs, the file loads whenever referenced. Glob patterns are implicitly prefixed with `**/` unless they start with `../` or `./`, and matching is relative to the AGENTS.md file's location.
+Files with glob specifications are only loaded after Amp has read a file matching one of the globs. Glob patterns are implicitly prefixed with `**/` unless they start with `../` or `./`, and matching is relative to the AGENTS.md file's location.
 
 ## Cross-References (`@`)
 
@@ -60,8 +64,8 @@ See @doc/style.md and @specs/\*_/_.md
 Supported formats:
 
 - Relative paths (resolved from the AGENTS.md location)
-- Absolute paths and `@~/some/path`
-- Glob patterns like `@doc/*.md`
+- `@~/some/path` (home directory); absolute paths are not supported
+- Glob patterns like `@doc/*.md` or `@.agent/**/*.md`
 
 ## Migration
 
@@ -98,5 +102,6 @@ mv .cursorrules AGENTS.md && ln -s AGENTS.md .cursorrules
 
 ## Sources
 
-- [Amp Owner's Manual](https://ampcode.com/manual)
+- [AGENTS.md — Amp Docs](https://ampcode.com/docs/customize/agents-md)
+- [Amp Owner's Manual (intro)](https://ampcode.com/manual)
 - [Sourcegraph Amp](https://sourcegraph.com/amp)

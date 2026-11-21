@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — MCP configuration is not managed by maconfai. Reference only.
+> **maconfai support: Supported** — MCP servers can be installed from `mcps/<name>/mcp.json` (or a root `mcp.json`) in the source repository, merged into `.cursor/mcp.json` (`${VAR}` translated to `${env:VAR}`).
 
 # Cursor — MCP Servers Guide
 
@@ -115,13 +115,15 @@ Remote MCP servers can authenticate via OAuth using an `auth` object:
 }
 ```
 
-| Field           | Required | Description                     |
-| :-------------- | :------- | :------------------------------ |
-| `CLIENT_ID`     | Yes      | OAuth client identifier         |
-| `CLIENT_SECRET` | No       | OAuth client secret             |
-| `scopes`        | No       | List of OAuth scopes to request |
+| Field           | Required | Description                                                                                                                |
+| :-------------- | :------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `CLIENT_ID`     | Yes      | OAuth client identifier                                                                                                    |
+| `CLIENT_SECRET` | No       | OAuth client secret                                                                                                        |
+| `scopes`        | No       | List of OAuth scopes to request. If omitted, Cursor reads `/.well-known/oauth-authorization-server` for `scopes_supported` |
 
-The OAuth redirect URL is fixed to `https://www.cursor.com/agents/mcp/oauth/callback`.
+Static redirect URLs: Web and Cloud Agents use `https://www.cursor.com/agents/mcp/oauth/callback`; the desktop app uses `http://localhost:8787/callback`. Use a static `auth` object instead of dynamic client registration when the provider gives a fixed Client ID, requires redirect URL whitelisting, or does not support Dynamic Client Registration. Setting a static `CLIENT_ID` makes the provider see only the desktop redirect URL for desktop-only use.
+
+Flow: authorization code with PKCE; Cursor reads RFC 9728 protected resource metadata and uses RFC 8707 resource indicators. With dynamic registration Cursor registers as a public client with no secret. Tokens are renewed with the server-issued refresh token; without one you sign in again on expiry. For refresh tokens tied to a scope such as `offline_access`, add it to `scopes`.
 
 ### Environment variables
 
@@ -219,25 +221,25 @@ MCP tools are available in the **Agent mode** of the Composer. The agent can dec
 
 ### Tool approval
 
-By default, Cursor asks for approval before executing an MCP tool. You can enable auto-approval in the settings for trusted tools. OAuth 2.0 is supported for authentication.
+By default, Cursor asks for approval before executing an MCP tool. MCP follows the same Run Modes as terminal commands: in Auto-review mode, allowlisted tools run immediately and others go through the classifier. OAuth 2.0 is supported for authentication.
 
 ### Tool limit
 
-Beyond **~40 MCP tools** loaded simultaneously, the agent loses accuracy. Unlike Claude Code (which loads tools on demand), Cursor loads all tools at startup.
+Beyond **~40 MCP tools** loaded simultaneously, the agent loses accuracy (this limit is not stated on the current official MCP page). Unlike Claude Code (which loads tools on demand), Cursor loads all tools at startup.
 
 ### Diagnostics
 
 - Check server status in **Cursor Settings > MCP**
 - Green dot = connected, red = error
-- Logs available in **Output > MCP** (⌘/Ctrl + Shift + U)
+- Logs available in the Output panel (⌘/Ctrl + Shift + U), then select **MCP Logs**
 
 ## Enterprise MCP Allowlist
 
-Enterprise deployments can restrict approved MCP servers via command patterns (stdio) or URL patterns (remote), with per-tool allowlists. This is configured at the MDM/enterprise policy level.
+Enterprise deployments can restrict approved MCP servers via command patterns (stdio) or URL patterns (remote), with per-tool allowlists (an empty tool list allows all tools). It is configured under Team Settings > MCP Configuration. Team MCP distribution is configured under Dashboard > Plugins & MCPs; the option "Run connectors only on members' computers" keeps servers off Cloud Agents. Network modes for local servers: Allow all, Allowlist, Deny all, No sandbox. Admins can let users add servers outside approved patterns, and the User MCP Network Denylist can block destinations.
 
 ## Supported Protocol Features
 
-Cursor supports the following MCP protocol features: Tools, Prompts, Resources, Roots, Elicitation, and Apps (interactive UI views from MCP tools).
+Cursor supports the following MCP protocol features: Tools, Prompts, Resources, Roots, Elicitation, and Apps (interactive UI views from MCP tools, with progressive enhancement). Tools can also return base64 images, which Cursor attaches to chat. Stdio servers are managed by Cursor for a single user with manual auth; SSE and Streamable HTTP servers can be local or remote, multi-user, with OAuth.
 
 ## Comparison with Claude Code
 

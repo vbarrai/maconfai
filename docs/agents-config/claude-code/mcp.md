@@ -1,4 +1,4 @@
-> **maconfai support: Not supported** — MCP configuration is not managed by maconfai. Reference only.
+> **maconfai support: Supported** — MCP servers can be installed from `mcps/<name>/mcp.json` (or a root `mcp.json`) in the source repository, merged into `.mcp.json` (env vars kept as bare `${VAR}`).
 
 # Claude Code — MCP Servers Guide
 
@@ -16,6 +16,9 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 | `sse`             | Server-Sent Events via HTTP           | **Deprecated** — use HTTP servers instead, where available                                                                       |
 | `streamable-http` | Bidirectional HTTP streaming          | Remote servers (recommended). Also accepted as `"http"` (alias) in JSON configs.                                                 |
 | `ws`              | WebSocket (persistent, bidirectional) | MCP servers that push events; must be configured via `claude mcp add-json` or `.mcp.json` — not via `claude mcp add --transport` |
+| `sdk`             | Registered by an SDK host app         | Only SDK host apps can register it; Claude Code skips it in `.mcp.json`, `~/.claude.json` and settings                           |
+
+A `url` entry with no `type` is a configuration error; an entry with no `type` and a `command` is read as `stdio`. `sse` servers: Claude Code tries HTTP first and falls back to SSE (v2.1.265+).
 
 ## Configuration
 
@@ -71,16 +74,18 @@ For global MCP servers available across all projects:
 
 ## Configuration Fields
 
-| Field           | Required       | Description                                                                                |
-| :-------------- | :------------- | :----------------------------------------------------------------------------------------- |
-| `command`       | Yes (stdio)    | Command to launch the server                                                               |
-| `args`          | No             | Command arguments                                                                          |
-| `env`           | No             | Environment variables                                                                      |
-| `url`           | Yes (sse/http) | Remote server URL                                                                          |
-| `headers`       | No             | HTTP headers for remote servers                                                            |
-| `headersHelper` | No             | Shell command whose stdout produces headers dynamically (e.g. for short-lived auth tokens) |
-| `oauth`         | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl, scopes }`           |
-| `alwaysLoad`    | No             | If `true`, the server is exempt from Tool Search deferral and its tools always load        |
+| Field           | Required       | Description                                                                                                                  |
+| :-------------- | :------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| `command`       | Yes (stdio)    | Command to launch the server                                                                                                 |
+| `args`          | No             | Command arguments                                                                                                            |
+| `env`           | No             | Environment variables                                                                                                        |
+| `type`          | Yes (remote)   | `http`, `streamable-http`, `sse`, `ws` or `stdio`; omitted = `stdio`                                                         |
+| `url`           | Yes (sse/http) | Remote server URL                                                                                                            |
+| `headers`       | No             | HTTP headers for remote servers                                                                                              |
+| `headersHelper` | No             | Shell command whose stdout (a JSON object of string pairs) produces headers dynamically; 10-second limit                     |
+| `timeout`       | No             | Per-server tool-call limit in ms (values below 1000 are ignored)                                                             |
+| `oauth`         | No             | OAuth client config: `{ clientId, callbackPort, authServerMetadataUrl (must be https://), scopes (space-separated string) }` |
+| `alwaysLoad`    | No             | If `true`, the server is exempt from Tool Search deferral and its tools always load                                          |
 
 ## Scopes
 
@@ -92,7 +97,7 @@ For global MCP servers available across all projects:
 
 > **Scope names**: older versions used `Local`/`Project`/`User` (capitalised). Current versions use lowercase `local`/`project`/`user`. The `local` scope was previously called `project`, and the `user` scope was previously called `global`.
 
-**Priority**: local > project > user > plugin-provided servers > claude.ai connectors.
+**Priority**: local > project > user > plugin-provided servers > claude.ai connectors; no field merging across scopes. A server from the `managedMcpServers` setting ranks above all of these (v2.1.259+). Duplicates are matched by name for local/project/user and by endpoint for plugins and connectors.
 
 Project-scoped servers require approval before use.
 
@@ -213,19 +218,28 @@ export MY_API_TOKEN="sk-..."
 
 ## Environment Variables
 
-| Variable                            | Description                                                                                                                                                           |
-| :---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_TIMEOUT`                       | Per-server connection/startup timeout                                                                                                                                 |
-| `MCP_TOOL_TIMEOUT`                  | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                                             |
-| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable; stdio servers are exempt (v2.1.187+) |
-| `MCP_CLIENT_SECRET`                 | OAuth client secret (alternative to `--client-secret`)                                                                                                                |
-| `MCP_CONNECTION_NONBLOCKING`        | If set, MCP connection failures do not block session start                                                                                                            |
-| `ENABLE_TOOL_SEARCH`                | Tool Search deferral mode: `true` (always defer) \| `false` (load upfront) \| `auto` (defer when >10% of context is tools) \| `auto:<N>` (defer when >N tools loaded) |
-| `ENABLE_CLAUDEAI_MCP_SERVERS`       | Enable claude.ai-hosted MCP servers; `disableClaudeAiConnectors: true` in settings achieves the same effect persistently                                              |
-| `CLAUDE_CODE_MCP_SERVER_NAME`       | Server name override when Claude Code runs as an MCP server                                                                                                           |
-| `CLAUDE_CODE_MCP_SERVER_URL`        | Server URL override when Claude Code runs as an MCP server                                                                                                            |
+| Variable                                  | Description                                                                                                                                                           |
+| :---------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_TIMEOUT`                             | Per-server connection/startup timeout                                                                                                                                 |
+| `MCP_TOOL_TIMEOUT`                        | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                                             |
+| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`       | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable; stdio servers are exempt (v2.1.187+) |
+| `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS`      | Threshold after which a long MCP call is moved to the background (default 2 min); `0` disables and makes Claude wait                                                  |
+| `CLAUDE_CODE_DISABLE_MCP_TASK_BACKGROUND` | `1` makes Claude wait for MCP task results                                                                                                                            |
+| `MCP_DISCOVERY_CACHE`                     | `1` on, `0` off                                                                                                                                                       |
+| `MCP_SDK_GENERATION`                      | `v1` or `v2` MCP runtime                                                                                                                                              |
+| `MCP_PROTOCOL_NEGOTIATION`                | `auto` or `legacy`                                                                                                                                                    |
+| `MCP_CLIENT_SECRET`                       | OAuth client secret (alternative to `--client-secret`)                                                                                                                |
+| `MCP_CONNECTION_NONBLOCKING`              | If set, MCP connection failures do not block session start                                                                                                            |
+| `ENABLE_TOOL_SEARCH`                      | Tool Search deferral mode: `true` (always defer) \| `false` (load upfront) \| `auto` (defer when >10% of context is tools) \| `auto:<N>` (defer when >N tools loaded) |
+| `ENABLE_CLAUDEAI_MCP_SERVERS`             | Enable claude.ai-hosted MCP servers; `disableClaudeAiConnectors: true` in settings achieves the same effect persistently                                              |
+| `CLAUDE_CODE_MCP_SERVER_NAME`             | Server name override when Claude Code runs as an MCP server                                                                                                           |
+| `CLAUDE_CODE_MCP_SERVER_URL`              | Server URL override when Claude Code runs as an MCP server                                                                                                            |
 
 > **Reserved name**: `workspace` is reserved and cannot be used as a server name.
+
+> **Credential variables** such as `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `AWS_BEARER_TOKEN_BEDROCK`, `HTTPS_PROXY` and `NPM_TOKEN` read as empty when expanded in a remote server's `url` and `headers` (`ANTHROPIC_BASE_URL` still expands).
+
+> **Resources and roots**: `list_changed` notifications for tools, prompts and resources refresh the full set in interactive sessions (`-p` and the Agent SDK refresh only tools). `roots/list` is answered with the launch directory plus `--add-dir`, `/add-dir` and `additionalDirectories` paths. A server that declares the `claude/channel` capability can be opted in at startup with `--channels`.
 
 ## Common MCP Servers
 
