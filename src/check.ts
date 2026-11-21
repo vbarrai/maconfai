@@ -3,6 +3,7 @@ import pc from 'picocolors'
 import { existsSync } from 'fs'
 import { join } from 'path'
 import { parseSource, getOwnerRepo } from './source-parser.ts'
+import { guardHomeDir } from './home-dir.ts'
 import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
 import {
   discoverSkills,
@@ -58,6 +59,11 @@ export async function runCheck(
   const includeUntrusted = args.includes('--include-untrusted')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
+  // Without a terminal (CI, cron) nobody can confirm, so check/update refuse to run in $HOME.
+  await guardHomeDir(
+    Boolean(process.stdin.isTTY),
+    `Run maconfai ${opts.autoUpdate ? 'update' : 'check'} from a project, or from a terminal to confirm.`,
+  )
 
   const spinner = p.spinner()
   spinner.start('Reading lock file...')

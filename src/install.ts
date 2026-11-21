@@ -3,6 +3,7 @@ import pc from 'picocolors'
 import { existsSync } from 'fs'
 import { join, relative } from 'path'
 import { parseSource } from './source-parser.ts'
+import { guardHomeDir } from './home-dir.ts'
 import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
 import {
   discoverSkills,
@@ -17,7 +18,7 @@ import {
   listInstalledSkills,
   findUnmanagedSkillPaths,
 } from './installer.ts'
-import { agents, detectInstalledAgents } from './agents.ts'
+import { agents, detectInstalledAgents, detectProjectAgents } from './agents.ts'
 import {
   readLock,
   addToLock,
@@ -78,6 +79,8 @@ function parseAgentsArg(args: string[]): AgentType[] | undefined {
 }
 
 export async function runInstall(args: string[]): Promise<void> {
+  const skipPrompts = args.includes('-y') || args.includes('--yes')
+  await guardHomeDir(!skipPrompts, 'Run maconfai from a project, or without -y to confirm.')
   if (args.length === 0) {
     // No source = interactive uninstall mode
     await runUninstall()
@@ -85,7 +88,6 @@ export async function runInstall(args: string[]): Promise<void> {
   }
 
   const source = args.find((a) => !a.startsWith('-'))!
-  const skipPrompts = args.includes('-y') || args.includes('--yes')
   const argAgents = parseAgentsArg(args)
   const argSkills = parseListArg(args, 'skills')
   const argMcps = parseListArg(args, 'mcps')
@@ -455,6 +457,23 @@ export async function runInstall(args: string[]): Promise<void> {
       if (agent.hooksConfigPath && existsSync(agent.hooksConfigPath)) previousAgents.add(a)
     }
 
+    // And the agents the lock records, so a project keeps its targets whoever runs the install
+    const lockEntries = [
+      ...Object.values(startLock.skills),
+      ...Object.values(startLock.mcpServers),
+      ...Object.values(startLock.hooks),
+    ]
+    for (const entry of lockEntries) {
+      for (const a of entry.agents ?? []) {
+        if (ALL_AGENTS.includes(a as AgentType)) previousAgents.add(a as AgentType)
+      }
+    }
+    // Only a first install looks at $HOME (~/.claude, ~/.cursor, ~/.codex…) to pick agents:
+    // afterwards the targets come from the project alone, so they do not depend on who runs it.
+    // The lock decides: hand-written skills on disk do not make a project set up.
+    const firstInstall = lockEntries.length === 0
+    const detectAgents = () => (firstInstall ? detectInstalledAgents() : detectProjectAgents())
+
     // Select agents
     let targetAgents: AgentType[]
     let removedAgents: AgentType[] = []
@@ -462,13 +481,17 @@ export async function runInstall(args: string[]): Promise<void> {
     if (argAgents) {
       targetAgents = argAgents
     } else if (skipPrompts) {
-      const detected = detectInstalledAgents()
+      const detected = detectAgents()
       const combined = new Set([...detected, ...previousAgents])
       targetAgents = combined.size > 0 ? [...combined] : ALL_AGENTS
     } else {
-      const detected = detectInstalledAgents()
-      // Pre-check agents that have any config installed
-      const preSelected = detected.filter((a) => previousAgents.has(a))
+      const detected = detectAgents()
+      // Pre-check agents that have any config installed. A set-up project pre-checks every
+      // agent it already targets, even one missing from this machine's $HOME: unchecked, it
+      // would be cleaned.
+      const preSelected = firstInstall
+        ? detected.filter((a) => previousAgents.has(a))
+        : [...new Set([...detected, ...previousAgents])]
 
       if (detected.length === 0 && previousAgents.size === 0) {
         targetAgents = ALL_AGENTS
