@@ -7,25 +7,45 @@ import { getGitHubToken } from './lock.ts'
 
 const CLONE_TIMEOUT_MS = 60_000
 
-function injectToken(url: string): string {
-  const token = getGitHubToken()
-  if (!token) return url
-
-  try {
-    const parsed = new URL(url)
-    if (parsed.hostname === 'github.com' && !parsed.username) {
-      parsed.username = 'x-access-token'
-      parsed.password = token
-      return parsed.toString()
-    }
-  } catch {}
-
-  return url
+// Hide credentials before any git output reaches the user: the userinfo part of every URL
+// (`https://user:token@host` → `https://***@host`), and each known secret wherever it appears.
+// git's own error message repeats the full command, token-bearing clone URL included.
+export function redactCredentials(text: string, secrets: Array<string | null> = []): string {
+  let redacted = text.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+@/gi, '$1***@')
+  for (const secret of secrets) {
+    // A placeholder token (`GITHUB_TOKEN=x`) would mask every "x" of the message; real
+    // GitHub tokens are 40+ characters, and the URL form is covered above.
+    if (secret && secret.length >= 8) redacted = redacted.split(secret).join('***')
+  }
+  return redacted
 }
 
-function gitExec(args: string[]): Promise<void> {
+// The token reaches git as an HTTP header set through the environment (what actions/checkout
+// does), never in the clone URL: a URL shows in `ps` to every local user for the whole clone,
+// and git writes it to the clone's .git/config, left on disk if the process is killed.
+function gitAuthEnv(url: string, token: string | null): NodeJS.ProcessEnv | undefined {
+  if (!token) return undefined
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname !== 'github.com' || parsed.username) return undefined
+  } catch {
+    return undefined
+  }
+
+  // Appended after any GIT_CONFIG_* entries the caller already set.
+  const index = Number(process.env.GIT_CONFIG_COUNT) || 0
+  const basic = Buffer.from(`x-access-token:${token}`).toString('base64')
+  return {
+    ...process.env,
+    GIT_CONFIG_COUNT: String(index + 1),
+    [`GIT_CONFIG_KEY_${index}`]: 'http.https://github.com/.extraheader',
+    [`GIT_CONFIG_VALUE_${index}`]: `AUTHORIZATION: basic ${basic}`,
+  }
+}
+
+function gitExec(args: string[], env?: NodeJS.ProcessEnv): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = execFile('git', args, { timeout: CLONE_TIMEOUT_MS }, (error) => {
+    const child = execFile('git', args, { timeout: CLONE_TIMEOUT_MS, env }, (error) => {
       if (error) reject(error)
       else resolve()
     })
@@ -35,17 +55,20 @@ function gitExec(args: string[]): Promise<void> {
 
 export async function cloneRepo(url: string, ref?: string): Promise<string> {
   const tempDir = await mkdtemp(join(tmpdir(), 'maconfai-'))
+  const token = getGitHubToken()
 
   try {
     const args = ['clone', '--depth', '1']
     if (ref) args.push('--branch', ref)
-    args.push(injectToken(url), tempDir)
-    await gitExec(args)
+    args.push(url, tempDir)
+    await gitExec(args, gitAuthEnv(url, token))
     return tempDir
   } catch (error) {
     await rm(tempDir, { recursive: true, force: true }).catch(() => {})
     const msg = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to clone ${url}: ${msg}`)
+    throw new Error(
+      `Failed to clone ${redactCredentials(url, [token])}: ${redactCredentials(msg, [token])}`,
+    )
   }
 }
 
