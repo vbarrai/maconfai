@@ -25,6 +25,7 @@ ${BOLD}Usage:${RESET}
 ${BOLD}Install Options:${RESET}
   -y, --yes                      Skip prompts
   --trusted                      Mark installed configs as trusted (blind auto-update)
+  --force                        Replace same-named skill files ai-lock.json does not record
   --agents=claude,cursor,codex,open-code  Install to specific agents
   --skills=skill-a,skill-b      Install specific skills
   --mcps=mcp1,mcp2              Install specific MCP servers

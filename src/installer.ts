@@ -126,6 +126,37 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
   )
 }
 
+// Paths (relative to cwd) that installing `skillName` would replace although ai-lock.json does
+// not record them: a skill written by hand, or one from another tool. `lockedAgents` is the
+// skill's lock entry `agents` (undefined when the lock does not list the skill); only the agents
+// it does not record are checked, and a symlink to our canonical copy counts as ours.
+export async function findUnmanagedSkillPaths(
+  skillName: string,
+  agentTypes: AgentType[],
+  lockedAgents: string[] | undefined,
+  cwd: string = process.cwd(),
+): Promise<string[]> {
+  const dirName = sanitizeName(skillName)
+  const canonicalDir = join(getCanonicalSkillsDir(false, cwd), dirName)
+  const newAgents = agentTypes.filter((a) => !lockedAgents?.includes(a))
+  const usesCanonical = !lockedAgents && newAgents.length > 0
+  const candidates = [
+    ...(usesCanonical ? [canonicalDir] : []),
+    ...newAgents.map((a) => join(getAgentSkillsDir(a, false, cwd), dirName)),
+  ]
+  const found: string[] = []
+  for (const path of new Set(candidates)) {
+    const stats = await lstat(path).catch(() => null)
+    if (!stats) continue
+    if (stats.isSymbolicLink() && path !== canonicalDir) {
+      const target = resolve(dirname(path), await readlink(path))
+      if (target === resolve(canonicalDir)) continue
+    }
+    found.push(relative(cwd, path))
+  }
+  return found
+}
+
 export async function installSkill(
   skill: Skill,
   agentType: AgentType,

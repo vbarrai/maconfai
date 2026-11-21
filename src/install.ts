@@ -11,7 +11,12 @@ import {
   discoverHooks,
   discoverHookDirs,
 } from './skills.ts'
-import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
+import {
+  installSkill,
+  uninstallSkill,
+  listInstalledSkills,
+  findUnmanagedSkillPaths,
+} from './installer.ts'
 import { agents, detectInstalledAgents } from './agents.ts'
 import {
   readLock,
@@ -86,6 +91,8 @@ export async function runInstall(args: string[]): Promise<void> {
   const argMcps = parseListArg(args, 'mcps')
   const argHooks = parseListArg(args, 'hooks')
   const argBranch = parseListArg(args, 'branch')?.[0]
+  // --force replaces a same-named skill that ai-lock.json does not list (written by hand).
+  const force = args.includes('--force')
   // --trusted marks every config installed in this run as trusted (blind auto-update).
   // Run-level choice: true via flag, set by the interactive prompt, or undefined (per-config default).
   let trustChoice: boolean | undefined = args.includes('--trusted') ? true : undefined
@@ -264,7 +271,11 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Check which skills are already installed
     const installed = await listInstalledSkills({ global: false })
-    const installedNames = new Set(installed.map((s) => s.name))
+    // Only skills the lock records are ours: a hand-written one is never pre-checked nor removed.
+    const startLock = await readLock()
+    const installedNames = new Set(
+      installed.map((s) => s.name).filter((name) => Object.hasOwn(startLock.skills, name)),
+    )
 
     // Select skills (installed ones are pre-checked)
     let selectedSkills: Skill[]
@@ -492,6 +503,25 @@ export async function runInstall(args: string[]): Promise<void> {
       return
     }
 
+    // A same-named skill absent from the lock was written by hand: never replace it silently.
+    if (!force) {
+      const unmanaged: string[] = []
+      for (const skill of selectedSkills) {
+        // An entry without `agents` predates the field: the skill is ours, its agents unknown.
+        const lockedAgents = Object.hasOwn(startLock.skills, skill.name)
+          ? (startLock.skills[skill.name]!.agents ?? [])
+          : undefined
+        const paths = await findUnmanagedSkillPaths(skill.name, targetAgents, lockedAgents)
+        if (paths.length > 0) unmanaged.push(`  ${skill.name}: ${paths.join(', ')}`)
+      }
+      if (unmanaged.length > 0) {
+        const noLock = existsSync('ai-lock.json') ? '' : ' No ai-lock.json found in this directory.'
+        throw new Error(
+          `Refusing to overwrite skill files that ai-lock.json does not record (written by hand or by another tool):\n${unmanaged.join('\n')}\nRename or move them, or re-run with --force to replace them.${noLock}`,
+        )
+      }
+    }
+
     // Confirm
     if (!skipPrompts) {
       if (selectedSkills.length > 0) {
@@ -591,7 +621,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Clean removed agents: remove ALL discovered skills from their directories
     if (removedAgents.length > 0) {
       spinner.start('Cleaning removed agents...')
-      for (const skill of allSkills) {
+      for (const skill of allSkills.filter((s) => Object.hasOwn(startLock.skills, s.name))) {
         for (const agent of removedAgents) {
           await uninstallSkill(skill.name, agent, { global: false })
         }
