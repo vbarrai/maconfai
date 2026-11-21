@@ -90,13 +90,13 @@ interface InstallOptions {
 export async function runInstall(args: string[], options: InstallOptions = {}): Promise<void> {
   const skipPrompts = args.includes('-y') || args.includes('--yes')
   await guardHomeDir(!skipPrompts, 'Run maconfai from a project, or without -y to confirm.')
-  if (args.length === 0) {
+  const source = args.find((a) => !a.startsWith('-'))
+  if (!source) {
     // No source = interactive uninstall mode
-    await runUninstall()
+    await runUninstall(skipPrompts)
     return
   }
 
-  const source = args.find((a) => !a.startsWith('-'))!
   const argAgents = parseAgentsArg(args)
   const argSkills = parseListArg(args, 'skills')
   const argMcps = parseListArg(args, 'mcps')
@@ -989,18 +989,37 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
   p.outro(pc.green('Done!'))
 }
 
-async function runUninstall(): Promise<void> {
+async function runUninstall(skipPrompts: boolean): Promise<void> {
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai uninstall ')))
+
+  // Without a source, `install -y` would remove every installed config: refuse it, so a
+  // forgotten source never wipes a project.
+  if (skipPrompts) {
+    p.log.error(
+      'Without a source, install is an interactive uninstall: -y is not supported. Pass a source to install, or drop -y to pick what to remove.',
+    )
+    process.exit(1)
+  }
 
   const spinner = p.spinner()
 
   // Only the current directory's project: user-scope skills (~/.claude/skills,
   // ~/.agents/skills…) are never listed nor removed. To uninstall from another
-  // project, cd into it first.
+  // project, cd into it first. Within the project, offer only what its ai-lock.json
+  // records, for the agents it records: never a hand-written skill or copy.
   spinner.start('Scanning installed configs...')
-  const allSkills = await listInstalledSkills({ global: false })
   const lock = await readLock()
+  const projectSkills = await listInstalledSkills({ global: false })
+  const allSkills = projectSkills.flatMap((s) => {
+    const entry = lock.skills[s.name] ?? lock.skills[s.dirName]
+    if (!entry) return []
+    // An entry written before `agents` existed keeps every agent found on disk.
+    const lockedAgents = entry.agents
+    return [
+      { ...s, agents: lockedAgents ? s.agents.filter((a) => lockedAgents.includes(a)) : s.agents },
+    ]
+  })
   const installedMcps = Object.keys(lock.mcpServers)
   const installedHooks = Object.keys(lock.hooks)
   spinner.stop(
@@ -1102,10 +1121,16 @@ async function runUninstall(): Promise<void> {
 
   if (mcpsToRemove.length > 0) {
     spinner.start('Removing MCP servers...')
-    for (const agent of ALL_AGENTS) {
-      await uninstallMcpServers(mcpsToRemove, agent)
-    }
     for (const name of mcpsToRemove) {
+      // Only the configs the lock says we wrote; an entry without `agents` predates the
+      // field, so every agent is cleaned as before.
+      const lockedAgents = lock.mcpServers[name]?.agents
+      const agentsToClean = lockedAgents
+        ? ALL_AGENTS.filter((a) => lockedAgents.includes(a))
+        : ALL_AGENTS
+      for (const agent of agentsToClean) {
+        await uninstallMcpServers([name], agent)
+      }
       await removeMcpFromLock(name).catch(() => {})
     }
     spinner.stop(`Removed ${mcpsToRemove.length} MCP server(s)`)
