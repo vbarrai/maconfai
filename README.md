@@ -77,7 +77,7 @@ npx maconfai install vbarrai/config-provider-official
 npx maconfai install vbarrai/config-provider-official -y --agents=claude-code
 
 # Cherry-pick specific skills
-npx maconfai install vbarrai/config-provider-official --skills=pre-commit-checks,simplify
+npx maconfai install vbarrai/config-provider-official --skills=release,skill-creator
 ```
 
 ### With npx
