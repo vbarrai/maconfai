@@ -2,7 +2,7 @@
 
 # Amp Code — Context Files (AGENTS.md)
 
-> Official source: [ampcode.com/docs/customize/agents-md](https://ampcode.com/docs/customize/agents-md) (the former `ampcode.com/manual` is now only an introduction page that links to the `/docs/...` pages)
+> Official source: [ampcode.com/docs/customize/agents-md](https://ampcode.com/docs/customize/agents-md) (the former `ampcode.com/manual` now redirects to `ampcode.com/docs`; the content lives under the `/docs/...` pages)
 
 ## What is AGENTS.md in Amp Code?
 
@@ -51,7 +51,7 @@ globs:
 - Absolute imports via `@/`
 ```
 
-Files with glob specifications are only loaded after Amp has read a file matching one of the globs. Glob patterns are implicitly prefixed with `**/` unless they start with `../` or `./`, and matching is relative to the AGENTS.md file's location.
+Files with glob specifications are only loaded after Amp has read a file matching one of the globs. Glob patterns are implicitly prefixed with `**/` unless they start with `../` or `./`, and globs that start with `../` or `./` refer to paths relative to the mentioned file.
 
 ## Cross-References (`@`)
 
@@ -103,5 +103,5 @@ mv .cursorrules AGENTS.md && ln -s AGENTS.md .cursorrules
 ## Sources
 
 - [AGENTS.md — Amp Docs](https://ampcode.com/docs/customize/agents-md)
-- [Amp Owner's Manual (intro)](https://ampcode.com/manual)
+- [Amp Docs](https://ampcode.com/docs)
 - [Sourcegraph Amp](https://sourcegraph.com/amp)

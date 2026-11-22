@@ -4,7 +4,7 @@
 
 > Official source: [opencode.ai/docs/plugins](https://opencode.ai/docs/plugins/) (V2, latest); V1: [opencode.ai/v1/docs/plugins](https://opencode.ai/v1/docs/plugins/)
 
-> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape that maconfai writes unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
+> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
 
 ## Overview
 
@@ -63,7 +63,7 @@ The plugin event catalog includes a wide range of lifecycle hooks:
 | Config key           | `plugin`                   | `plugins`                                                              |
 | Package with options | `["pkg", { ... }]` tuple   | `{ "package": "...", "options": { ... } }` object                      |
 | Local plugin path    | `./plugin/local.ts` (file) | `./plugin/local` (directory with `index.ts`; a single file is skipped) |
-| Discovery folder     | `.opencode/plugin/`        | `.opencode/plugins/` (both discovered)                                 |
+| Discovery folder     | `.opencode/plugins/`       | `.opencode/plugins/` (`.opencode/plugin/` also discovered)             |
 
 V2 `plugins` entries can be npm names (`name`, `name@1.2.0`, `@scope/name`), local directories (relative paths resolve from the config file that contains them, or absolute / `file://`), Git specifications, or objects with options. Arrays from all applicable config files (`~/.config/opencode/opencode.jsonc` < `./opencode.jsonc` < `./.opencode/opencode.jsonc`) are combined; `*` enables every plugin, a `-` prefix disables an ID, and a later ID re-enables it. A `plugins/` directory beside a project-root config file is not discovered automatically (configure it, or move it under `.opencode/`). CLI: `opencode plugin add|list|check|update|remove`. Plugins naming a moving target (`@latest`, ranges, Git branches) update on startup and every 24 hours; exact versions and commit hashes stay pinned. TUI-only plugins are configured in a separate `cli.json`. The V2 plugin page does not list the plugin function signature, event names or hooks (see its "Build a plugin" page); the event table above is from the V1 page.
 

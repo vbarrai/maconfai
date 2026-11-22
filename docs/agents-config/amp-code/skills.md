@@ -2,7 +2,7 @@
 
 # Amp Code — Skills Guide
 
-> Official source: [ampcode.com/docs/customize/skills](https://ampcode.com/docs/customize/skills) (the former `ampcode.com/manual#agent-skills` is now only an introduction page)
+> Official source: [ampcode.com/docs/customize/skills](https://ampcode.com/docs/customize/skills) (the former `ampcode.com/manual#agent-skills` now redirects to `ampcode.com/docs`)
 
 ## Overview
 

@@ -2,7 +2,7 @@
 
 # Cursor — Hooks Guide
 
-> Official source: [cursor.com/docs/agent/hooks](https://cursor.com/docs/agent/hooks)
+> Official source: [cursor.com/docs/hooks](https://cursor.com/docs/hooks)
 
 ## What is a Hook?
 
@@ -105,7 +105,7 @@ Returns `{ ok: boolean, reason?: string }`.
 | `sessionStart` | When a conversation begins | No (fire-and-forget) |
 | `sessionEnd`   | When a conversation ends   | No (fire-and-forget) |
 
-`sessionStart` input adds `session_id`, `is_background_agent` and (optionally) `composer_mode`; `sessionEnd` adds `session_id`, `reason`, `duration_ms`, `is_background_agent`, `final_status` and (optionally) `error_message`. `sessionStart` can inject environment variables and context (`env`, `additional_context`); its schema also accepts `continue` and `user_message`, but they are not enforced. `sessionEnd` receives reason (`completed`/`aborted`/`error`) and duration metrics.
+`sessionStart` input adds `session_id`, `is_background_agent` and (optionally) `composer_mode`; `sessionEnd` adds `session_id`, `reason`, `duration_ms`, `is_background_agent`, `final_status` and (optionally) `error_message`. `sessionStart` can inject environment variables and context (`env`, `additional_context`); its schema also accepts `continue` and `user_message`, but they are not enforced. `sessionEnd` receives reason (`completed`/`aborted`/`error`/`window_close`/`user_close`) and duration metrics.
 
 ### App Lifecycle
 
@@ -184,10 +184,10 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (`con
 | `beforeShellExecution`, `afterShellExecution`     | Shell command text (regex) | `curl\|wget\|nc`                                                      |
 | `beforeReadFile`, `afterFileEdit`                 | Fixed value                | `Read`, `Write`                                                       |
 | `beforeTabFileRead`, `afterTabFileEdit`           | Fixed value                | `TabRead`, `TabWrite`                                                 |
+| `beforeSubmitPrompt`                              | Fixed value                | `UserPromptSubmit`                                                    |
+| `stop`, `afterAgentResponse`, `afterAgentThought` | Fixed value                | `Stop`, `AgentResponse`, `AgentThought`                               |
 
 No documented matcher for `sessionStart`, `sessionEnd`, `beforeMCPExecution`, `afterMCPExecution`, `preCompact`, `workspaceOpen`.
-| `beforeSubmitPrompt` | Fixed value | `UserPromptSubmit` |
-| `stop`, `afterAgentResponse`, `afterAgentThought` | Fixed value | `Stop`, `AgentResponse`, `AgentThought` |
 
 Example:
 
@@ -367,4 +367,4 @@ Cursor supports loading hooks from third-party tools, including Claude Code. Exi
 
 ## Sources
 
-- [Hooks — Cursor Docs](https://cursor.com/docs/agent/hooks)
+- [Hooks — Cursor Docs](https://cursor.com/docs/hooks)

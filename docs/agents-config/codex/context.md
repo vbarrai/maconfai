@@ -107,4 +107,4 @@ Troubleshooting: nothing loads (check the repo and `codex status`; files must no
 ## Sources
 
 - [Custom instructions with AGENTS.md — Codex Docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
-- [Configuration Reference — Codex Docs](https://developers.openai.com/codex/config-reference)
+- [Configuration Reference — Codex Docs](https://learn.chatgpt.com/docs/config-file/config-reference)

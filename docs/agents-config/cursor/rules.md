@@ -2,7 +2,7 @@
 
 # Cursor — Rules Guide
 
-> Official source: [cursor.com/docs/context/rules](https://cursor.com/docs/context/rules)
+> Official source: [cursor.com/docs/rules](https://cursor.com/docs/rules)
 
 ## What is a Rule?
 
@@ -202,7 +202,7 @@ description: Deployment process for staging and production.
 
 ## Sources
 
-- [Rules — Cursor Docs](https://cursor.com/docs/context/rules)
+- [Rules — Cursor Docs](https://cursor.com/docs/rules)
 - [Rules for AI (legacy) — Cursor Docs](https://docs.cursor.com/context/rules-for-ai)
 - [Agent Best Practices — Cursor Blog](https://cursor.com/blog/agent-best-practices)
 - [Best Practices for MDC Rules — Cursor Forum](https://forum.cursor.com/t/my-best-practices-for-mdc-rules-and-troubleshooting/50526)

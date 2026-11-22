@@ -2,7 +2,7 @@
 
 # Amp Code — MCP Servers Guide
 
-> Official source: [ampcode.com/docs/customize/mcp](https://ampcode.com/docs/customize/mcp) (settings keys: [ampcode.com/docs/cli/settings](https://ampcode.com/docs/cli/settings); the former `ampcode.com/manual` is now only an introduction page)
+> Official source: [ampcode.com/docs/customize/mcp](https://ampcode.com/docs/customize/mcp) (settings keys: [ampcode.com/docs/cli/settings](https://ampcode.com/docs/cli/settings); the former `ampcode.com/manual` now redirects to `ampcode.com/docs`)
 
 ## Configuration
 

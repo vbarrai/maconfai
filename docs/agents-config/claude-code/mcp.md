@@ -18,7 +18,7 @@ The **Model Context Protocol** (MCP) is an open protocol that allows Claude Code
 | `ws`              | WebSocket (persistent, bidirectional) | MCP servers that push events; must be configured via `claude mcp add-json` or `.mcp.json` — not via `claude mcp add --transport` |
 | `sdk`             | Registered by an SDK host app         | Only SDK host apps can register it; Claude Code skips it in `.mcp.json`, `~/.claude.json` and settings                           |
 
-A `url` entry with no `type` is a configuration error; an entry with no `type` and a `command` is read as `stdio`. `sse` servers: Claude Code tries HTTP first and falls back to SSE (v2.1.265+).
+A `url` entry with no `type` is a configuration error; an entry with no `type` and a `command` is read as `stdio`. A server added with `claude mcp add --transport http` whose endpoint only speaks SSE: Claude Code tries HTTP first, then switches to SSE (v2.1.265+).
 
 ## Configuration
 
@@ -218,22 +218,22 @@ export MY_API_TOKEN="sk-..."
 
 ## Environment Variables
 
-| Variable                                  | Description                                                                                                                                                           |
-| :---------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MCP_TIMEOUT`                             | Per-server connection/startup timeout                                                                                                                                 |
-| `MCP_TOOL_TIMEOUT`                        | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                                             |
-| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`       | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable; stdio servers are exempt (v2.1.187+) |
-| `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS`      | Threshold after which a long MCP call is moved to the background (default 2 min); `0` disables and makes Claude wait                                                  |
-| `CLAUDE_CODE_DISABLE_MCP_TASK_BACKGROUND` | `1` makes Claude wait for MCP task results                                                                                                                            |
-| `MCP_DISCOVERY_CACHE`                     | `1` on, `0` off                                                                                                                                                       |
-| `MCP_SDK_GENERATION`                      | `v1` or `v2` MCP runtime                                                                                                                                              |
-| `MCP_PROTOCOL_NEGOTIATION`                | `auto` or `legacy`                                                                                                                                                    |
-| `MCP_CLIENT_SECRET`                       | OAuth client secret (alternative to `--client-secret`)                                                                                                                |
-| `MCP_CONNECTION_NONBLOCKING`              | If set, MCP connection failures do not block session start                                                                                                            |
-| `ENABLE_TOOL_SEARCH`                      | Tool Search deferral mode: `true` (always defer) \| `false` (load upfront) \| `auto` (defer when >10% of context is tools) \| `auto:<N>` (defer when >N tools loaded) |
-| `ENABLE_CLAUDEAI_MCP_SERVERS`             | Enable claude.ai-hosted MCP servers; `disableClaudeAiConnectors: true` in settings achieves the same effect persistently                                              |
-| `CLAUDE_CODE_MCP_SERVER_NAME`             | Server name override when Claude Code runs as an MCP server                                                                                                           |
-| `CLAUDE_CODE_MCP_SERVER_URL`              | Server URL override when Claude Code runs as an MCP server                                                                                                            |
+| Variable                                  | Description                                                                                                                                                                       |
+| :---------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_TIMEOUT`                             | Per-server connection/startup timeout                                                                                                                                             |
+| `MCP_TOOL_TIMEOUT`                        | Global per-tool execution timeout in ms (default: ~28 hours); overridden per server by the `timeout` field in `.mcp.json`                                                         |
+| `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT`       | Idle abort window in ms for remote tool calls with no response or progress notification (default: 5 min); set to `0` to disable; stdio servers are exempt (v2.1.187+)             |
+| `CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS`      | Threshold after which a long MCP call is moved to the background (default 2 min); `0` disables and makes Claude wait                                                              |
+| `CLAUDE_CODE_DISABLE_MCP_TASK_BACKGROUND` | `1` makes Claude wait for MCP task results                                                                                                                                        |
+| `MCP_DISCOVERY_CACHE`                     | `1` on, `0` off                                                                                                                                                                   |
+| `MCP_SDK_GENERATION`                      | `v1` or `v2` MCP runtime                                                                                                                                                          |
+| `MCP_PROTOCOL_NEGOTIATION`                | `auto` or `legacy`                                                                                                                                                                |
+| `MCP_CLIENT_SECRET`                       | OAuth client secret (alternative to `--client-secret`)                                                                                                                            |
+| `MCP_CONNECTION_NONBLOCKING`              | Servers connect in the background by default; set to `0` to make startup wait for them                                                                                            |
+| `ENABLE_TOOL_SEARCH`                      | Tool Search deferral mode: `true` (always defer) \| `false` (load upfront) \| `auto` (defer when >10% of context is tools) \| `auto:<N>` (same, with an N % threshold, N = 0-100) |
+| `ENABLE_CLAUDEAI_MCP_SERVERS`             | Enable claude.ai-hosted MCP servers; `disableClaudeAiConnectors: true` in settings achieves the same effect persistently                                                          |
+| `CLAUDE_CODE_MCP_SERVER_NAME`             | Set by Claude Code in the `headersHelper` environment: the name of the MCP server                                                                                                 |
+| `CLAUDE_CODE_MCP_SERVER_URL`              | Set by Claude Code in the `headersHelper` environment: the URL of the MCP server                                                                                                  |
 
 > **Reserved name**: `workspace` is reserved and cannot be used as a server name.
 

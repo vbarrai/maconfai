@@ -102,7 +102,7 @@ For each vulnerability found:
 | `experimental`      | No       | Map; its `cacheTtl` key accepts `5m` or `1h` (v2.1.248+)                                                                                                                                                                                                        |
 | `hooks`             | No       | Hooks specific to the agent's lifecycle                                                                                                                                                                                                                         |
 
-> **Fork mode** is not a subagent frontmatter field. Set `CLAUDE_CODE_FORK_SUBAGENT=0` to turn it off so Claude can wait for subagents.
+> **Fork mode** is not a subagent frontmatter field. It is on by default: Claude can start a fork on its own, and you can start one yourself with `/subtask <task>` (or `/fork` when agent view is turned off). Set `CLAUDE_CODE_FORK_SUBAGENT=0` to turn fork mode off so Claude can wait for subagents.
 
 > **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is set by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (default 3 layers; `1` disables nesting); `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` caps concurrency (default 20).
 

@@ -2,7 +2,7 @@
 
 # Cursor — Agent Skills Guide
 
-> Official source: [cursor.com/docs/context/skills](https://cursor.com/docs/context/skills)
+> Official source: [cursor.com/docs/skills](https://cursor.com/docs/skills)
 
 > **Note**: Agent Skills in Cursor have been available since version **v2.4**. Initially limited to the Nightly channel, Skills support is now active by default on the stable channel. When you create a "New Cursor Rule" from the interface, Cursor generates a `SKILL.md` in `.cursor/skills/`.
 
@@ -210,7 +210,7 @@ In case of a **contradiction** between a Rule and a Skill, the **Rule wins**. Th
 
 ## Sources
 
-- [Agent Skills — Cursor Docs](https://cursor.com/docs/context/skills)
+- [Agent Skills — Cursor Docs](https://cursor.com/docs/skills)
 - [Agent Best Practices — Cursor Blog](https://cursor.com/blog/agent-best-practices)
 - [Agent Skills Open Standard](https://agentskills.io)
 - [How to use Agent Skills in Cursor? — Cursor Forum](https://forum.cursor.com/t/how-to-use-agent-skills-in-cursor-ide/149860)

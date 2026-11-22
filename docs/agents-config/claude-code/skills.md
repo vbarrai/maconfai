@@ -206,24 +206,23 @@ Reference them from `SKILL.md`:
 
 ## Built-in Skills
 
-| Skill                       | Description                                         |
-| :-------------------------- | :-------------------------------------------------- |
-| `/simplify`                 | Code review (reuse, quality, efficiency) then fixes |
-| `/batch <instruction>`      | Large-scale changes in parallel via git worktrees   |
-| `/debug [description]`      | Claude Code session diagnostics                     |
-| `/loop [interval] <prompt>` | Runs a prompt at regular intervals                  |
-| `/claude-api`               | Loads the Claude API reference for your language    |
-| `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs          |
-| `/review`                   | Reviews a pull request                              |
-| `/security-review`          | Runs a security review of pending changes           |
-| `/run`                      | Launches and drives the project's app               |
-| `/verify`                   | Verifies a code change works by running the app     |
-| `/run-skill-generator`      | Generates a new skill via the skill creator flow    |
-| `/doctor` (alias `checkup`) | Diagnoses the installation                          |
-| `/code-review`              | Reviews a diff or pull request (alias `/review`)    |
-| `/workflow-authoring`       | Only when dynamic workflows are enabled             |
+| Skill                       | Description                                                     |
+| :-------------------------- | :-------------------------------------------------------------- |
+| `/simplify`                 | Code review (reuse, quality, efficiency) then fixes             |
+| `/batch <instruction>`      | Large-scale changes in parallel via git worktrees               |
+| `/debug [description]`      | Claude Code session diagnostics                                 |
+| `/loop [interval] <prompt>` | Runs a prompt at regular intervals                              |
+| `/claude-api`               | Loads the Claude API reference for your language                |
+| `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs                      |
+| `/security-review`          | Runs a security review of pending changes                       |
+| `/run`                      | Launches and drives the project's app                           |
+| `/verify`                   | Verifies a code change works by running the app                 |
+| `/run-skill-generator`      | Teach `/run` and `/verify` how to build and launch your project |
+| `/doctor` (alias `checkup`) | Diagnoses the installation                                      |
+| `/code-review`              | Reviews a diff or pull request (alias `/review`)                |
+| `/workflow-authoring`       | Only when dynamic workflows are enabled                         |
 
-`/init`, `/review`, and `/security-review` are also available via the Skill tool.
+`/init` and `/security-review` are also available via the Skill tool (not stated on the current skills page; unverified). `/review` is only an alias of `/code-review`: a project `code-review` skill replaces `/code-review`, and the bundled alias `/review` never runs your skill.
 
 ## Triggering Extended Thinking
 
@@ -246,7 +245,7 @@ Additional settings:
 - `CLAUDE_CODE_SYNC_SKILLS=1` — non-interactive runs download claude.ai skills before answering.
 - `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` — forked skills wait for results.
 - `skillListingBudgetFraction` — fraction of the context window allocated to the skill listing.
-- `maxSkillDescriptionChars` — per-skill description character cap before truncation.
+- `skillListingMaxDescChars` — per-skill cap on the characters of `description` + `when_to_use` shown in the skill listing (positive integer, default `1536`; documented in the settings reference).
 - `skillOverrides` — controls how user/project skills override built-ins: `"on" | "name-only" | "user-invocable-only" | "off"`.
 
 ## Skill Content Lifecycle

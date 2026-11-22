@@ -131,7 +131,7 @@ A hook may emit a JSON object on stdout to influence Codex:
 | :--------------- | :--------------------------------------------------------------------------------------------------------------- |
 | `continue`       | Whether to continue the operation                                                                                |
 | `stopReason`     | Reason to stop (if `continue` is false)                                                                          |
-| `systemMessage`  | Message injected as a system message                                                                             |
+| `systemMessage`  | Surfaced as a warning in the UI or event stream                                                                  |
 | `suppressOutput` | If `true`, suppresses hook stdout from display (parsed; currently unimplemented)                                 |
 | `decision`       | `"block"` (with `reason`) for `PostToolUse`, `UserPromptSubmit`, `SubagentStop`, `Stop`; legacy for `PreToolUse` |
 | `reason`         | Human-readable rationale for the decision                                                                        |
@@ -160,7 +160,7 @@ Event-specific outputs use a nested `hookSpecificOutput` object:
 **Exit code behavior**:
 
 - **Exit 0 + JSON**: Codex parses and applies the JSON output.
-- **Exit 0 + plain text**: becomes developer context for `SessionStart`; ignored for most other events (invalid for `Stop` and `SubagentStop`).
+- **Exit 0 + plain text**: becomes extra developer context for `SessionStart`, `SubagentStart` and `UserPromptSubmit`; ignored for `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact` and `PostCompact`; invalid for `Stop`, `SubagentStop` and `Interrupt`.
 - **Exit 2 + stderr**: Blocks the action (reason on stderr) for `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SubagentStop`, `Stop`.
 - **Any other non-zero**: Hook failure; Codex continues normally (`SessionEnd` errors and timeouts are reported as hook failures).
 

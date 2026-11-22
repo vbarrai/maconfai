@@ -2,9 +2,9 @@
 
 # Open Code — Context Files (AGENTS.md)
 
-> Official source: [opencode.ai/docs/rules](https://opencode.ai/docs/rules/) (V2, latest); V1: [opencode.ai/v1/docs/rules](https://opencode.ai/v1/docs/rules/)
+> Official source: [opencode.ai/docs/instructions](https://opencode.ai/docs/instructions/) (V2, latest; `opencode.ai/docs/rules/` and `opencode.ai/v1/docs/rules/` both redirect there; there is no separate V1 rules page)
 
-> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape that maconfai writes unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
+> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
 
 ## What is AGENTS.md in Open Code?
 
@@ -16,7 +16,7 @@
 | :----------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------ |
 | Global             | `~/.config/opencode/AGENTS.md`                                                                              | Loaded first                                                  |
 | Project and upward | `AGENTS.md` from the workspace directory up to the home directory (outside home, stops at the project root) | Combined, not overridden; OpenCode does not resolve conflicts |
-| Nested (V1)        | `AGENTS.md` in subdirectories                                                                               | Loaded when the agent reads or lists that area, nearest first |
+| Nested             | `AGENTS.md` in subdirectories                                                                               | Loaded when the agent reads or lists that area, nearest first |
 
 ## Fallback File Names
 
@@ -24,7 +24,7 @@ In any directory without an `AGENTS.md`, Open Code reads `CLAUDE.md`; a director
 
 ### Search Precedence
 
-Combined order (V1 page): global, then nested files from the workspace toward the root, then the project root. Edits to global or upward `AGENTS.md` files are detected before the next model request; edits to nested files are not (start a new session).
+Combined order (V2 page): global, then nested files from the workspace toward the root, then the project root. Edits to global or upward `AGENTS.md` files are detected before the next model request; edits to nested files are not (start a new session).
 
 ## Disabling Claude Code Compatibility
 
@@ -52,7 +52,7 @@ Supported entries: relative paths or globs (searched in each directory from the 
 
 ## Auto-Generation
 
-The `/init` command is not mentioned on the current official rules page (V1 or V2); it is kept here from the earlier version of this doc and is unverified.
+The `/init` command is not mentioned on the current official V2 instructions page; it is kept here from the earlier version of this doc and is unverified.
 
 ## Recommended Format
 
@@ -79,5 +79,5 @@ The `/init` command is not mentioned on the current official rules page (V1 or V
 
 ## Sources
 
-- [Open Code Rules](https://opencode.ai/docs/rules/)
+- [Open Code Instructions](https://opencode.ai/docs/instructions/)
 - [Open Code Configuration](https://opencode.ai/docs/config/)
