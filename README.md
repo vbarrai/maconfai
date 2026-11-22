@@ -348,11 +348,11 @@ include: [skills, mcps, hooks]
 prefix: official
 ```
 
-| Field     | Default    | Description                                                             |
-| :-------- | :--------- | :---------------------------------------------------------------------- |
-| `source`  | —          | Source string (same formats as plain string)                            |
-| `include` | `[skills]` | What to pull from the remote: `skills`, `mcps`, `hooks`                 |
-| `prefix`  | —          | Prefix applied to installed skill names, MCP keys, and hook group names |
+| Field     | Default    | Description                                                                                           |
+| :-------- | :--------- | :---------------------------------------------------------------------------------------------------- |
+| `source`  | —          | Where the skill lives: `owner/repo`, `owner/repo/subpath`, `owner/repo#branch`, a URL or a local path |
+| `include` | `[skills]` | What to pull from the remote: `skills`, `mcps`, `hooks`                                               |
+| `prefix`  | —          | Prefix applied to installed skill names, MCP keys, and hook group names                               |
 
 With `prefix: official`, a remote skill named `skill-creator` is installed as `official-skill-creator` (directory name and frontmatter `name:` field both updated). MCP server `github` becomes `official-github`, etc.
 
