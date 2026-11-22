@@ -301,9 +301,9 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
     // every MCP server and hook is selected only when none does. An empty list (`--mcps=`)
     // only turns its own category off.
     const hasContentFilter = Boolean(argSkills?.length || argMcps?.length || argHooks?.length)
-    // A category given no list in such a run is left as it is: nothing installed, nothing
-    // removed. `--mcps=x -y` keeps the installed skills and hooks, `--skills=a -y` keeps the
-    // installed MCP servers and hooks.
+    // A category given no list in such a run is left as it is: `--mcps=x -y` installs no skill
+    // and no hook, `--skills=a -y` no MCP server and no hook. No flag ever removes anything:
+    // only unchecking an item in the interactive lists does.
     const skillsUntouched = skipPrompts && !argSkills && hasContentFilter
     const mcpsUntouched = skipPrompts && !argMcps && hasContentFilter
     const hooksUntouched = skipPrompts && !argHooks && hasContentFilter
@@ -363,6 +363,8 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
 
     // Select MCP servers
     let selectedMcpNames: Set<string> = new Set()
+    // As for skills: only unchecking a server in the interactive list removes it
+    let uncheckedMcpNames: string[] = []
 
     if (allMcpEntries.length > 0) {
       if (argMcps) {
@@ -397,6 +399,9 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
         }
 
         selectedMcpNames = new Set(selectedMcp as string[])
+        uncheckedMcpNames = allMcpEntries
+          .map((e) => e.serverName)
+          .filter((name) => !selectedMcpNames.has(name))
       }
     }
 
@@ -412,6 +417,8 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
 
     // Select hooks
     let selectedHookNames: Set<string> = new Set()
+    // As for skills: only unchecking a hook in the interactive list removes it
+    let uncheckedHooks: HookEntry[] = []
 
     if (allHookEntries.length > 0) {
       if (argHooks) {
@@ -446,6 +453,7 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
         }
 
         selectedHookNames = new Set(selectedHook as string[])
+        uncheckedHooks = allHookEntries.filter((e) => !selectedHookNames.has(e.groupName))
       }
     }
 
@@ -576,13 +584,36 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
     const selectedNames = new Set(selectedSkills.map((s) => s.name))
     const toInstall = selectedSkills
     const toUninstall = uncheckedSkills
-    // --skills used to remove the source's other installed skills: say they are now kept
-    if (argSkills?.length && !options.strict) {
-      const kept = allSkills.filter((s) => installedNames.has(s.name) && !selectedNames.has(s.name))
-      if (kept.length > 0) {
+    // A --skills/--mcps/--hooks list adds, it never removes: say what it left installed
+    if (!options.strict) {
+      const reportKept = (label: string, flag: string, kind: string, kept: string[]) => {
+        if (kept.length === 0) return
         p.log.info(
-          `Kept ${kept.length} installed skill(s) not in --skills: ${kept.map((s) => s.name).join(', ')} (remove with: maconfai remove skill <name>)`,
+          `Kept ${kept.length} installed ${label} not in --${flag}: ${kept.join(', ')} (remove with: maconfai remove ${kind} <name>)`,
         )
+      }
+      if (argSkills?.length) {
+        const kept = allSkills.filter(
+          (s) => installedNames.has(s.name) && !selectedNames.has(s.name),
+        )
+        reportKept(
+          'skill(s)',
+          'skills',
+          'skill',
+          kept.map((s) => s.name),
+        )
+      }
+      if (argMcps?.length) {
+        const kept = allMcpEntries
+          .map((e) => e.serverName)
+          .filter((n) => Object.hasOwn(startLock.mcpServers, n) && !selectedMcpNames.has(n))
+        reportKept('MCP server(s)', 'mcps', 'mcp', kept)
+      }
+      if (argHooks?.length) {
+        const kept = allHookEntries
+          .map((e) => e.groupName)
+          .filter((n) => Object.hasOwn(startLock.hooks, n) && !selectedHookNames.has(n))
+        reportKept('hook(s)', 'hooks', 'hook', kept)
       }
     }
 
@@ -695,14 +726,12 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
       spinner.stop(`Removed ${toUninstall.length} skill(s)`)
     }
 
-    // Uninstall deselected MCP servers (present in source + lock but not selected)
+    // Uninstall the MCP servers unchecked in the interactive list (only those the lock records)
     const lockForDeselect = await readLock()
     const lockedMcpNames = new Set(Object.keys(lockForDeselect.mcpServers))
-    const deselectedMcps = (mcpsUntouched || options.strict ? [] : allMcpEntries)
-      .filter((e) => lockedMcpNames.has(e.serverName) && !selectedMcpNames.has(e.serverName))
-      .map((e) => e.serverName)
+    const deselectedMcps = uncheckedMcpNames.filter((name) => lockedMcpNames.has(name))
     if (deselectedMcps.length > 0) {
-      spinner.start('Removing deselected MCP servers...')
+      spinner.start('Removing unchecked MCP servers...')
       for (const agent of ALL_AGENTS) {
         await uninstallMcpServers(deselectedMcps, agent)
       }
@@ -712,13 +741,11 @@ export async function runInstall(args: string[], options: InstallOptions = {}): 
       spinner.stop(`Removed ${deselectedMcps.length} MCP server(s)`)
     }
 
-    // Uninstall deselected hook groups (present in source + lock but not selected)
+    // Uninstall the hook groups unchecked in the interactive list (only those the lock records)
     const lockedHookNames = new Set(Object.keys(lockForDeselect.hooks))
-    const deselectedHooks = (hooksUntouched || options.strict ? [] : allHookEntries).filter(
-      (e) => lockedHookNames.has(e.groupName) && !selectedHookNames.has(e.groupName),
-    )
+    const deselectedHooks = uncheckedHooks.filter((e) => lockedHookNames.has(e.groupName))
     if (deselectedHooks.length > 0) {
-      spinner.start('Removing deselected hooks...')
+      spinner.start('Removing unchecked hooks...')
       for (const entry of deselectedHooks) {
         const lockEntry = lockForDeselect.hooks[entry.groupName]
         if (lockEntry?.handlers) {

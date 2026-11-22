@@ -1,10 +1,19 @@
-import { it, expect } from 'vitest'
+import { it, expect, vi } from 'vitest'
 import { describeConfai } from '../test-utils.ts'
+import { runInstall } from '../../src/install.ts'
+
+// Interactive run: the MCP list comes back with `linear` unchecked, every confirm says yes
+vi.mock('@clack/prompts', async (importOriginal) => ({
+  ...((await importOriginal()) as Record<string, unknown>),
+  multiselect: async (opts: any) =>
+    opts.options.map((o: any) => o.value).filter((v: any) => v !== 'linear'),
+  confirm: async () => true,
+}))
 
 describeConfai(
-  'install / deselecting a MCP server removes it from config',
-  ({ givenSource, whenInstall, targetFile, targetHasFiles }) => {
-    it('should remove the deselected MCP on re-install', async () => {
+  'install / unchecking a MCP server removes it from config',
+  ({ givenSource, whenInstall, getSourceDir, getTargetDir, targetFile }) => {
+    it('should remove the MCP server unchecked in the interactive list', async () => {
       await givenSource({
         mcps: {
           github: { command: 'npx', args: ['-y', '@mcp/github'] },
@@ -14,31 +23,16 @@ describeConfai(
 
       await whenInstall({ mcps: ['github', 'linear'], agents: ['claude-code'] })
 
-      await targetHasFiles('.mcp.json', 'ai-lock.json')
-      expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
-        "{
-          "mcpServers": {
-            "github": {
-              "command": "npx",
-              "args": [
-                "-y",
-                "@mcp/github"
-              ]
-            },
-            "linear": {
-              "command": "npx",
-              "args": [
-                "-y",
-                "mcp-linear"
-              ]
-            }
-          }
-        }
-        "
-      `)
+      const before = JSON.parse(await targetFile('.mcp.json'))
+      expect(Object.keys(before.mcpServers)).toEqual(['github', 'linear'])
 
-      // Reinstall with only github — linear should be removed
-      await whenInstall({ mcps: ['github'], agents: ['claude-code'] })
+      const originalCwd = process.cwd()
+      try {
+        process.chdir(getTargetDir())
+        await runInstall([getSourceDir(), '--agents=claude-code'])
+      } finally {
+        process.chdir(originalCwd)
+      }
 
       expect(await targetFile('.mcp.json')).toMatchInlineSnapshot(`
         "{
@@ -54,6 +48,8 @@ describeConfai(
         }
         "
       `)
+      const lock = JSON.parse(await targetFile('ai-lock.json'))
+      expect(Object.keys(lock.mcpServers)).toEqual(['github'])
     })
   },
 )
