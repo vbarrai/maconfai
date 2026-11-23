@@ -2,7 +2,7 @@
 
 # Cursor — Hooks Guide
 
-> Official source: [cursor.com/docs/agent/hooks](https://cursor.com/docs/agent/hooks)
+> Official source: [cursor.com/docs/hooks](https://cursor.com/docs/hooks)
 
 ## What is a Hook?
 
@@ -21,12 +21,14 @@ Hooks let you observe, control, and extend the agent loop using custom scripts. 
 
 Priority from highest to lowest:
 
-| Location                 | Scope           | Shareable         |
-| :----------------------- | :-------------- | :---------------- |
-| Enterprise (MDM-managed) | System-wide     | Yes (admin)       |
-| Team (cloud-distributed) | Enterprise only | Yes (admin)       |
-| `.cursor/hooks.json`     | Project         | Yes (committable) |
-| `~/.cursor/hooks.json`   | User (global)   | No                |
+| Location                                                                                                                                                         | Scope                                | Shareable         |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- | :---------------- |
+| Enterprise (MDM-managed): macOS `/Library/Application Support/Cursor/hooks.json`, Linux/WSL `/etc/cursor/hooks.json`, Windows `C:\ProgramData\Cursor\hooks.json` | System-wide                          | Yes (admin)       |
+| Team (cloud-distributed, web dashboard)                                                                                                                          | Enterprise only                      | Yes (admin)       |
+| `.cursor/hooks.json`                                                                                                                                             | Project (runs in trusted workspaces) | Yes (committable) |
+| `~/.cursor/hooks.json`                                                                                                                                           | User (global)                        | No                |
+
+Plugin hooks come after all of these. **Merge rules**: all matching hooks run; `deny` beats `ask`, and `ask` beats `allow`; `user_message` and `agent_message` are concatenated; for other fields such as `followup_message` the last response wins, so lower-priority sources override higher-priority ones.
 
 ### Configuration Format
 
@@ -46,18 +48,20 @@ Priority from highest to lowest:
 }
 ```
 
-**Working directory**: Project hooks run from the project root (use `.cursor/hooks/script.sh`). User hooks run from `~/.cursor/` (use `./hooks/script.sh`).
+**Working directory**: Project hooks run from the project root (use `.cursor/hooks/script.sh`). User hooks run from `~/.cursor/` (use `./hooks/script.sh`). Enterprise hooks run from the enterprise config directory, Team hooks from the managed hooks directory, plugin hooks from the plugin install directory (`CURSOR_PLUGIN_ROOT`; `stop` and `subagentStop` plugin hooks run from the workspace root).
 
 ### Configuration Options
 
-| Option       | Type                      | Default          | Description                           |
-| :----------- | :------------------------ | :--------------- | :------------------------------------ |
-| `command`    | string                    | required         | Script path or shell command          |
-| `type`       | `"command"` \| `"prompt"` | `"command"`      | Execution type                        |
-| `timeout`    | number                    | platform default | Seconds until timeout                 |
-| `loop_limit` | number \| null            | 5                | Auto-follow-up iteration cap          |
-| `failClosed` | boolean                   | false            | Block on hook failure (vs. fail-open) |
-| `matcher`    | string/regex              | —                | Filter criteria                       |
+| Option       | Type                      | Default          | Description                                                                                    |
+| :----------- | :------------------------ | :--------------- | :--------------------------------------------------------------------------------------------- |
+| `command`    | string                    | required         | Script path or shell command                                                                   |
+| `type`       | `"command"` \| `"prompt"` | `"command"`      | Execution type                                                                                 |
+| `timeout`    | number                    | platform default | Seconds until timeout                                                                          |
+| `loop_limit` | number \| null            | 5                | Auto-follow-up iteration cap                                                                   |
+| `failClosed` | boolean                   | false            | Block on hook failure (vs. fail-open)                                                          |
+| `matcher`    | string/regex              | —                | Filter criteria; empty or `"*"` matches everything                                             |
+| `model`      | string                    | —                | Optional model override (prompt hooks)                                                         |
+| `prompt`     | string                    | —                | Prompt text for `type: "prompt"`; supports `$ARGUMENTS` (the input JSON is appended if absent) |
 
 ## Handler Types
 
@@ -72,6 +76,8 @@ Exit code behavior:
 | **0**     | Success — use JSON output      |
 | **2**     | Block action (deny permission) |
 | **Other** | Fail-open (action proceeds)    |
+
+For permission hooks (`beforeShellExecution`, `beforeMCPExecution`, `beforeReadFile`, `beforeTabFileRead`, `subagentStart`, `preToolUse`), invalid JSON or a schema mismatch on exit 0 blocks the action. With `failClosed: true`, crashes, timeouts, non-zero exits and empty output also block. `command` hooks are supported in cloud agents; `prompt` hooks are not.
 
 ### Prompt (`type: "prompt"`)
 
@@ -99,7 +105,7 @@ Returns `{ ok: boolean, reason?: string }`.
 | `sessionStart` | When a conversation begins | No (fire-and-forget) |
 | `sessionEnd`   | When a conversation ends   | No (fire-and-forget) |
 
-`sessionStart` can inject environment variables and context. `sessionEnd` receives reason (`completed`/`aborted`/`error`) and duration metrics.
+`sessionStart` input adds `session_id`, `is_background_agent` and (optionally) `composer_mode`; `sessionEnd` adds `session_id`, `reason`, `duration_ms`, `is_background_agent`, `final_status` and (optionally) `error_message`. `sessionStart` can inject environment variables and context (`env`, `additional_context`); its schema also accepts `continue` and `user_message`, but they are not enforced. `sessionEnd` receives reason (`completed`/`aborted`/`error`/`window_close`/`user_close`) and duration metrics.
 
 ### App Lifecycle
 
@@ -107,7 +113,7 @@ Returns `{ ok: boolean, reason?: string }`.
 | :-------------- | :--------------------- | :------------------- |
 | `workspaceOpen` | When a workspace opens | No (fire-and-forget) |
 
-App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g. `conversation_id`, `generation_id`, `transcript_path`) from the universal input.
+App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (`conversation_id`, `generation_id`, `model`, `session_id`, `transcript_path`) from the universal input. `workspaceOpen` input is `hook_event_name`, `cursor_version`, `workspace_roots`, `user_email`.
 
 ### Tool Execution
 
@@ -128,7 +134,7 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `beforeMCPExecution`   | Before MCP tool execution      | Yes        |
 | `afterMCPExecution`    | After MCP tool execution       | No         |
 
-`beforeShellExecution` can allow/deny/ask permission. Set `failClosed: true` for security-critical gates (default is fail-open). `afterShellExecution` receives command, full output, duration, and sandbox flag.
+`beforeShellExecution` can allow/deny/ask permission. Set `failClosed: true` for security-critical gates (default is fail-open). `beforeShellExecution` input is `command`, `cwd`, `sandbox`. `afterShellExecution` receives command, full output, duration, and sandbox flag. `beforeMCPExecution` input is `tool_name`, `tool_input`, `mcp_server_name`, plus `mcp_server_url`/`url` (HTTP/SSE) or `command` (stdio); `afterMCPExecution` adds `result_json` and `duration`.
 
 ### File Operations
 
@@ -148,7 +154,7 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `subagentStart` | Before subagent spawning | Yes        |
 | `subagentStop`  | When subagent completes  | No         |
 
-`subagentStart` input includes `subagent_type`, task description, parent conversation ID, and `git_branch`. `subagentStop` can trigger auto-continue via `followup_message` and receives status, duration, file modifications, and `loop_count`.
+`subagentStart` input includes `subagent_id`, `subagent_type`, `task`, `parent_conversation_id`, `tool_call_id`, `subagent_model`, `is_parallel_worker`, and (optionally) `git_branch`. `subagentStop` can trigger auto-continue via `followup_message` and receives `subagent_type`, `status`, `task`, `description`, `summary`, `duration_ms`, `message_count`, `tool_call_count`, `loop_count`, `modified_files`, and `agent_transcript_path`.
 
 ### Prompt & Context
 
@@ -157,7 +163,7 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `beforeSubmitPrompt` | After user sends, before backend request | Yes                |
 | `preCompact`         | Before context window compaction         | No (observational) |
 
-`preCompact` input includes `is_first_compaction` (boolean).
+`preCompact` input includes `trigger`, `context_usage_percent`, `context_tokens`, `context_window_size`, `message_count`, `messages_to_compact`, and `is_first_compaction` (boolean).
 
 ### Agent Response Tracking
 
@@ -176,10 +182,12 @@ App-lifecycle hooks (such as `workspaceOpen`) omit session-specific fields (e.g.
 | `preToolUse`, `postToolUse`, `postToolUseFailure` | Tool type                  | `Shell`, `Read`, `Write`, `Grep`, `Delete`, `Task`, `MCP:<tool_name>` |
 | `subagentStart`, `subagentStop`                   | Subagent type              | `generalPurpose`, `explore`, `shell`                                  |
 | `beforeShellExecution`, `afterShellExecution`     | Shell command text (regex) | `curl\|wget\|nc`                                                      |
-| `beforeReadFile`, `afterFileEdit`                 | Tool type                  | `Shell`, `Read`, `Write`, `Grep`, `Delete`, `Task`, `MCP:<tool_name>` |
-| `beforeTabFileRead`, `afterTabFileEdit`           | (no documented matcher)    | —                                                                     |
+| `beforeReadFile`, `afterFileEdit`                 | Fixed value                | `Read`, `Write`                                                       |
+| `beforeTabFileRead`, `afterTabFileEdit`           | Fixed value                | `TabRead`, `TabWrite`                                                 |
 | `beforeSubmitPrompt`                              | Fixed value                | `UserPromptSubmit`                                                    |
 | `stop`, `afterAgentResponse`, `afterAgentThought` | Fixed value                | `Stop`, `AgentResponse`, `AgentThought`                               |
+
+No documented matcher for `sessionStart`, `sessionEnd`, `beforeMCPExecution`, `afterMCPExecution`, `preCompact`, `workspaceOpen`.
 
 Example:
 
@@ -252,14 +260,15 @@ Subject to `loop_limit` (default 5).
 
 ## Environment Variables
 
-| Variable                 | Description                       | Always Present |
-| :----------------------- | :-------------------------------- | :------------- |
-| `CURSOR_PROJECT_DIR`     | Workspace root                    | Yes            |
-| `CURSOR_VERSION`         | Cursor version                    | Yes            |
-| `CURSOR_USER_EMAIL`      | Authenticated user email          | If logged in   |
-| `CURSOR_TRANSCRIPT_PATH` | Conversation transcript path      | If enabled     |
-| `CURSOR_CODE_REMOTE`     | `"true"` in remote workspaces     | Remote only    |
-| `CLAUDE_PROJECT_DIR`     | Alias (Claude Code compatibility) | Yes            |
+| Variable                 | Description                               | Always Present |
+| :----------------------- | :---------------------------------------- | :------------- |
+| `CURSOR_PROJECT_DIR`     | Workspace root                            | Yes            |
+| `CURSOR_VERSION`         | Cursor version                            | Yes            |
+| `CURSOR_USER_EMAIL`      | Authenticated user email                  | If logged in   |
+| `CURSOR_TRANSCRIPT_PATH` | Conversation transcript path              | If enabled     |
+| `CURSOR_CODE_REMOTE`     | `"true"` in remote workspaces             | Remote only    |
+| `CLAUDE_PROJECT_DIR`     | Alias (Claude Code compatibility)         | Yes            |
+| `CURSOR_PLUGIN_ROOT`     | Install directory of the providing plugin | Plugin hooks   |
 
 Session-scoped variables from `sessionStart` propagate to subsequent hook executions.
 
@@ -358,4 +367,4 @@ Cursor supports loading hooks from third-party tools, including Claude Code. Exi
 
 ## Sources
 
-- [Hooks — Cursor Docs](https://cursor.com/docs/agent/hooks)
+- [Hooks — Cursor Docs](https://cursor.com/docs/hooks)

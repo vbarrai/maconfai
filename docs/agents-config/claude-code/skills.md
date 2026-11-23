@@ -61,16 +61,23 @@ Instructions that Claude will follow when the Skill is invoked.
 | `shell`                    | No          | Shell used for `` !`...` `` injection and script execution. `bash` (default) or `powershell` (requires `CLAUDE_CODE_USE_POWERSHELL_TOOL=1`).                           |
 | `context`                  | No          | `fork` = run in an isolated sub-agent.                                                                                                                                 |
 | `agent`                    | No          | Type of sub-agent to use with `context: fork`. Options: `Explore`, `Plan`, `general-purpose` (default), or a custom agent from `.claude/agents/`.                      |
-| `hooks`                    | No          | Hooks tied to the Skill's lifecycle.                                                                                                                                   |
+| `background`               | No          | Only with `context: fork`. Default `true`; `false` waits for the forked skill's result.                                                                                |
+| `hooks`                    | No          | Hooks registered on invocation and kept for the session.                                                                                                               |
+| `metadata`                 | No          | Free-form YAML map for your own tooling. Claude Code ignores its contents.                                                                                             |
+| `license`                  | No          | Agent Skills spec field. Accepted but not acted on.                                                                                                                    |
+| `compatibility`            | No          | Environment requirements, up to 500 characters. Accepted but not acted on.                                                                                             |
+
+Boolean fields accept `true`/`false`, `yes`/`no`, `on`/`off`, `1`/`0`. Unrecognized fields are ignored silently. When a skill is uploaded to claude.ai or the Skills API, only `name`, `description`, `license`, `compatibility`, `metadata` and `allowed-tools` are allowed; other fields cause a hard error on upload.
 
 ## Where to Store Skills
 
-| Scope      | Path                               | Applies to                    |
-| :--------- | :--------------------------------- | :---------------------------- |
-| Enterprise | Managed settings                   | All users in the organization |
-| Personal   | `~/.claude/skills/<name>/SKILL.md` | All your projects             |
-| Project    | `.claude/skills/<name>/SKILL.md`   | This project only             |
-| Plugin     | `<plugin>/skills/<name>/SKILL.md`  | Where the plugin is activated |
+| Scope            | Path                               | Applies to                                                                              |
+| :--------------- | :--------------------------------- | :-------------------------------------------------------------------------------------- |
+| Enterprise       | Managed settings                   | All users in the organization                                                           |
+| Personal         | `~/.claude/skills/<name>/SKILL.md` | All your projects                                                                       |
+| Project          | `.claude/skills/<name>/SKILL.md`   | This project only                                                                       |
+| Plugin           | `<plugin>/skills/<name>/SKILL.md`  | Where the plugin is activated                                                           |
+| claude.ai synced | `~/.claude/skills/synced/`         | Skills enabled on your claude.ai account (reserved names: `synced`, `anthropic-skills`) |
 
 **Priority**: enterprise > personal > project. Plugin Skills use a `plugin:skill` namespace.
 
@@ -80,14 +87,18 @@ When working in a subdirectory, Claude Code also discovers Skills in nested `.cl
 
 ## Substitution Variables
 
-| Variable               | Description                                                           |
-| :--------------------- | :-------------------------------------------------------------------- |
-| `$ARGUMENTS`           | All arguments passed to the invocation                                |
-| `$ARGUMENTS[N]` / `$N` | Argument by index (0-based)                                           |
-| `$name`                | Named argument from the `arguments` frontmatter field (e.g. `$issue`) |
-| `${CLAUDE_SESSION_ID}` | Current session ID                                                    |
-| `${CLAUDE_SKILL_DIR}`  | Directory containing the SKILL.md                                     |
-| `${CLAUDE_EFFORT}`     | Current reasoning effort level                                        |
+| Variable                                          | Description                                                           |
+| :------------------------------------------------ | :-------------------------------------------------------------------- |
+| `$ARGUMENTS`                                      | All arguments passed to the invocation                                |
+| `$ARGUMENTS[N]` / `$N`                            | Argument by index (0-based)                                           |
+| `$name`                                           | Named argument from the `arguments` frontmatter field (e.g. `$issue`) |
+| `${CLAUDE_SESSION_ID}`                            | Current session ID                                                    |
+| `${CLAUDE_SKILL_DIR}`                             | Directory containing the SKILL.md                                     |
+| `${CLAUDE_EFFORT}`                                | Current reasoning effort level                                        |
+| `${CLAUDE_PROJECT_DIR}`                           | Project root                                                          |
+| `${CLAUDE_PLUGIN_ROOT}` / `${CLAUDE_PLUGIN_DATA}` | Plugin install / persistent data directory (plugin skills only)       |
+
+To write a literal dollar sign, escape it (`\$1.00`). `${CLAUDE_SKILL_DIR}` and `${CLAUDE_PROJECT_DIR}` also work inside `allowed-tools` Bash rules.
 
 **Example:**
 
@@ -195,21 +206,23 @@ Reference them from `SKILL.md`:
 
 ## Built-in Skills
 
-| Skill                       | Description                                         |
-| :-------------------------- | :-------------------------------------------------- |
-| `/simplify`                 | Code review (reuse, quality, efficiency) then fixes |
-| `/batch <instruction>`      | Large-scale changes in parallel via git worktrees   |
-| `/debug [description]`      | Claude Code session diagnostics                     |
-| `/loop [interval] <prompt>` | Runs a prompt at regular intervals                  |
-| `/claude-api`               | Loads the Claude API reference for your language    |
-| `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs          |
-| `/review`                   | Reviews a pull request                              |
-| `/security-review`          | Runs a security review of pending changes           |
-| `/run`                      | Launches and drives the project's app               |
-| `/verify`                   | Verifies a code change works by running the app     |
-| `/run-skill-generator`      | Generates a new skill via the skill creator flow    |
+| Skill                       | Description                                                     |
+| :-------------------------- | :-------------------------------------------------------------- |
+| `/simplify`                 | Code review (reuse, quality, efficiency) then fixes             |
+| `/batch <instruction>`      | Large-scale changes in parallel via git worktrees               |
+| `/debug [description]`      | Claude Code session diagnostics                                 |
+| `/loop [interval] <prompt>` | Runs a prompt at regular intervals                              |
+| `/claude-api`               | Loads the Claude API reference for your language                |
+| `/init`                     | Scaffolds a `CLAUDE.md` with codebase docs                      |
+| `/security-review`          | Runs a security review of pending changes                       |
+| `/run`                      | Launches and drives the project's app                           |
+| `/verify`                   | Verifies a code change works by running the app                 |
+| `/run-skill-generator`      | Teach `/run` and `/verify` how to build and launch your project |
+| `/doctor` (alias `checkup`) | Diagnoses the installation                                      |
+| `/code-review`              | Reviews a diff or pull request (alias `/review`)                |
+| `/workflow-authoring`       | Only when dynamic workflows are enabled                         |
 
-`/init`, `/review`, and `/security-review` are also available via the Skill tool.
+`/init` and `/security-review` are also available via the Skill tool (not stated on the current skills page; unverified). `/review` is only an alias of `/code-review`: a project `code-review` skill replaces `/code-review`, and the bundled alias `/review` never runs your skill.
 
 ## Triggering Extended Thinking
 
@@ -225,8 +238,14 @@ Skill descriptions are loaded into context. With many Skills, they can exceed th
 
 Additional settings:
 
+- `disableBundledSkills` — `true` turns off bundled skills.
+- `syncClaudeAiSkills` — `false` stops syncing claude.ai skills.
+- `strictPluginOnlyCustomization` (managed) — can lock `skills` or `hooks` to plugin sources.
+- `allowManagedPermissionRulesOnly` (managed) — Claude Code ignores `allowed-tools` in project and personal skills.
+- `CLAUDE_CODE_SYNC_SKILLS=1` — non-interactive runs download claude.ai skills before answering.
+- `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` — forked skills wait for results.
 - `skillListingBudgetFraction` — fraction of the context window allocated to the skill listing.
-- `maxSkillDescriptionChars` — per-skill description character cap before truncation.
+- `skillListingMaxDescChars` — per-skill cap on the characters of `description` + `when_to_use` shown in the skill listing (positive integer, default `1536`; documented in the settings reference).
 - `skillOverrides` — controls how user/project skills override built-ins: `"on" | "name-only" | "user-invocable-only" | "off"`.
 
 ## Skill Content Lifecycle
@@ -252,7 +271,7 @@ Skill invocations can be scoped in `settings.json` using the `Skill(...)` syntax
 }
 ```
 
-`Skill(name)` matches a specific Skill; `Skill(name *)` matches any argument variant.
+`Skill(name)` matches a specific Skill; `Skill(name *)` matches any argument variant. `Skill(anthropic-skills:pdf)` approves a synced skill; `Skill(anthropic-skills *)` approves all synced skills.
 
 ## Sources
 

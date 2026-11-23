@@ -2,7 +2,9 @@
 
 # Open Code — Context Files (AGENTS.md)
 
-> Official source: [opencode.ai/docs/rules](https://opencode.ai/docs/rules/)
+> Official source: [opencode.ai/docs/instructions](https://opencode.ai/docs/instructions/) (V2, latest; `opencode.ai/docs/rules/` and `opencode.ai/v1/docs/rules/` both redirect there; there is no separate V1 rules page)
+
+> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
 
 ## What is AGENTS.md in Open Code?
 
@@ -10,33 +12,31 @@
 
 ## Locations and Discovery
 
-| Scope              | Path                           | Loading          |
-| :----------------- | :----------------------------- | :--------------- |
-| Project            | `./AGENTS.md`                  | Highest priority |
-| Parent directories | Walk up to git worktree        | Merged           |
-| Global             | `~/.config/opencode/AGENTS.md` | Always included  |
+| Scope              | Path                                                                                                        | Loading                                                       |
+| :----------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------ |
+| Global             | `~/.config/opencode/AGENTS.md`                                                                              | Loaded first                                                  |
+| Project and upward | `AGENTS.md` from the workspace directory up to the home directory (outside home, stops at the project root) | Combined, not overridden; OpenCode does not resolve conflicts |
+| Nested             | `AGENTS.md` in subdirectories                                                                               | Loaded when the agent reads or lists that area, nearest first |
 
 ## Fallback File Names
 
-Open Code looks for `AGENTS.md` first; if none is found in a given category, it falls back to `CLAUDE.md`. **First match per category wins** — if both `AGENTS.md` and `CLAUDE.md` exist in the same location, only `AGENTS.md` is loaded. `~/.config/opencode/AGENTS.md` takes precedence over `~/.claude/CLAUDE.md`.
+In any directory without an `AGENTS.md`, Open Code reads `CLAUDE.md`; a directory's `AGENTS.md` always wins over its `CLAUDE.md`. If there is no global `~/.config/opencode/AGENTS.md`, it reads `~/.claude/CLAUDE.md`. In V2 the choice is made per directory, so a root `AGENTS.md` no longer hides a nested `CLAUDE.md` (V1 stopped at the first matching file name found up the tree).
 
 ### Search Precedence
 
-The explicit lookup order is:
-
-1. **Local upward walk** — `AGENTS.md` (then `CLAUDE.md`) from the current working directory walking up to the git worktree root.
-2. **Global AGENTS.md** — `~/.config/opencode/AGENTS.md`.
-3. **Global Claude Code fallback** — `~/.claude/CLAUDE.md`.
+Combined order (V2 page): global, then nested files from the workspace toward the root, then the project root. Edits to global or upward `AGENTS.md` files are detected before the next model request; edits to nested files are not (start a new session).
 
 ## Disabling Claude Code Compatibility
 
 Open Code's Claude Code interop layer can be opted out via environment variables:
 
-| Variable                              | Effect                                                                 |
-| :------------------------------------ | :--------------------------------------------------------------------- |
-| `OPENCODE_DISABLE_CLAUDE_CODE`        | Disable all Claude Code compatibility behaviors                        |
-| `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skip loading `CLAUDE.md` fallback prompts (`AGENTS.md` only)           |
-| `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS` | Skip discovering skills from `.claude/skills/` and `~/.claude/skills/` |
+| Variable                              | Effect                                                          |
+| :------------------------------------ | :-------------------------------------------------------------- |
+| `OPENCODE_DISABLE_CLAUDE_CODE`        | Skips every `CLAUDE.md` and also skips `.claude` skills         |
+| `OPENCODE_DISABLE_CLAUDE_CODE_PROMPT` | Skips every `CLAUDE.md` (V1 skipped only `~/.claude/CLAUDE.md`) |
+| `OPENCODE_DISABLE_PROJECT_CONFIG`     | Skips project `AGENTS.md` discovery but keeps the global file   |
+
+The upstream page does not document `OPENCODE_DISABLE_CLAUDE_CODE_SKILLS`. The server reads these variables at startup; for the background service, persist them with `opencode service set env`, then run `opencode service restart`.
 
 ## Custom Instruction Files
 
@@ -48,12 +48,11 @@ Specify custom instruction files in `opencode.json` as an **array of paths or gl
 }
 ```
 
-- Glob patterns are supported.
-- Remote URLs can also be listed; they are fetched with a 5-second timeout.
+Supported entries: relative paths or globs (searched in each directory from the workspace up to the project root), `~/` paths, absolute paths (the file name may be a glob), and `http://` or `https://` URLs (fetched when config loads, 5-second timeout; a failed fetch is skipped or keeps its last content). `instructions` entries load after the `AGENTS.md` files, in the listed order, and arrays from all config documents are combined. Missing files are skipped; local files update when they change.
 
 ## Auto-Generation
 
-Use the `/init` command in Open Code to auto-generate an `AGENTS.md` file for your project.
+The `/init` command is not mentioned on the current official V2 instructions page; it is kept here from the earlier version of this doc and is unverified.
 
 ## Recommended Format
 
@@ -80,5 +79,5 @@ Use the `/init` command in Open Code to auto-generate an `AGENTS.md` file for yo
 
 ## Sources
 
-- [Open Code Rules](https://opencode.ai/docs/rules/)
+- [Open Code Instructions](https://opencode.ai/docs/instructions/)
 - [Open Code Configuration](https://opencode.ai/docs/config/)

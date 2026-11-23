@@ -2,7 +2,9 @@
 
 # Open Code — Skills Guide
 
-> Official source: [opencode.ai/docs/skills](https://opencode.ai/docs/skills/)
+> Official source: [opencode.ai/docs/skills](https://opencode.ai/docs/skills/) (V2, latest); V1: [opencode.ai/v1/docs/skills](https://opencode.ai/v1/docs/skills/)
+
+> **Versions**: `opencode.ai/docs/` now documents **OpenCode V2 (latest)**; the V1 documentation lives under `opencode.ai/v1/docs/`. The sections below describe the V1 shape that maconfai writes unless a section says V2. V2 reads existing V1 config from the same locations and normalizes it in memory without rewriting the file, so V1-format files keep working (source: [opencode.ai/docs/migrate-v1](https://opencode.ai/docs/migrate-v1/)).
 
 ## Overview
 
@@ -25,7 +27,7 @@ Open Code supports the open Agent Skills standard with progressive disclosure:
 | User (compat)      | `~/.claude/skills/<name>/SKILL.md`          | Claude Code   |
 | User (standard)    | `~/.agents/skills/<name>/SKILL.md`          | Standard      |
 
-Open Code walks up from the current working directory to the git worktree root, loading matching skills found along the way. Skills are resolved in priority order: project-local paths first (`.opencode/skills/` → `.claude/skills/` → `.agents/skills/`), then user-global paths. If the same skill name exists in multiple locations, the higher-priority location wins.
+Open Code walks up from the current working directory to the git worktree root, loading matching skills found along the way. The V1 page states no explicit precedence order, only that skill names must be unique across all locations (V2 defines one, see below).
 
 ## SKILL.md Format
 
@@ -90,6 +92,15 @@ Custom agent frontmatter can set its own `permission.skill` block, and `opencode
 ```
 
 To disable the skill tool entirely for an agent, set `tools: { skill: false }` in the agent configuration.
+
+## V2 (latest) differences
+
+- **Extra sources**: one ordered `skills` array in any `opencode.json(c)` replaces V1's `skills.paths` / `skills.urls`; entries are relative paths (resolved from the active working directory, not the config file), `~/` paths, absolute paths, or `http(s)://` URLs loaded as HTTP catalogs (a base URL with an `index.json` containing a `skills` array of `{ name, version, files }`). Arrays from several config files are combined.
+- **Precedence** (lowest to highest; the last source registered for an ID wins): built-in skills, `.claude/skills`, `.agents/skills`, `~/.config/opencode/skills`, project `.opencode/skills`, explicit `skills` entries.
+- **Discovery rules**: a markdown file at the source root counts as a skill; files named exactly `SKILL.md` can be nested in grouping directories; a directory containing `SKILL.md` is one skill and is not searched further; hidden files and `node_modules` are skipped; search stops six directories below the source root. `.opencode/skill/` and `.opencode/skills/` are both discovered.
+- **Frontmatter**: all optional at runtime. The skill ID comes from the file path (not `name`, which is a display label). `description` is shown to the model (skills without one are not advertised). `metadata.opencode/autoinvoke: false` or `disable-model-invocation: true` removes the skill from the model's list (`opencode/autoinvoke` wins if both are set). `license` and `compatibility` are accepted but not interpreted. V2 does not enforce the name regex, the 1–64 length, the name/directory match, or a maximum description length.
+- **Permissions** use a `permissions` array (`permission.skill` is V1): `{ "action": "skill", "resource": "internal-*", "effect": "deny" }` with `allow` / `ask` / `deny`; rules run in order and the last matching rule wins. Per-agent overrides go under `agents.<id>.permissions`.
+- **Skill tool**: the model loads a skill by calling `skill` with `{"id": "<skill-id>"}`; users can load one with `@skill-id` in a prompt. On load OpenCode adds the body (without frontmatter), the skill's base directory and a sample of up to ten supporting file paths (directory-based skills only).
 
 ## MCP in Skills
 

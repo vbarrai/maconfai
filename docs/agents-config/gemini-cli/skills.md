@@ -4,6 +4,8 @@
 
 > Official source: [geminicli.com/docs/cli/skills](https://geminicli.com/docs/cli/skills/)
 
+> **Notice (from the official pages)**: "Gemini CLI was replaced by Antigravity CLI on June 18th, 2026" for unpaid-tier and Google One users; the details below may not apply to Antigravity.
+
 ## Overview
 
 Gemini CLI supports the open Agent Skills standard with progressive disclosure:
@@ -57,24 +59,24 @@ Gemini CLI does **not** support frontmatter-based invocation control (no `disabl
 
 However, Gemini CLI provides **runtime skill management** via slash commands:
 
-| Command                                     | Description                                                                              |
-| :------------------------------------------ | :--------------------------------------------------------------------------------------- |
-| `/skills`                                   | List all available skills and their current status                                       |
-| `/skills list [all] [nodesc]`               | List skills (explicit form; `all` includes built-in skills, `nodesc` omits descriptions) |
-| `/skills disable <name>`                    | Disable a skill for the current session                                                  |
-| `/skills enable <name>`                     | Re-enable a previously disabled skill                                                    |
-| `/skills link <path>`                       | Symlink a skill from a local directory                                                   |
-| `/skills reload` (alias: `/skills refresh`) | Refresh skill discovery                                                                  |
+| Command                                         | Description                                                                              |
+| :---------------------------------------------- | :--------------------------------------------------------------------------------------- |
+| `/skills`                                       | List all available skills and their current status                                       |
+| `/skills list [all] [nodesc]`                   | List skills (explicit form; `all` includes built-in skills, `nodesc` omits descriptions) |
+| `/skills disable <name>`                        | Disable a skill (user scope by default; `--scope workspace` for workspace settings)      |
+| `/skills enable <name>`                         | Re-enable a previously disabled skill (same `--scope` option)                            |
+| `/skills link <path> [--scope user\|workspace]` | Symlink a skill from a local directory                                                   |
+| `/skills reload` (alias: `/skills refresh`)     | Refresh skill discovery                                                                  |
 
 And via terminal commands:
 
-| Command                                                                   | Description                                                                                                                                                                       |
-| :------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gemini skills list --all`                                                | List all installed skills (including built-ins)                                                                                                                                   |
-| `gemini skills install <url\|path> [--scope workspace\|user] [--consent]` | Install from URL or path; default scope is `user` (`--scope workspace` for project-local). `--path <subdir>` to install from a subdirectory. `--consent` pre-approves activation. |
-| `gemini skills uninstall <name> [--scope user\|workspace]`                | Uninstall a skill from the given scope                                                                                                                                            |
+| Command                                                                   | Description                                                                                                                                                                                                                                                        |
+| :------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gemini skills list --all`                                                | List installed skills (`--all` includes built-ins)                                                                                                                                                                                                                 |
+| `gemini skills install <url\|path> [--scope workspace\|user] [--consent]` | Install from URL or path; default scope is `user` (`--scope workspace` for project-local). `--path <subdir>` to install from a subdirectory of a Git repo. `--consent` acknowledges the security risks and skips the interactive confirmation during installation. |
+| `gemini skills uninstall <name> [--scope user\|workspace]`                | Uninstall a skill from the given scope                                                                                                                                                                                                                             |
 
-All skill activations require **explicit user consent** via the policy engine — Gemini always prompts for confirmation before injecting a skill.
+All skill activations require **explicit user consent** — Gemini always prompts (name, purpose, directory path) before injecting a skill; on approval the skill directory becomes an allowed file path so bundled assets can be read. Workspace skills are shared through version control: review them like other project code.
 
 ## Built-in Skills
 

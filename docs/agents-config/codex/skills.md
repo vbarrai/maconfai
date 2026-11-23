@@ -2,26 +2,28 @@
 
 # OpenAI Codex — Skills Guide
 
-> Official source: [developers.openai.com/codex/skills](https://developers.openai.com/codex/skills/)
+> Official source: [learn.chatgpt.com/docs/build-skills](https://learn.chatgpt.com/docs/build-skills) (moved from `developers.openai.com/codex/skills`, which now redirects there)
 
 ## Overview
 
 Codex supports the open Agent Skills standard with progressive disclosure:
 
-| Level               | When Loaded                 | Budget                                                     |
-| :------------------ | :-------------------------- | :--------------------------------------------------------- |
-| **1. Metadata**     | At startup                  | ~8,000 characters total when the context window is unknown |
-| **2. Instructions** | When the skill is triggered | SKILL.md body                                              |
-| **3. Resources**    | On demand                   | Referenced files, scripts                                  |
+| Level               | When Loaded                 | Budget                                                                                                                                                                                                                                                  |
+| :------------------ | :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1. Metadata**     | At startup                  | At most 2% of the context window, or ~8,000 characters when the window size is unknown (`skills.max_context_tokens` sets the initial budget, up to 10,000 tokens). Too large: descriptions are shortened first, then some skills omitted with a warning |
+| **2. Instructions** | When the skill is triggered | SKILL.md body                                                                                                                                                                                                                                           |
+| **3. Resources**    | On demand                   | Referenced files, scripts                                                                                                                                                                                                                               |
 
 ## Locations
 
-| Scope  | Path                                                                              |
-| :----- | :-------------------------------------------------------------------------------- |
-| REPO   | `.agents/skills` (cwd), `../.agents/skills` (parent), `$REPO_ROOT/.agents/skills` |
-| USER   | `$HOME/.agents/skills` (note: upstream is NOT `~/.codex/skills`)                  |
-| ADMIN  | `/etc/codex/skills`                                                               |
-| SYSTEM | Bundled with Codex                                                                |
+| Scope  | Path                                                                                    |
+| :----- | :-------------------------------------------------------------------------------------- |
+| REPO   | `.agents/skills` (cwd), `../.agents/skills` (parent), `$REPO_ROOT/.agents/skills`       |
+| USER   | `$HOME/.agents/skills` (note: upstream is NOT `~/.codex/skills`)                        |
+| ADMIN  | `/etc/codex/skills`                                                                     |
+| SYSTEM | Bundled with Codex (includes `skill-creator` and `skill-installer`, enabled by default) |
+
+Codex scans `.agents/skills` in every directory from the cwd up to the repo root. Skills with the same `name` are not merged: both can appear in skill selectors (the page states no ranking among scopes). Symlinked skill folders are supported and followed during scanning.
 
 > **Note:** Upstream documents the USER skills dir as `$HOME/.agents/skills/<name>/`. The maconfai `CLAUDE.md` mapping listing `~/.codex/skills/<name>/` is therefore incorrect and should be updated.
 
@@ -95,7 +97,7 @@ Two invocation modes:
 | **Explicit** | `$skill-name` (e.g., `$skill-installer`, `$create-plan`) | User triggers directly                      |
 | **Implicit** | Automatic                                                | Codex selects the skill based on the prompt |
 
-Commands: `/skills` to list, `$` to mention a skill.
+Commands: `/skills` to list, `$` to mention a skill (in ChatGPT, type `@`; `$skill-creator` is `@skill-creator` there).
 
 ## Disabling a Skill
 
@@ -107,7 +109,9 @@ path = "/path/to/skill/SKILL.md"
 enabled = false
 ```
 
-> **Note**: referencing a skill by `name` alone (without `path`) is not documented in the current upstream reference — use `path` to reliably identify the skill.
+Use exactly one selector per entry: `path` (absolute path to one `SKILL.md`) or `name` (matches all skills with that name). When several entries match, the last one wins. Restart Codex after configuration changes.
+
+To turn off the bundled system skills for the current project, set `[skills.bundled]` with `enabled = false` in a trusted `.codex/config.toml`.
 
 ## Built-in System Skills
 
@@ -115,8 +119,8 @@ Codex ships with skills under the SYSTEM scope (bundled with the binary; exact o
 
 | Skill                     | Description                                                                                                                                                                |
 | :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `$create-plan`            | Helps plan complex tasks (not confirmed in current upstream skills reference — may be a SYSTEM skill subject to change)                                                    |
-| `$skill-creator`          | Helps create new skills                                                                                                                                                    |
+| `$create-plan`            | Helps plan complex tasks (not listed on the current upstream skills page, which names only `skill-creator` and `skill-installer`)                                          |
+| `$skill-creator`          | Creates or updates a skill                                                                                                                                                 |
 | `$skill-installer [name]` | Installs a named or interactively selected skill from a GitHub repository, a local path, or the [curated list](https://github.com/openai/skills/tree/main/skills/.curated) |
 
 ## Skills + MCP
@@ -129,5 +133,5 @@ A skill created for Codex can work in Claude Code, Gemini CLI, Cursor, GitHub Co
 
 ## Sources
 
-- [Agent Skills](https://developers.openai.com/codex/skills/)
+- [Agent Skills](https://learn.chatgpt.com/docs/build-skills)
 - [Agent Skills Standard](https://agentskills.io)

@@ -20,7 +20,7 @@ Claude automatically loads the contents of `CLAUDE.md` at the start of each sess
 | Project (local) | `CLAUDE.local.md`                                                                                                                                 | This project (unversioned, gitignored)                  |
 | Subdirectory    | `packages/frontend/CLAUDE.md`                                                                                                                     | Loaded on demand when Claude works in this subdirectory |
 
-**Priority**: managed policy > user > project. More specific files complement (do not replace) more general ones.
+**Load order**: broadest to most specific (managed policy, user, project, local), so a project instruction appears in context after a user instruction. Files are concatenated, not overridden; within a directory, `CLAUDE.local.md` is appended after `CLAUDE.md`. A `CLAUDE.md` over 4 MiB is skipped entirely.
 
 **Filename**: case-sensitive — must be exactly `CLAUDE.md` (uppercase). Target **< 200 lines** per file for better adherence.
 
@@ -36,16 +36,33 @@ The `claudeMdExcludes` setting allows excluding certain files (useful in monorep
 
 ### AGENTS.md Interop
 
-Claude Code can read an `AGENTS.md` file (the cross-tool agent instructions convention) via an `@AGENTS.md` import inside `CLAUDE.md`, or by symlinking `CLAUDE.md → AGENTS.md`.
+Claude Code (v2.1.277+) reads `AGENTS.md` natively. By default (the `claude-md-or-agents-md` mode) it reads `AGENTS.md` only when there is no `CLAUDE.md`, `.claude/CLAUDE.md` or `CLAUDE.local.md` in the working directory or above it. `~/.claude/CLAUDE.md`, the managed `CLAUDE.md` and `.claude/rules/` files do not count for that check and keep loading alongside `AGENTS.md`.
+
+When no `CLAUDE.md` counts, Claude reads every `AGENTS.md` and `.claude/AGENTS.md` in the working directory and the directories above it at session start, plus a subdirectory's `AGENTS.md` when Claude opens a file there that has none of the three `CLAUDE.md` files of its own. `@path` imports and `claudeMdExcludes` apply inside each `AGENTS.md`. Not read: `AGENTS.local.md`, `AGENTS.override.md`, anything under `.agents/`.
+
+Change the behavior with the **Project instructions** setting in `/config`:
+
+| Value                     | What Claude reads                                                                                                     |
+| :------------------------ | :-------------------------------------------------------------------------------------------------------------------- |
+| `claude-md-or-agents-md`  | `CLAUDE.md` files, or `AGENTS.md` when there is no `CLAUDE.md`/`CLAUDE.local.md` above. The default                   |
+| `claude-md-and-agents-md` | Both: each directory's `CLAUDE.md` first, then its `AGENTS.md` (an already-loaded file is not read twice)             |
+| `claude-md`               | `CLAUDE.md` files only                                                                                                |
+| `managed-only`            | Only the managed `CLAUDE.md` and auto memory at launch; on-demand subdirectory files and path-scoped rules still load |
+
+The value can also be set in `~/.claude/settings.json`, a `--settings` file or managed settings (ignored in project and local settings) as `pluginConfigs["cc-plugin-agents-md@builtin"].options.instructionFiles`. Before v2.1.285 the plugin ID was `agents-md@builtin`.
+
+Differences from `CLAUDE.md`: `InstructionsLoaded` hooks do not fire for an `AGENTS.md` read through the setting; with `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` set, `--add-dir` directories' `AGENTS.md` is not loaded; external `@path` imports load without a prompt once external imports were approved for the project.
+
+When Claude does not read `AGENTS.md` directly (version before v2.1.277, built-in plugin disabled via `/plugin`, some first sessions after an upgrade), keep an `@AGENTS.md` import in a `CLAUDE.md` next to it, or symlink `CLAUDE.md → AGENTS.md`; Claude Code never reads the same file twice.
 
 ### Auto Memory
 
-When enabled, Claude Code writes session learnings to `~/.claude/projects/<project>/memory/MEMORY.md`. The first **200 lines** (capped at **25 KB**) are loaded automatically at session start.
+When enabled, Claude Code writes session learnings to `~/.claude/projects/<project>/memory/MEMORY.md`. The first **200 lines** (capped at **25 KB**) are loaded automatically at session start; topic files next to it are read on demand. All worktrees and subdirectories of one git repository share one memory directory. The memory is machine-local and is not loaded into subagents (a fork inherits the parent conversation). Auto memory is off by default in self-hosted-environment sessions.
 
 Controlled by:
 
 - `autoMemoryEnabled` (settings)
-- `autoMemoryDirectory` (settings) — override the default location
+- `autoMemoryDirectory` (settings) — override the default location (absolute path or `~/…`; read from any settings scope)
 - `CLAUDE_CODE_DISABLE_AUTO_MEMORY` (env var)
 
 ## Imports (`@path`)
@@ -245,15 +262,18 @@ paths: src/api/**/*.ts
 - Return structured errors
 ```
 
-User rules (`~/.claude/rules/`) are loaded before project rules (project takes priority).
+`paths` is the only frontmatter field Claude Code reads from a rule (YAML list or comma-separated string); other fields are ignored, and unparseable frontmatter is ignored (the rule loads without `paths`).
+
+User rules (`~/.claude/rules/`) are loaded before project rules, so a project rule appears later in context. Neither set overrides the other: keep them consistent. `.claude/rules/` supports symlinks; a symlink whose target is outside the working directory is treated like an external import and needs approval (symlinks to network paths are not followed).
 
 ## Environment Variables
 
-| Variable                                       | Description                                                          |
-| :--------------------------------------------- | :------------------------------------------------------------------- |
-| `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` | When set, CLAUDE.md files in `--add-dir` directories are also loaded |
-| `CLAUDE_CODE_DISABLE_AUTO_MEMORY`              | Disable auto-memory writes/loads                                     |
-| `CLAUDE_CODE_NEW_INIT`                         | Set to `1` to enable an interactive multi-phase `/init` flow         |
+| Variable                                       | Description                                                                                           |
+| :--------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` | When set, CLAUDE.md files in `--add-dir` directories are also loaded                                  |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY`              | Disable auto-memory writes/loads                                                                      |
+| `CLAUDE_CODE_PROJECT_DIR_NAME`                 | With `CLAUDE_CONFIG_DIR`: fixed `<project>` directory name under `<config dir>/projects/` (v2.1.234+) |
+| `CLAUDE_CODE_NEW_INIT`                         | Set to `1` to enable an interactive multi-phase `/init` flow                                          |
 
 ## CLI — Commands and Flags
 

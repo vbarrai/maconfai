@@ -2,7 +2,7 @@
 
 # Cursor — Context Files (AGENTS.md)
 
-> Official source: [cursor.com/docs/context/rules](https://cursor.com/docs/context/rules)
+> Official source: [cursor.com/docs/rules](https://cursor.com/docs/rules)
 
 ## What is AGENTS.md in Cursor?
 
@@ -69,5 +69,5 @@ Instructions from `AGENTS.md` apply to **Agent (Chat) mode only** — not to Inl
 
 ## Sources
 
-- [Rules — Cursor Docs](https://cursor.com/docs/context/rules)
+- [Rules — Cursor Docs](https://cursor.com/docs/rules)
 - [Agent Best Practices — Cursor Blog](https://cursor.com/blog/agent-best-practices)

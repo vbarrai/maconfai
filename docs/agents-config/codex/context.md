@@ -2,7 +2,7 @@
 
 # OpenAI Codex — Context Files (AGENTS.md)
 
-> Official source: [developers.openai.com/codex/guides/agents-md](https://developers.openai.com/codex/guides/agents-md)
+> Official source: [learn.chatgpt.com/docs/agent-configuration/agents-md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) (moved from `developers.openai.com/codex/guides/agents-md`, which now redirects there)
 
 ## What is AGENTS.md?
 
@@ -28,7 +28,7 @@ At most one file per directory is included.
 
 ### Merge behavior
 
-Files are concatenated from root to current directory. Each block appears as a message prefixed with `# AGENTS.md instructions for <directory>`. Closer files complement (do not replace) earlier ones.
+Files are concatenated from root to current directory, joined with blank lines; empty files are skipped. Each block appears as a message prefixed with `# AGENTS.md instructions for <directory>`. Files closer to the current directory come later and override earlier guidance. If no project root is found, only the current directory is checked. The chain is built once per run (once per TUI session): restart Codex to pick up changes.
 
 ## AGENTS.override.md
 
@@ -57,8 +57,10 @@ project_doc_max_bytes = 65536
 ## Custom Home Directory
 
 ```bash
-CODEX_HOME=$(pwd)/.codex codex exec "command"
+CODEX_HOME=$(pwd)/.codex codex exec "List active instruction sources"
 ```
+
+`CODEX_HOME` changes the global home directory and its `AGENTS.md` / `AGENTS.override.md`; check it with `echo $CODEX_HOME` when instructions seem to come from the wrong place.
 
 ## Recommended Format
 
@@ -92,9 +94,17 @@ codex --ask-for-approval never "Summarize current instructions"
 
 # Test nested overrides
 codex --cd subdir --ask-for-approval never "Show active instruction files"
+
+# Confirm the workspace root
+codex status
+
+# Write a plaintext TUI log (./.codex-log/codex-tui.log)
+codex -c log_dir=./.codex-log
 ```
+
+Troubleshooting: nothing loads (check the repo and `codex status`; files must not be empty); wrong guidance (look for an `AGENTS.override.md` higher in the tree or under the Codex home); fallback names ignored (check spelling in `project_doc_fallback_filenames`, then restart); truncated instructions (raise `project_doc_max_bytes` or split files across nested directories).
 
 ## Sources
 
-- [Custom instructions with AGENTS.md — Codex Docs](https://developers.openai.com/codex/guides/agents-md)
-- [Configuration Reference — Codex Docs](https://developers.openai.com/codex/config-reference)
+- [Custom instructions with AGENTS.md — Codex Docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+- [Configuration Reference — Codex Docs](https://learn.chatgpt.com/docs/config-file/config-reference)

@@ -2,7 +2,7 @@
 
 # Cursor — Rules Guide
 
-> Official source: [cursor.com/docs/context/rules](https://cursor.com/docs/context/rules)
+> Official source: [cursor.com/docs/rules](https://cursor.com/docs/rules)
 
 ## What is a Rule?
 
@@ -12,13 +12,17 @@ Rules are persistent instructions that the Cursor agent sees at the beginning of
 
 ### By scope
 
-| Type                  | Storage                              | Applies to                                                                                                            |
-| :-------------------- | :----------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
-| **Project**           | `.cursor/rules/*.mdc`                | This repo only (versionable). Plain `.md` files in this directory are silently ignored — only `.mdc` files are valid. |
-| **Imported**          | `.cursor/rules/imported/<repoName>/` | Rules imported from remote repositories                                                                               |
-| **User**              | Cursor Settings > Rules              | All your projects (Agent/Chat mode only — not Inline Edit or Cursor Tab)                                              |
-| **Team**              | Team Dashboard                       | All team members                                                                                                      |
-| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root         | This repo (plain markdown)                                                                                            |
+| Type                  | Storage                                                                                                                           | Applies to                                                                                                                |
+| :-------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------ |
+| **Project**           | `.cursor/rules/*.mdc`                                                                                                             | This repo only (versionable). Plain `.md` files in this directory are silently ignored — only `.mdc` files are valid.     |
+| **Imported (plugin)** | Plugin imported via Customize > "From GitHub Repository" (the repo needs `.cursor-plugin/marketplace.json`) or a team marketplace | Rules are not imported alone: they come in through a plugin                                                               |
+| **User**              | Customize > Rules (Cursor Settings)                                                                                               | All your projects (Agent/Chat mode only — not Inline Edit or Cursor Tab)                                                  |
+| **Team**              | Team Dashboard (Team and Enterprise plans)                                                                                        | All team members                                                                                                          |
+| **Agent (AGENTS.md)** | `AGENTS.md` at the repo root or in any subdirectory                                                                               | This repo (plain markdown); subdirectory files apply to their children and the more specific instructions take precedence |
+
+**Precedence**: Team Rules → Project Rules → User Rules. Applicable rules are merged, and earlier sources win when guidance conflicts. Project rules may live in subfolders (e.g. `frontend/components.mdc`). Keep rules under 500 lines, split large rules into smaller composable ones, and reference files instead of copying their contents.
+
+**Team Rules options**: "Enable this rule immediately" (unchecked = saved as a draft); "Enforce this rule" (required for all members, cannot be disabled in Customize). Glob patterns are supported; rules without a glob apply to every conversation.
 
 ### By activation mode
 
@@ -57,8 +61,8 @@ alwaysApply: false
 | Field         | Description                                                                                |
 | :------------ | :----------------------------------------------------------------------------------------- |
 | `description` | Purpose of the rule. Used by the AI to decide whether to include it (Agent Requested mode) |
-| `globs`       | Glob pattern for auto-attach. E.g.: `*.tsx`, `src/api/**/*.ts`                             |
-| `alwaysApply` | `true` = always included (Always mode)                                                     |
+| `globs`       | Glob pattern(s), comma-separated, for auto-attach. E.g.: `*.tsx`, `src/api/**/*.ts`        |
+| `alwaysApply` | `true` = always included (Always mode); `globs` and `description` are then ignored         |
 
 **Type determination**:
 
@@ -89,7 +93,7 @@ A simple alternative to `.mdc` files: an `AGENTS.md` file in plain markdown at t
 
 ## Creating Rules
 
-Use the `/create-rule` slash command in Agent chat to create a new rule from the current conversation context. Cursor will prompt for the rule name and activation mode.
+Use the `/create-rule` slash command in Agent chat to create a new rule from the current conversation context: Agent generates the file and saves it to `.cursor/rules`. Customize > Rules > Add Rule also creates a file in `.cursor/rules`.
 
 ## Recommended organization
 
@@ -198,7 +202,7 @@ description: Deployment process for staging and production.
 
 ## Sources
 
-- [Rules — Cursor Docs](https://cursor.com/docs/context/rules)
+- [Rules — Cursor Docs](https://cursor.com/docs/rules)
 - [Rules for AI (legacy) — Cursor Docs](https://docs.cursor.com/context/rules-for-ai)
 - [Agent Best Practices — Cursor Blog](https://cursor.com/blog/agent-best-practices)
 - [Best Practices for MDC Rules — Cursor Forum](https://forum.cursor.com/t/my-best-practices-for-mdc-rules-and-troubleshooting/50526)

@@ -12,13 +12,17 @@ A sub-agent is an autonomous Claude instance that runs in an isolated context, w
 
 ## Built-in Sub-agent Types
 
-| Agent               | Description                                       | Available tools                       |
-| :------------------ | :------------------------------------------------ | :------------------------------------ |
-| `Explore`           | Fast codebase exploration                         | Read, Grep, Glob, WebFetch, WebSearch |
-| `Plan`              | Software architect, plan design                   | Read, Grep, Glob, WebFetch, WebSearch |
-| `general-purpose`   | Versatile agent for complex tasks                 | All tools                             |
-| `statusline-setup`  | Configures the status line (built-in, Sonnet)     | Read, Edit                            |
-| `claude-code-guide` | Built-in helper for Claude Code questions (Haiku) | Read, WebFetch                        |
+| Agent               | Description                                                            | Available tools                       |
+| :------------------ | :--------------------------------------------------------------------- | :------------------------------------ |
+| `Explore`           | Fast codebase exploration                                              | Read, Grep, Glob, WebFetch, WebSearch |
+| `Plan`              | Software architect, plan design                                        | Read, Grep, Glob, WebFetch, WebSearch |
+| `general-purpose`   | Versatile agent for complex tasks                                      | All tools                             |
+| `statusline-setup`  | Configures the status line (built-in, Sonnet)                          | Read, Edit                            |
+| `claude-code-guide` | Built-in helper for Claude Code questions (Haiku)                      | Read, WebFetch                        |
+| `claude`            | Catch-all; default for background sessions                             | All subagent-available tools          |
+| `web-fetch`         | Reads web pages (Haiku, or the parent's model if Haiku is unavailable) | WebFetch                              |
+
+A user or project subagent named `Explore` overrides the built-in. Disable `Explore` and `Plan` only with `CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS=1` (v2.1.198+).
 
 ### Scope and Priority
 
@@ -76,30 +80,35 @@ For each vulnerability found:
 
 ### Frontmatter Fields
 
-| Field             | Required | Description                                                                                                                                                                                                                                                     |
-| :---------------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`            | **Yes**  | Agent name                                                                                                                                                                                                                                                      |
-| `description`     | **Yes**  | What the agent does and when to use it (used by Claude to route work to the agent)                                                                                                                                                                              |
-| `tools`           | No       | Tools allowed without asking permission (comma-separated string or YAML list)                                                                                                                                                                                   |
-| `disallowedTools` | No       | Tools explicitly forbidden                                                                                                                                                                                                                                      |
-| `model`           | No       | Model to use. Accepts `inherit` (keep current), short aliases (`sonnet`, `opus`, `haiku`, `fable`), or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6`                                                                                                     |
-| `permissionMode`  | No       | `default` \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                                                                                                                                                                              |
-| `maxTurns`        | No       | Maximum turns the subagent may take                                                                                                                                                                                                                             |
-| `skills`          | No       | Skills to preload                                                                                                                                                                                                                                               |
-| `mcpServers`      | No       | MCP servers to load for this subagent                                                                                                                                                                                                                           |
-| `memory`          | No       | Memory scope: `user` (`~/.claude/agent-memory/<name>/`) \| `project` (`.claude/agent-memory/<name>/`) \| `local` (`.claude/agent-memory-local/<name>/`). When set, Read/Write/Edit tools are automatically enabled for the subagent to manage its memory files. |
-| `background`      | No       | If `true`, runs as a background task                                                                                                                                                                                                                            |
-| `effort`          | No       | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                                                                                                                                                                               |
-| `isolation`       | No       | `worktree` to run in an isolated git worktree                                                                                                                                                                                                                   |
-| `color`           | No       | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`                                                                                                                                                               |
-| `initialPrompt`   | No       | Initial prompt seeded into the subagent's context                                                                                                                                                                                                               |
-| `hooks`           | No       | Hooks specific to the agent's lifecycle                                                                                                                                                                                                                         |
+| Field               | Required | Description                                                                                                                                                                                                                                                     |
+| :------------------ | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | **Yes**  | Agent name                                                                                                                                                                                                                                                      |
+| `description`       | **Yes**  | What the agent does and when to use it (used by Claude to route work to the agent)                                                                                                                                                                              |
+| `tools`             | No       | Tools allowed without asking permission (comma-separated string or YAML list)                                                                                                                                                                                   |
+| `disallowedTools`   | No       | Tools explicitly forbidden                                                                                                                                                                                                                                      |
+| `model`             | No       | Model to use. Accepts `inherit` (keep current), short aliases (`sonnet`, `opus`, `haiku`, `fable`), or full IDs like `claude-opus-4-7`, `claude-sonnet-4-6`                                                                                                     |
+| `permissionMode`    | No       | `default` \| `manual` (alias for `default`) \| `acceptEdits` \| `auto` \| `dontAsk` \| `bypassPermissions` \| `plan`                                                                                                                                            |
+| `maxTurns`          | No       | Maximum turns the subagent may take                                                                                                                                                                                                                             |
+| `skills`            | No       | Skills to preload at startup (first 32 distinct names)                                                                                                                                                                                                          |
+| `mcpServers`        | No       | MCP servers to load for this subagent                                                                                                                                                                                                                           |
+| `memory`            | No       | Memory scope: `user` (`~/.claude/agent-memory/<name>/`) \| `project` (`.claude/agent-memory/<name>/`) \| `local` (`.claude/agent-memory-local/<name>/`). When set, Read/Write/Edit tools are automatically enabled for the subagent to manage its memory files. |
+| `background`        | No       | If `true`, runs as a background task                                                                                                                                                                                                                            |
+| `effort`            | No       | Reasoning effort: `low` \| `medium` \| `high` \| `xhigh` \| `max`                                                                                                                                                                                               |
+| `isolation`         | No       | `worktree` to run in an isolated git worktree                                                                                                                                                                                                                   |
+| `color`             | No       | Display color: `red` \| `blue` \| `green` \| `yellow` \| `purple` \| `orange` \| `pink` \| `cyan`                                                                                                                                                               |
+| `initialPrompt`     | No       | Auto-submitted first user turn when run as the main session agent (`--agent` or the `agent` setting). Ignored for plugin subagents                                                                                                                              |
+| `autoCompactWindow` | No       | Auto-compact window as a token count of `100000` or more (v2.1.296+)                                                                                                                                                                                            |
+| `omitClaudeMd`      | No       | `true` skips user, project and local CLAUDE.md files (v2.1.271+)                                                                                                                                                                                                |
+| `experimental`      | No       | Map; its `cacheTtl` key accepts `5m` or `1h` (v2.1.248+)                                                                                                                                                                                                        |
+| `hooks`             | No       | Hooks specific to the agent's lifecycle                                                                                                                                                                                                                         |
 
-> **Fork mode** is a Skill feature (not a subagent frontmatter field). It is invoked via the `/fork` slash command or by setting `CLAUDE_CODE_FORK_SUBAGENT=1`.
+> **Fork mode** is not a subagent frontmatter field. It is on by default: Claude can start a fork on its own, and you can start one yourself with `/subtask <task>` (or `/fork` when agent view is turned off). Set `CLAUDE_CODE_FORK_SUBAGENT=0` to turn fork mode off so Claude can wait for subagents.
 
-> **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is 5, counting subagent levels below the main conversation regardless of foreground or background mode.
+> **Nested subagents** (v2.1.172+): subagents can spawn their own subagents. The depth limit is set by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (default 3 layers; `1` disables nesting); `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` caps concurrency (default 20).
 
-> **Plugin-loaded subagents** ignore `hooks`, `mcpServers`, and `permissionMode`.
+> **Plugin-loaded subagents** ignore `hooks`, `mcpServers`, `permissionMode` and `initialPrompt`.
+
+> **CLI flags**: `--agents '<JSON>'` defines session-only subagents (`color` and `experimental` are ignored); `--agents <path>` reads the JSON from a file in `-p` mode only (v2.1.281+); `--append-subagent-system-prompt <text>` and `--append-subagent-system-prompt-file <path>` append text to every subagent's system prompt (non-interactive; v2.1.205+ / v2.1.261+); `--disallowedTools "Agent(Explore)"` blocks a subagent type.
 
 > **Mention syntax**: address a subagent inline with `@agent-<name>` or `@"<name> (agent)"`.
 
@@ -307,13 +316,18 @@ You are a unit testing expert. For each modified file:
 
 ## Environment Variables
 
-| Variable                                  | Description                                                                    |
-| :---------------------------------------- | :----------------------------------------------------------------------------- |
-| `CLAUDE_CODE_SUBAGENT_MODEL`              | Override the model used by subagents                                           |
-| `CLAUDE_CODE_FORK_SUBAGENT`               | If set to `1`, enable fork-mode subagent invocation                            |
-| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`    | Disable `background: true` subagents                                           |
-| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`    | Enable experimental agent-teams behavior                                       |
-| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Set to `1` to remove all built-in subagent types in non-interactive / SDK mode |
+| Variable                                  | Description                                                                                            |
+| :---------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `CLAUDE_CODE_SUBAGENT_MODEL`              | Override the model used by subagents                                                                   |
+| `CLAUDE_CODE_SUBAGENT_MODEL_FORCE`        | Set to `1` to force `CLAUDE_CODE_SUBAGENT_MODEL` on all subagents, ignoring `model` fields (v2.1.257+) |
+| `CLAUDE_CODE_SUBAGENT_EFFORT`             | Subagent effort level (overridden by `CLAUDE_CODE_EFFORT_LEVEL`)                                       |
+| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`    | Nesting depth (default 3; `1` disables nesting)                                                        |
+| `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`    | Concurrent subagent limit (default 20)                                                                 |
+| `CLAUDE_CODE_DISABLE_EXPLORE_PLAN_AGENTS` | Set to `1` to remove only `Explore` and `Plan` (v2.1.198+)                                             |
+| `CLAUDE_CODE_FORK_SUBAGENT`               | Set to `0` to turn fork mode off                                                                       |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS`    | Disable `background: true` subagents                                                                   |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`    | Enable experimental agent-teams behavior                                                               |
+| `CLAUDE_AGENT_SDK_DISABLE_BUILTIN_AGENTS` | Set to `1` to remove all built-in subagent types in non-interactive / SDK mode                         |
 
 ## Sources
 

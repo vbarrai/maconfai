@@ -4,6 +4,8 @@
 
 > Official source: [geminicli.com/docs/tools/mcp-server](https://geminicli.com/docs/tools/mcp-server/)
 
+> **Notice (from the official pages)**: "Gemini CLI was replaced by Antigravity CLI on June 18th, 2026" for unpaid-tier and Google One users; the details below may not apply to Antigravity.
+
 ## Configuration in `settings.json`
 
 ```json
@@ -38,20 +40,20 @@
 
 ## Per-Server Options
 
-| Key            | Type     | Description                                                                                                          |
-| :------------- | :------- | :------------------------------------------------------------------------------------------------------------------- |
-| `command`      | string   | Command to start the stdio server                                                                                    |
-| `args`         | string[] | Command arguments                                                                                                    |
-| `env`          | object   | Process environment variables                                                                                        |
-| `cwd`          | string   | Working directory                                                                                                    |
-| `url`          | string   | SSE server URL                                                                                                       |
-| `httpUrl`      | string   | Streamable HTTP server URL                                                                                           |
-| `headers`      | object   | HTTP headers for `url`/`httpUrl`                                                                                     |
-| `timeout`      | number   | Timeout in milliseconds (default: 600,000 = 10 minutes)                                                              |
-| `trust`        | bool     | Trust — bypass tool call confirmations                                                                               |
-| `description`  | string   | Server description (not reflected in current upstream per-server properties table — treat as potentially unverified) |
-| `includeTools` | string[] | Tool allowlist (if specified, only these tools are available)                                                        |
-| `excludeTools` | string[] | Tool blocklist                                                                                                       |
+| Key            | Type     | Description                                                                                                 |
+| :------------- | :------- | :---------------------------------------------------------------------------------------------------------- |
+| `command`      | string   | Command to start the stdio server                                                                           |
+| `args`         | string[] | Command arguments                                                                                           |
+| `env`          | object   | Process environment variables                                                                               |
+| `cwd`          | string   | Working directory                                                                                           |
+| `url`          | string   | SSE server URL                                                                                              |
+| `httpUrl`      | string   | Streamable HTTP server URL                                                                                  |
+| `headers`      | object   | HTTP headers for `url`/`httpUrl`                                                                            |
+| `timeout`      | number   | Timeout in milliseconds (default: 600,000 = 10 minutes)                                                     |
+| `trust`        | bool     | Trust — bypass tool call confirmations                                                                      |
+| `description`  | string   | Not a documented `settings.json` field: it appears upstream only as the `gemini mcp add --description` flag |
+| `includeTools` | string[] | Tool allowlist (if specified, only these tools are available)                                               |
+| `excludeTools` | string[] | Tool blocklist                                                                                              |
 
 ## Trust
 
@@ -95,17 +97,19 @@ The following are **top-level** per-server fields (not nested under `oauth`):
 
 The following are nested under `oauth`:
 
-| Field                    | Description                                       |
-| :----------------------- | :------------------------------------------------ |
-| `oauth.enabled`          | Enable or disable OAuth for this server (boolean) |
-| `oauth.scopes`           | Requested scopes                                  |
-| `oauth.clientId`         | OAuth client ID                                   |
-| `oauth.clientSecret`     | OAuth client secret                               |
-| `oauth.authorizationUrl` | Authorization endpoint                            |
-| `oauth.tokenUrl`         | Token endpoint                                    |
-| `oauth.redirectUri`      | Redirect URI                                      |
-| `oauth.tokenParamName`   | Parameter name for token exchange                 |
-| `oauth.audiences`        | Allowed token audiences                           |
+| Field                                              | Description                                                            |
+| :------------------------------------------------- | :--------------------------------------------------------------------- |
+| `oauth.enabled`                                    | Enable or disable OAuth for this server (boolean)                      |
+| `oauth.scopes`                                     | Requested scopes                                                       |
+| `oauth.clientId`                                   | OAuth client ID                                                        |
+| `oauth.clientSecret`                               | OAuth client secret                                                    |
+| `oauth.authorizationUrl`                           | Authorization endpoint                                                 |
+| `oauth.tokenUrl`                                   | Token endpoint                                                         |
+| `oauth.redirectUri`                                | Redirect URI                                                           |
+| `oauth.tokenParamName`                             | Parameter name for token exchange                                      |
+| `oauth.audiences`                                  | Allowed token audiences                                                |
+| `oauth.issuer`                                     | Issuer of the authorization server                                     |
+| `oauth.authorizationResponseIssParameterSupported` | Whether the authorization server supports the `iss` response parameter |
 
 ## CLI MCP
 
@@ -118,12 +122,12 @@ gemini mcp disable <name>        # Disable a server (optionally --session)
 /mcp                             # Check status (in the CLI)
 /mcp auth [serverName]           # Authenticate a server
 /mcp enable|disable <name>       # Enable/disable a server at runtime
-# Note: /mcp list as a distinct slash sub-command is not confirmed upstream — use /mcp for status
+/mcp list                        # List servers
 ```
 
 Flags for `gemini mcp add`: `-s, --scope user|project` (default `project`), `-t, --transport stdio|sse|http`, `-e, --env KEY=VAL`, `-H, --header KEY=VAL`, `--timeout`, `--trust`, `--include-tools`, `--exclude-tools`, `--description`.
 
-`/mcp list` lists all configured servers and their status.
+`/mcp` shows status, tools and discovery state. `gemini mcp add` takes `<name> <commandOrUrl> [args...]`; `-s, --scope` and `-t, --transport` default to `project` and `stdio`. Related files: `~/.gemini/settings.json` (user), `.gemini/settings.json` (project), `~/.gemini/mcp-oauth-tokens.json` (OAuth tokens), `~/.gemini/mcp-server-enablement.json` (enablement state). Undefined variables in `env` expansion resolve to an empty string; variables set explicitly in a server's `env` are not redacted, and when a variable exists in both the local config and an extension's config the local value wins. If two servers produce the same tool name, the last registered tool overwrites the earlier one.
 
 ## Global MCP Configuration
 
