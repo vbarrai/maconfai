@@ -1,9 +1,10 @@
 import * as p from '@clack/prompts'
 import pc from 'picocolors'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { parseSource, getOwnerRepo } from './source-parser.ts'
-import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
+import { guardHomeDir } from './home-dir.ts'
+import { cloneRepo, cleanupTempDir, getLocalTreeHash, getTreeHash } from './git.ts'
 import {
   discoverSkills,
   discoverMcpServers,
@@ -11,7 +12,7 @@ import {
   discoverHooks,
   discoverHookDirs,
 } from './skills.ts'
-import { installSkill } from './installer.ts'
+import { installSkill, sanitizeName } from './installer.ts'
 import { installMcpServers } from './mcp.ts'
 import { installHooks, installHookFiles } from './hooks.ts'
 import {
@@ -22,14 +23,106 @@ import {
   fetchSkillFolderHash,
   getGitHubToken,
 } from './lock.ts'
-import type { SkillLockEntry, McpLockEntry, HookLockEntry } from './lock.ts'
+import type { SkillLockEntry, McpLockEntry, HookLockEntry, TreeFetch } from './lock.ts'
 import type { AgentType, HookGroup } from './types.ts'
 import { agents, detectProjectAgents } from './agents.ts'
+import { trustArg } from './trust.ts'
 
 const ALL_AGENTS: AgentType[] = ['claude-code', 'cursor', 'codex', 'open-code']
 
+// The lock records handlers for an agent whose hooks config is absent: a version without hooks
+// support for that agent (Codex before .codex/hooks.json) recorded them without writing
+// anything. The folder hash is then current, so only this check gets the file written.
+function hasMissingHooksConfig(entry: HookLockEntry): boolean {
+  return Object.keys(entry.handlers ?? {}).some((a) => {
+    const path = Object.hasOwn(agents, a) ? agents[a as AgentType].hooksConfigPath : undefined
+    return path !== undefined && !existsSync(path)
+  })
+}
+
+// Only a GitHub source has a hash the GitHub API can return. Another host (GitLab, a private
+// Git server) never had one to compare, so it is left alone instead of failing the check.
+function isGitHubSource(sourceUrl: string | undefined): boolean {
+  try {
+    return new URL(sourceUrl ?? '').hostname === 'github.com'
+  } catch {
+    return false
+  }
+}
+
+const knownAgents = (names: string[] | undefined): AgentType[] =>
+  (names ?? []).filter((a): a is AgentType => Object.hasOwn(agents, a))
+
+// A tracked skill whose link or copy is gone from an agent's skills dir (a broken symlink
+// counts as gone). The hash cannot see this, so only this check gets it restored. An agent
+// whose skills dir is absent altogether (gitignored, not in this checkout) is not "missing":
+// restoring it would reinstall on every run of a fresh clone.
+function hasMissingSkillFiles(name: string, entry: SkillLockEntry): boolean {
+  return knownAgents(entry.agents).some((a) => {
+    const skillsDir = agents[a].skillsDir
+    return existsSync(skillsDir) && !existsSync(join(skillsDir, sanitizeName(name)))
+  })
+}
+
+// Same for an MCP server: an agent the lock targets has no MCP config file, though the
+// directory that holds it is there.
+function hasMissingMcpConfig(entry: McpLockEntry): boolean {
+  return knownAgents(entry.agents).some((a) => {
+    const path = agents[a].mcpConfigPath
+    return path !== undefined && existsSync(dirname(path)) && !existsSync(path)
+  })
+}
+
+// A local source recorded on another machine (a committed lock, CI): only its author can
+// update it, so it is skipped and reported, never counted as a failure.
+function isAbsentLocalSource(entry: { source: string; sourceUrl?: string }): boolean {
+  const localDir = localSourceDir(entry)
+  return localDir !== undefined && !existsSync(localDir)
+}
+
+// Where to fetch an entry from. An old or hand-edited lock may lack `sourceUrl`: fall back
+// to `source` (owner/repo, or the path a local install was given) rather than crash.
+function entrySourceUrl(entry: { source: string; sourceUrl?: string }): string {
+  return entry.sourceUrl || entry.source
+}
+
+// The local directory a lock entry was installed from, if it came from one.
+function localSourceDir(entry: { source: string; sourceUrl?: string }): string | undefined {
+  const parsed = parseSource(entrySourceUrl(entry))
+  return parsed.type === 'local' ? parsed.localPath : undefined
+}
+
+function isLocalSource(entry: { source: string; sourceUrl?: string }): boolean {
+  return localSourceDir(entry) !== undefined
+}
+
+// GitHub knows nothing of a local source: hash its files on disk, as install copies them.
+// null when there is nothing to compare with: the source no longer holds the folder, or it
+// lives on another host (GitLab, a private Git server), which has no hash to ask for.
+// An unreadable GitHub source throws.
+async function fetchLatestHash(
+  entry: { source: string; sourceUrl: string; ref?: string },
+  folderPath: string,
+  token: string | null,
+  treeCache: Map<string, Promise<TreeFetch>>,
+): Promise<string | null> {
+  const localDir = localSourceDir(entry)
+  if (localDir) return sourceFolderHash(true, localDir, folderPath).catch(() => null)
+  if (!isGitHubSource(entrySourceUrl(entry))) return null
+  return fetchSkillFolderHash(entry.source, folderPath, token, entry.ref, treeCache)
+}
+
+// The hash recorded after an update: from the files of a local source (a skill path naming
+// its SKILL.md stands for the folder, as on GitHub), from the clone otherwise.
+function sourceFolderHash(isLocal: boolean, dir: string, folderPath: string): Promise<string> {
+  if (!isLocal) return getTreeHash(dir, folderPath)
+  return getLocalTreeHash(dir, folderPath.replace(/(^|\/)SKILL\.md$/, ''))
+}
+
+// Skills are installed under their sanitized name, while the lock is keyed by the raw name.
 function detectAgentsForSkill(skillName: string): AgentType[] {
-  return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, skillName)))
+  const dirName = sanitizeName(skillName)
+  return ALL_AGENTS.filter((a) => existsSync(join(agents[a].skillsDir, dirName)))
 }
 
 type AnyUpdate =
@@ -46,6 +139,11 @@ export async function runCheck(
   const includeUntrusted = args.includes('--include-untrusted')
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai check ')))
+  // Without a terminal (CI, cron) nobody can confirm, so check/update refuse to run in $HOME.
+  await guardHomeDir(
+    Boolean(process.stdin.isTTY),
+    `Run maconfai ${opts.autoUpdate ? 'update' : 'check'} from a project, or from a terminal to confirm.`,
+  )
 
   const spinner = p.spinner()
   spinner.start('Reading lock file...')
@@ -71,6 +169,8 @@ export async function runCheck(
   spinner.stop(`Found ${parts.join(' + ')} tracked`)
 
   const token = getGitHubToken()
+  // One tree request per repository and branch for the whole run, not one per entry.
+  const treeCache = new Map<string, Promise<TreeFetch>>()
 
   spinner.start('Checking for updates...')
 
@@ -78,8 +178,15 @@ export async function runCheck(
   const mcpUpdates: Array<{ serverName: string; entry: McpLockEntry }> = []
   const hookUpdates: Array<{ groupName: string; entry: HookLockEntry }> = []
   const skipped: Array<{ name: string; reason: string }> = []
-  const blocked: Array<{ name: string }> = []
-  const errors: Array<{ name: string; error: string }> = []
+  // label is what the report shows; arg is what `maconfai trust` takes
+  const blocked: Array<{ label: string; arg: string }> = []
+  const absent: Array<{ name: string; source: string }> = []
+  // Entries whose latest hash could not be read (bad token, rate limit, network, missing
+  // repo). They are reported and make the run fail, but never stop the others updating.
+  const checkFailed: Array<{ name: string; error: string }> = []
+  const recordCheckFailure = (name: string, err: unknown) => {
+    checkFailed.push({ name, error: err instanceof Error ? err.message : String(err) })
+  }
 
   // A config is gated unless it is trusted. Missing trusted (grandfathered entries
   // installed before the field existed) counts as trusted.
@@ -88,69 +195,93 @@ export async function runCheck(
   for (const name of skillNames) {
     const entry = lock.skills[name]!
     if (isBlocked(entry)) {
-      blocked.push({ name })
+      blocked.push({ label: name, arg: trustArg('skill', name, lock) })
       continue
     }
-    if (!entry.skillFolderHash || !entry.skillPath) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (hasMissingSkillFiles(name, entry)) {
+      skillUpdates.push({ name, entry })
+      continue
+    }
+    // An empty hash from a local source only means install could not hash it: compare anyway.
+    if (!entry.skillPath || (!entry.skillFolderHash && !isLocalSource(entry))) {
       skipped.push({ name, reason: 'No version hash' })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(entry.source, entry.skillPath, token, entry.ref)
+      const latestHash = await fetchLatestHash(entry, entry.skillPath, token, treeCache)
       if (!latestHash) {
-        errors.push({ name, error: 'Could not fetch from GitHub' })
+        // The source was read, or is not one GitHub can answer for: nothing to compare with
+        const comparable = isLocalSource(entry) || isGitHubSource(entrySourceUrl(entry))
+        skipped.push({
+          name,
+          reason: comparable ? 'Not found in the source' : 'Not a GitHub source',
+        })
         continue
       }
       if (latestHash !== entry.skillFolderHash) skillUpdates.push({ name, entry })
     } catch (err) {
-      errors.push({ name, error: err instanceof Error ? err.message : 'Unknown error' })
+      recordCheckFailure(name, err)
     }
   }
 
   for (const serverName of mcpNames) {
     const entry = lock.mcpServers[serverName]!
     if (isBlocked(entry)) {
-      blocked.push({ name: `MCP: ${serverName}` })
+      blocked.push({ label: `MCP: ${serverName}`, arg: trustArg('mcp', serverName, lock) })
       continue
     }
-    if (!entry.folderHash || !entry.folderPath) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name: `MCP: ${serverName}`, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (
+      !entry.folderPath ||
+      (!entry.folderHash && !isLocalSource(entry)) ||
+      hasMissingMcpConfig(entry)
+    ) {
       mcpUpdates.push({ serverName, entry })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(
-        entry.source,
-        entry.folderPath,
-        token,
-        entry.ref,
-      )
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token, treeCache)
       if (latestHash && latestHash !== entry.folderHash) {
         mcpUpdates.push({ serverName, entry })
       }
-    } catch {}
+    } catch (err) {
+      recordCheckFailure(`MCP: ${serverName}`, err)
+    }
   }
 
   for (const groupName of hookNames) {
     const entry = lock.hooks[groupName]!
     if (isBlocked(entry)) {
-      blocked.push({ name: `hook: ${groupName}` })
+      blocked.push({ label: `hook: ${groupName}`, arg: trustArg('hook', groupName, lock) })
       continue
     }
-    if (!entry.folderHash || !entry.folderPath) {
+    if (isAbsentLocalSource(entry)) {
+      absent.push({ name: `hook: ${groupName}`, source: entrySourceUrl(entry) })
+      continue
+    }
+    if (
+      !entry.folderPath ||
+      (!entry.folderHash && !isLocalSource(entry)) ||
+      hasMissingHooksConfig(entry)
+    ) {
       hookUpdates.push({ groupName, entry })
       continue
     }
     try {
-      const latestHash = await fetchSkillFolderHash(
-        entry.source,
-        entry.folderPath,
-        token,
-        entry.ref,
-      )
+      const latestHash = await fetchLatestHash(entry, entry.folderPath, token, treeCache)
       if (latestHash && latestHash !== entry.folderHash) {
         hookUpdates.push({ groupName, entry })
       }
-    } catch {}
+    } catch (err) {
+      recordCheckFailure(`hook: ${groupName}`, err)
+    }
   }
 
   spinner.stop('Check complete')
@@ -158,7 +289,12 @@ export async function runCheck(
 
   const totalUpdates = skillUpdates.length + mcpUpdates.length + hookUpdates.length
 
-  if (totalUpdates === 0 && errors.length === 0 && blocked.length === 0) {
+  if (
+    totalUpdates === 0 &&
+    checkFailed.length === 0 &&
+    blocked.length === 0 &&
+    absent.length === 0
+  ) {
     p.log.success(pc.green('All skills, MCPs, and hooks are up to date'))
   }
 
@@ -195,13 +331,13 @@ export async function runCheck(
     }
 
     for (const u of skillUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'skill', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'skill', ...u })
     }
     for (const u of mcpUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'mcp', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'mcp', ...u })
     }
     for (const u of hookUpdates) {
-      addToGroup(`${u.entry.sourceUrl}|${u.entry.ref || ''}`, { kind: 'hook', ...u })
+      addToGroup(`${entrySourceUrl(u.entry)}|${u.entry.ref || ''}`, { kind: 'hook', ...u })
     }
 
     const updateSpinner = p.spinner()
@@ -212,14 +348,15 @@ export async function runCheck(
 
     for (const [, sourceUpdates] of updatesBySource) {
       const firstEntry = sourceUpdates[0]!.entry
-      const parsed = parseSource(firstEntry.sourceUrl)
+      const parsed = parseSource(entrySourceUrl(firstEntry))
       if (firstEntry.ref) parsed.ref = firstEntry.ref
 
       let repoDir: string
       let tempDir: string | null = null
+      const isLocal = parsed.type === 'local'
 
       try {
-        if (parsed.type === 'local') {
+        if (isLocal) {
           repoDir = parsed.localPath!
         } else {
           tempDir = await cloneRepo(parsed.url, parsed.ref)
@@ -249,6 +386,11 @@ export async function runCheck(
             const skillAgents = (
               entry.agents?.length ? entry.agents : detectAgentsForSkill(name)
             ) as AgentType[]
+            if (skillAgents.length === 0) {
+              p.log.error(
+                `Skill ${name}: no agent recorded in ai-lock.json and none found on disk — reinstall it with --agents`,
+              )
+            }
 
             let skillSuccess = false
             for (const agent of skillAgents) {
@@ -264,7 +406,7 @@ export async function runCheck(
               const skillRelPath = entry.skillPath || `skills/${name}`
               let skillFolderHash = ''
               try {
-                skillFolderHash = await getTreeHash(repoDir, skillRelPath)
+                skillFolderHash = await sourceFolderHash(isLocal, repoDir, skillRelPath)
               } catch {}
 
               await addToLock(name, {
@@ -303,7 +445,7 @@ export async function runCheck(
             const folderPath = entry.folderPath ?? (isFromDir ? `mcps/${serverName}` : serverName)
             let folderHash = ''
             try {
-              folderHash = await getTreeHash(repoDir, folderPath)
+              folderHash = await sourceFolderHash(isLocal, repoDir, folderPath)
             } catch {}
 
             await addMcpToLock(serverName, {
@@ -335,11 +477,18 @@ export async function runCheck(
             const targetAgents = (entry.agents as AgentType[] | undefined)?.length
               ? (entry.agents as AgentType[])
               : fallbackAgents
+            // What this update wrote, per agent. Without it the lock would lose the handlers
+            // it recorded at install: status could no longer compare them with the disk, and
+            // nothing could tell which handlers to take out again.
+            const installedHandlers: Record<string, unknown> = {}
             for (const agent of targetAgents) {
               const agentKey = agent as keyof HookGroup
               const hookEvents = hookGroup[agentKey]
               if (hookEvents && typeof hookEvents === 'object' && !Array.isArray(hookEvents)) {
                 await installHooks(hookEvents as Record<string, unknown[]>, agent, { force: true })
+                // Same rule as the install path: an agent without a hooks config gets nothing
+                // written, so nothing is recorded for it either.
+                if (agents[agent]?.hooksConfigPath) installedHandlers[agent] = hookEvents
               }
             }
 
@@ -347,7 +496,7 @@ export async function runCheck(
             const folderPath = entry.folderPath ?? (isFromDir ? `hooks/${groupName}` : groupName)
             let folderHash = ''
             try {
-              folderHash = await getTreeHash(repoDir, folderPath)
+              folderHash = await sourceFolderHash(isLocal, repoDir, folderPath)
             } catch {}
 
             await addHookToLock(groupName, {
@@ -357,6 +506,7 @@ export async function runCheck(
               folderPath,
               folderHash,
               agents: targetAgents,
+              handlers: installedHandlers,
             })
 
             successCount++
@@ -393,11 +543,21 @@ export async function runCheck(
 
   if (blocked.length > 0) {
     console.log()
-    p.log.warn(
-      `${blocked.length} item(s) blocked (not trusted) — run ${pc.cyan('maconfai update --include-untrusted')} to update anyway`,
-    )
+    p.log.warn(`${blocked.length} item(s) blocked (not trusted):`)
     for (const b of blocked) {
-      p.log.message(pc.dim(`  - ${b.name}`))
+      p.log.message(pc.dim(`  - ${b.label}`))
+    }
+    // --include-untrusted only bypasses the gate for one run; trust is what keeps them updating
+    const names = blocked.map((b) => b.arg).join(' ')
+    p.log.info(`To keep them updating, run: ${pc.cyan(`maconfai trust ${names}`)}`)
+    p.log.info(`To update them once: ${pc.cyan('maconfai update --include-untrusted')}`)
+  }
+
+  if (absent.length > 0) {
+    console.log()
+    p.log.warn(`${absent.length} item(s) skipped — local source not found on this machine`)
+    for (const a of absent) {
+      p.log.message(pc.dim(`  - ${a.name} (${a.source})`))
     }
   }
 
@@ -409,14 +569,15 @@ export async function runCheck(
     }
   }
 
-  if (errors.length > 0) {
+  if (checkFailed.length > 0) {
     console.log()
-    p.log.warn(`${errors.length} item(s) could not be checked:`)
-    for (const e of errors) {
-      p.log.message(pc.dim(`  - ${e.name}: ${e.error}`))
+    process.exitCode = 1
+    p.log.error(pc.red(`${checkFailed.length} item(s) could not be checked for updates:`))
+    for (const f of checkFailed) {
+      p.log.message(`  - ${f.name}: ${f.error}`)
     }
   }
 
   console.log()
-  p.outro(pc.green('Done!'))
+  p.outro(checkFailed.length > 0 ? pc.red('Done, with errors') : pc.green('Done!'))
 }

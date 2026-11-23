@@ -141,11 +141,11 @@ describeConfai('install / choices shown to user', ({ givenSource, getTargetDir }
       │
       ◇  Done
       │
-      ◆  Installed 3 skill(s)
+      ◆  Installed 3 skill(s) for 1 agent(s)
       │
-      ◇  Installed 2 MCP server(s)
+      ◇  Installed 2 MCP server(s) for 1 agent(s)
       │
-      ◇  Installed 2 hook(s)
+      ◇  Installed 2 hook(s) for 1 agent(s)
       │
       └  Done!
 

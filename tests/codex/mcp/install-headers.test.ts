@@ -2,7 +2,7 @@ import { it, expect } from 'vitest'
 import { describeConfai, mcpCustomApi } from '../../test-utils.ts'
 
 describeConfai('codex / url with headers', ({ givenSource, whenInstall, targetFile }) => {
-  it('translates headers to http_headers and env_http_headers', async () => {
+  it('maps Authorization: Bearer ${VAR} to bearer_token_env_var and ${VAR} headers to env_http_headers', async () => {
     await givenSource({
       mcps: {
         'custom-api': mcpCustomApi,
@@ -14,7 +14,8 @@ describeConfai('codex / url with headers', ({ givenSource, whenInstall, targetFi
     expect(await targetFile('.codex/config.toml')).toMatchInlineSnapshot(`
       "[mcp_servers.custom-api]
       url = "https://api.example.com/mcp"
-      env_http_headers = { Authorization = "API_TOKEN", X-Team-Id = "TEAM_ID" }
+      bearer_token_env_var = "API_TOKEN"
+      env_http_headers = { X-Team-Id = "TEAM_ID" }
       "
     `)
   })

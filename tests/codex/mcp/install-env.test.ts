@@ -1,8 +1,8 @@
 import { it, expect } from 'vitest'
 import { describeConfai, mcpGithubWithEnv } from '../../test-utils.ts'
 
-describeConfai('codex / env var kept bare', ({ givenSource, whenInstall, targetFile }) => {
-  it('keeps ${VAR} bare in config.toml (no translation)', async () => {
+describeConfai('codex / env vars forwarded', ({ givenSource, whenInstall, targetFile }) => {
+  it('forwards KEY: ${KEY} through env_vars instead of a literal env value', async () => {
     await givenSource({
       mcps: {
         github: mcpGithubWithEnv,
@@ -15,7 +15,7 @@ describeConfai('codex / env var kept bare', ({ givenSource, whenInstall, targetF
       "[mcp_servers.github]
       command = "npx"
       args = ["-y", "@modelcontextprotocol/server-github"]
-      env = { GITHUB_TOKEN = "\${GITHUB_TOKEN}", GITHUB_ORG = "\${GITHUB_ORG}" }
+      env_vars = ["GITHUB_TOKEN", "GITHUB_ORG"]
       "
     `)
   })

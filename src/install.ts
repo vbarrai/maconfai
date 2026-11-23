@@ -3,7 +3,8 @@ import pc from 'picocolors'
 import { existsSync } from 'fs'
 import { join, relative } from 'path'
 import { parseSource } from './source-parser.ts'
-import { cloneRepo, cleanupTempDir, getTreeHash } from './git.ts'
+import { guardHomeDir } from './home-dir.ts'
+import { cloneRepo, cleanupTempDir, getLocalTreeHash, getTreeHash } from './git.ts'
 import {
   discoverSkills,
   discoverMcpServers,
@@ -11,8 +12,13 @@ import {
   discoverHooks,
   discoverHookDirs,
 } from './skills.ts'
-import { installSkill, uninstallSkill, listInstalledSkills } from './installer.ts'
-import { agents, detectInstalledAgents } from './agents.ts'
+import {
+  installSkill,
+  uninstallSkill,
+  listInstalledSkills,
+  findUnmanagedSkillPaths,
+} from './installer.ts'
+import { agents, detectInstalledAgents, detectProjectAgents } from './agents.ts'
 import {
   readLock,
   addToLock,
@@ -22,7 +28,7 @@ import {
   removeMcpFromLock,
   removeHookFromLock,
 } from './lock.ts'
-import { getOwnerRepo } from './source-parser.ts'
+import { getOwnerRepo, repoRelativePath } from './source-parser.ts'
 import { installMcpServers, uninstallMcpServers, listInstalledMcpServerNames } from './mcp.ts'
 import { installHooks, installHookFiles, uninstallHooks } from './hooks.ts'
 import type { Skill, AgentType, McpServerConfig, HookGroup } from './types.ts'
@@ -72,20 +78,32 @@ function parseAgentsArg(args: string[]): AgentType[] | undefined {
   })
 }
 
-export async function runInstall(args: string[]): Promise<void> {
-  if (args.length === 0) {
+// Set by `maconfai add skill|mcp|hook` (src/add-remove.ts), never by `install` itself.
+interface InstallOptions {
+  // Fail on a requested name the source does not have, or on anything that could not be
+  // written, and remove nothing: the named items are added, the rest is left as it is.
+  strict?: boolean
+  // Agents to target when --agents is not given, instead of detecting them
+  defaultAgents?: AgentType[]
+}
+
+export async function runInstall(args: string[], options: InstallOptions = {}): Promise<void> {
+  const skipPrompts = args.includes('-y') || args.includes('--yes')
+  await guardHomeDir(!skipPrompts, 'Run maconfai from a project, or without -y to confirm.')
+  const source = args.find((a) => !a.startsWith('-'))
+  if (!source) {
     // No source = interactive uninstall mode
-    await runUninstall()
+    await runUninstall(skipPrompts)
     return
   }
 
-  const source = args.find((a) => !a.startsWith('-'))!
-  const skipPrompts = args.includes('-y') || args.includes('--yes')
   const argAgents = parseAgentsArg(args)
   const argSkills = parseListArg(args, 'skills')
   const argMcps = parseListArg(args, 'mcps')
   const argHooks = parseListArg(args, 'hooks')
   const argBranch = parseListArg(args, 'branch')?.[0]
+  // --force replaces a same-named skill that ai-lock.json does not list (written by hand).
+  const force = args.includes('--force')
   // --trusted marks every config installed in this run as trusted (blind auto-update).
   // Run-level choice: true via flag, set by the interactive prompt, or undefined (per-config default).
   let trustChoice: boolean | undefined = args.includes('--trusted') ? true : undefined
@@ -112,6 +130,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
     if (parsed.type === 'local') {
       if (!existsSync(parsed.localPath!)) {
+        if (options.strict) throw new Error(`Path not found: ${parsed.localPath}`)
         p.log.error(pc.red(`Path not found: ${parsed.localPath}`))
         process.exit(1)
       }
@@ -122,6 +141,11 @@ export async function runInstall(args: string[]): Promise<void> {
       skillsDir = parsed.subpath ? join(tempDir, parsed.subpath) : tempDir
       spinner.stop('Repository cloned')
     }
+
+    // A local source is hashed from its files on disk, the way `update` compares it.
+    const hashFolder = (local: boolean, dir: string, path: string) =>
+      local ? getLocalTreeHash(dir, path) : getTreeHash(dir, path)
+    const isLocal = parsed.type === 'local'
 
     // Discover skills, MCP servers, and hooks
     spinner.start('Discovering skills, MCP servers, and hooks...')
@@ -136,6 +160,7 @@ export async function runInstall(args: string[]): Promise<void> {
     const hasDirHooks = Object.keys(dirHooks).length > 0
 
     if (skills.length === 0 && !hasRootMcp && !hasDirMcps && !hasRootHooks && !hasDirHooks) {
+      if (options.strict) throw new Error('No skills, MCP servers, or hooks found in the source.')
       spinner.stop(pc.red('Nothing found'))
       p.log.error('No skills, MCP servers, or hooks found.')
       await cleanup(tempDir)
@@ -169,6 +194,7 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Resolve remote skill references (extensionless files in skills/ containing a source string)
     interface SkillCtx {
+      local: boolean
       repoDir: string
       skillRelPath: string
       source: string
@@ -221,6 +247,7 @@ export async function runInstall(args: string[]): Promise<void> {
             resolved.push(finalSkill)
             const refOwnerRepo = getOwnerRepo(refParsed)
             skillCtxMap.set(finalSkill.name, {
+              local: refParsed.type === 'local',
               repoDir: refBase,
               skillRelPath: relative(refBase, match.path),
               source: refOwnerRepo ?? remoteRef.source,
@@ -264,16 +291,35 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Check which skills are already installed
     const installed = await listInstalledSkills({ global: false })
-    const installedNames = new Set(installed.map((s) => s.name))
+    // Only skills the lock records are ours: a hand-written one is never pre-checked nor removed.
+    const startLock = await readLock()
+    const installedNames = new Set(
+      installed.map((s) => s.name).filter((name) => Object.hasOwn(startLock.skills, name)),
+    )
+
+    // With -y, a --skills/--mcps/--hooks list that names something means "only what is named":
+    // every MCP server and hook is selected only when none does. An empty list (`--mcps=`)
+    // only turns its own category off.
+    const hasContentFilter = Boolean(argSkills?.length || argMcps?.length || argHooks?.length)
+    // A category given no list in such a run is left as it is: `--mcps=x -y` installs no skill
+    // and no hook, `--skills=a -y` no MCP server and no hook. No flag ever removes anything:
+    // only unchecking an item in the interactive lists does.
+    const skillsUntouched = skipPrompts && !argSkills && hasContentFilter
+    const mcpsUntouched = skipPrompts && !argMcps && hasContentFilter
+    const hooksUntouched = skipPrompts && !argHooks && hasContentFilter
 
     // Select skills (installed ones are pre-checked)
     let selectedSkills: Skill[]
     let allSkills = skills
+    // Only unchecking a skill in the interactive list removes it: --skills and -y add, never remove
+    let uncheckedSkills: Skill[] = []
 
     if (skills.length === 0) {
       selectedSkills = []
     } else if (argSkills) {
       selectedSkills = skills.filter((s) => argSkills.includes(s.name))
+    } else if (skillsUntouched) {
+      selectedSkills = []
     } else if (skills.length === 1 || skipPrompts) {
       selectedSkills = skills
     } else {
@@ -299,6 +345,10 @@ export async function runInstall(args: string[]): Promise<void> {
       }
 
       selectedSkills = selected as Skill[]
+      // installedNames holds only lock-listed skills: a hand-written one is never removed
+      uncheckedSkills = skills.filter(
+        (s) => installedNames.has(s.name) && !selectedSkills.includes(s),
+      )
     }
 
     // Collect MCP servers from root mcp.json + mcps/ directories + remote refs
@@ -313,12 +363,16 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Select MCP servers
     let selectedMcpNames: Set<string> = new Set()
+    // As for skills: only unchecking a server in the interactive list removes it
+    let uncheckedMcpNames: string[] = []
 
     if (allMcpEntries.length > 0) {
       if (argMcps) {
         selectedMcpNames = new Set(argMcps)
       } else if (skipPrompts) {
-        selectedMcpNames = new Set(allMcpEntries.map((e) => e.serverName))
+        if (!mcpsUntouched) {
+          selectedMcpNames = new Set(allMcpEntries.map((e) => e.serverName))
+        }
       } else {
         const installedMcpNames = await listInstalledMcpServerNames()
 
@@ -345,6 +399,9 @@ export async function runInstall(args: string[]): Promise<void> {
         }
 
         selectedMcpNames = new Set(selectedMcp as string[])
+        uncheckedMcpNames = allMcpEntries
+          .map((e) => e.serverName)
+          .filter((name) => !selectedMcpNames.has(name))
       }
     }
 
@@ -360,12 +417,16 @@ export async function runInstall(args: string[]): Promise<void> {
 
     // Select hooks
     let selectedHookNames: Set<string> = new Set()
+    // As for skills: only unchecking a hook in the interactive list removes it
+    let uncheckedHooks: HookEntry[] = []
 
     if (allHookEntries.length > 0) {
       if (argHooks) {
         selectedHookNames = new Set(argHooks)
       } else if (skipPrompts) {
-        selectedHookNames = new Set(allHookEntries.map((e) => e.groupName))
+        if (!hooksUntouched) {
+          selectedHookNames = new Set(allHookEntries.map((e) => e.groupName))
+        }
       } else {
         const hookChoices = allHookEntries.map((e) => ({
           value: e.groupName,
@@ -392,6 +453,50 @@ export async function runInstall(args: string[]): Promise<void> {
         }
 
         selectedHookNames = new Set(selectedHook as string[])
+        uncheckedHooks = allHookEntries.filter((e) => !selectedHookNames.has(e.groupName))
+      }
+    }
+
+    if (options.strict) {
+      // Checked against everything the source resolves to, remote references included
+      const missing = [
+        ...(argSkills ?? []).filter((n) => !skills.some((s) => s.name === n)),
+        ...(argMcps ?? []).filter((n) => !allMcpEntries.some((e) => e.serverName === n)),
+        ...(argHooks ?? []).filter((n) => !allHookEntries.some((e) => e.groupName === n)),
+      ]
+      if (missing.length > 0) throw new Error(`Not found in the source: ${missing.join(', ')}`)
+
+      // Refuse before writing anything, rather than stop half-way when a config keeps its own
+      if (argMcps?.length) {
+        const present = await listInstalledMcpServerNames()
+        const foreign = argMcps.filter(
+          (n) => present.has(n) && !Object.hasOwn(startLock.mcpServers, n),
+        )
+        if (foreign.length > 0) {
+          throw new Error(
+            `MCP server(s) already in an agent config of this project, not installed by maconfai: ${foreign.join(', ')}`,
+          )
+        }
+      }
+    }
+
+    // Say what a filtered -y run left out, so a script that relied on "-y installs everything"
+    // does not lose an MCP server or hook silently. What is already installed is kept, not skipped.
+    if (skipPrompts && hasContentFilter) {
+      const skipped: string[] = []
+      const skippedMcps = allMcpEntries.filter(
+        (e) =>
+          !selectedMcpNames.has(e.serverName) && !Object.hasOwn(startLock.mcpServers, e.serverName),
+      )
+      if (skippedMcps.length > 0) skipped.push(`${skippedMcps.length} MCP server(s)`)
+      const skippedHooks = allHookEntries.filter(
+        (e) => !selectedHookNames.has(e.groupName) && !Object.hasOwn(startLock.hooks, e.groupName),
+      )
+      if (skippedHooks.length > 0) skipped.push(`${skippedHooks.length} hook(s)`)
+      if (skipped.length > 0) {
+        p.log.info(
+          `Skipped ${skipped.join(' and ')} not named in --mcps/--hooks ${pc.dim('(name them to install them)')}`,
+        )
       }
     }
 
@@ -407,20 +512,43 @@ export async function runInstall(args: string[]): Promise<void> {
       if (agent.hooksConfigPath && existsSync(agent.hooksConfigPath)) previousAgents.add(a)
     }
 
+    // And the agents the lock records, so a project keeps its targets whoever runs the install
+    const lockEntries = [
+      ...Object.values(startLock.skills),
+      ...Object.values(startLock.mcpServers),
+      ...Object.values(startLock.hooks),
+    ]
+    for (const entry of lockEntries) {
+      for (const a of entry.agents ?? []) {
+        if (ALL_AGENTS.includes(a as AgentType)) previousAgents.add(a as AgentType)
+      }
+    }
+    // Only a first install looks at $HOME (~/.claude, ~/.cursor, ~/.codex…) to pick agents:
+    // afterwards the targets come from the project alone, so they do not depend on who runs it.
+    // The lock decides: hand-written skills on disk do not make a project set up.
+    const firstInstall = lockEntries.length === 0
+    const detectAgents = () => (firstInstall ? detectInstalledAgents() : detectProjectAgents())
+
     // Select agents
     let targetAgents: AgentType[]
     let removedAgents: AgentType[] = []
 
     if (argAgents) {
       targetAgents = argAgents
+    } else if (options.defaultAgents) {
+      targetAgents = options.defaultAgents
     } else if (skipPrompts) {
-      const detected = detectInstalledAgents()
+      const detected = detectAgents()
       const combined = new Set([...detected, ...previousAgents])
       targetAgents = combined.size > 0 ? [...combined] : ALL_AGENTS
     } else {
-      const detected = detectInstalledAgents()
-      // Pre-check agents that have any config installed
-      const preSelected = detected.filter((a) => previousAgents.has(a))
+      const detected = detectAgents()
+      // Pre-check agents that have any config installed. A set-up project pre-checks every
+      // agent it already targets, even one missing from this machine's $HOME: unchecked, it
+      // would be cleaned.
+      const preSelected = firstInstall
+        ? detected.filter((a) => previousAgents.has(a))
+        : [...new Set([...detected, ...previousAgents])]
 
       if (detected.length === 0 && previousAgents.size === 0) {
         targetAgents = ALL_AGENTS
@@ -455,9 +583,39 @@ export async function runInstall(args: string[]): Promise<void> {
     // Determine skills to install and uninstall
     const selectedNames = new Set(selectedSkills.map((s) => s.name))
     const toInstall = selectedSkills
-    const toUninstall = allSkills.filter(
-      (s) => installedNames.has(s.name) && !selectedNames.has(s.name),
-    )
+    const toUninstall = uncheckedSkills
+    // A --skills/--mcps/--hooks list adds, it never removes: say what it left installed
+    if (!options.strict) {
+      const reportKept = (label: string, flag: string, kind: string, kept: string[]) => {
+        if (kept.length === 0) return
+        p.log.info(
+          `Kept ${kept.length} installed ${label} not in --${flag}: ${kept.join(', ')} (remove with: maconfai remove ${kind} <name>)`,
+        )
+      }
+      if (argSkills?.length) {
+        const kept = allSkills.filter(
+          (s) => installedNames.has(s.name) && !selectedNames.has(s.name),
+        )
+        reportKept(
+          'skill(s)',
+          'skills',
+          'skill',
+          kept.map((s) => s.name),
+        )
+      }
+      if (argMcps?.length) {
+        const kept = allMcpEntries
+          .map((e) => e.serverName)
+          .filter((n) => Object.hasOwn(startLock.mcpServers, n) && !selectedMcpNames.has(n))
+        reportKept('MCP server(s)', 'mcps', 'mcp', kept)
+      }
+      if (argHooks?.length) {
+        const kept = allHookEntries
+          .map((e) => e.groupName)
+          .filter((n) => Object.hasOwn(startLock.hooks, n) && !selectedHookNames.has(n))
+        reportKept('hook(s)', 'hooks', 'hook', kept)
+      }
+    }
 
     // Build standalone MCP map (root-level or mcps/ dir, not tied to any skill)
     const standaloneMcps: Record<string, McpServerConfig> = {}
@@ -490,6 +648,25 @@ export async function runInstall(args: string[]): Promise<void> {
       await cleanup(tempDir)
       p.outro('')
       return
+    }
+
+    // A same-named skill absent from the lock was written by hand: never replace it silently.
+    if (!force) {
+      const unmanaged: string[] = []
+      for (const skill of selectedSkills) {
+        // An entry without `agents` predates the field: the skill is ours, its agents unknown.
+        const lockedAgents = Object.hasOwn(startLock.skills, skill.name)
+          ? (startLock.skills[skill.name]!.agents ?? [])
+          : undefined
+        const paths = await findUnmanagedSkillPaths(skill.name, targetAgents, lockedAgents)
+        if (paths.length > 0) unmanaged.push(`  ${skill.name}: ${paths.join(', ')}`)
+      }
+      if (unmanaged.length > 0) {
+        const noLock = existsSync('ai-lock.json') ? '' : ' No ai-lock.json found in this directory.'
+        throw new Error(
+          `Refusing to overwrite skill files that ai-lock.json does not record (written by hand or by another tool):\n${unmanaged.join('\n')}\nRename or move them, or re-run with --force to replace them.${noLock}`,
+        )
+      }
     }
 
     // Confirm
@@ -549,14 +726,12 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop(`Removed ${toUninstall.length} skill(s)`)
     }
 
-    // Uninstall deselected MCP servers (present in source + lock but not selected)
+    // Uninstall the MCP servers unchecked in the interactive list (only those the lock records)
     const lockForDeselect = await readLock()
     const lockedMcpNames = new Set(Object.keys(lockForDeselect.mcpServers))
-    const deselectedMcps = allMcpEntries
-      .filter((e) => lockedMcpNames.has(e.serverName) && !selectedMcpNames.has(e.serverName))
-      .map((e) => e.serverName)
+    const deselectedMcps = uncheckedMcpNames.filter((name) => lockedMcpNames.has(name))
     if (deselectedMcps.length > 0) {
-      spinner.start('Removing deselected MCP servers...')
+      spinner.start('Removing unchecked MCP servers...')
       for (const agent of ALL_AGENTS) {
         await uninstallMcpServers(deselectedMcps, agent)
       }
@@ -566,13 +741,11 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop(`Removed ${deselectedMcps.length} MCP server(s)`)
     }
 
-    // Uninstall deselected hook groups (present in source + lock but not selected)
+    // Uninstall the hook groups unchecked in the interactive list (only those the lock records)
     const lockedHookNames = new Set(Object.keys(lockForDeselect.hooks))
-    const deselectedHooks = allHookEntries.filter(
-      (e) => lockedHookNames.has(e.groupName) && !selectedHookNames.has(e.groupName),
-    )
+    const deselectedHooks = uncheckedHooks.filter((e) => lockedHookNames.has(e.groupName))
     if (deselectedHooks.length > 0) {
-      spinner.start('Removing deselected hooks...')
+      spinner.start('Removing unchecked hooks...')
       for (const entry of deselectedHooks) {
         const lockEntry = lockForDeselect.hooks[entry.groupName]
         if (lockEntry?.handlers) {
@@ -591,7 +764,7 @@ export async function runInstall(args: string[]): Promise<void> {
     // Clean removed agents: remove ALL discovered skills from their directories
     if (removedAgents.length > 0) {
       spinner.start('Cleaning removed agents...')
-      for (const skill of allSkills) {
+      for (const skill of allSkills.filter((s) => Object.hasOwn(startLock.skills, s.name))) {
         for (const agent of removedAgents) {
           await uninstallSkill(skill.name, agent, { global: false })
         }
@@ -609,32 +782,37 @@ export async function runInstall(args: string[]): Promise<void> {
     if (selectedSkills.length > 0) {
       spinner.start('Installing skills...')
 
+      // Count skills and agents apart: one skill written for three agents is one skill, not three
       let successCount = 0
+      const successAgents = new Set<AgentType>()
       let failCount = 0
+      const failedAgents = new Set<AgentType>()
 
       for (const skill of selectedSkills) {
         let skillSuccess = false
         for (const agent of targetAgents) {
           const result = await installSkill(skill, agent, { global: false })
           if (result.success) {
-            successCount++
+            successAgents.add(agent)
             skillSuccess = true
           } else {
             failCount++
+            failedAgents.add(agent)
             p.log.error(`Failed: ${skill.name} -> ${agents[agent].displayName}: ${result.error}`)
           }
         }
 
         if (skillSuccess) {
+          successCount++
           const ctx = skillCtxMap.get(skill.name)
           const skillRelPath = ctx
             ? ctx.skillRelPath
-            : parsed.subpath
-              ? `${parsed.subpath}/skills/${skill.name}`
-              : `skills/${skill.name}`
+            : repoRelativePath(parsed.subpath, relative(skillsDir, skill.path))
           let skillFolderHash = ''
           try {
-            skillFolderHash = await getTreeHash(ctx ? ctx.repoDir : skillsDir, skillRelPath)
+            skillFolderHash = ctx
+              ? await hashFolder(ctx.local, ctx.repoDir, skillRelPath)
+              : await hashFolder(isLocal, skillsDir, skillRelPath)
           } catch {}
           await addToLock(skill.name, {
             source: ctx ? ctx.source : ownerRepo || source,
@@ -655,10 +833,16 @@ export async function runInstall(args: string[]): Promise<void> {
       spinner.stop('Done')
 
       if (successCount > 0) {
-        p.log.success(pc.green(`Installed ${successCount} skill(s)`))
+        p.log.success(
+          pc.green(`Installed ${successCount} skill(s) for ${successAgents.size} agent(s)`),
+        )
       }
       if (failCount > 0) {
-        p.log.error(pc.red(`Failed: ${failCount}`))
+        // Failures are per skill × agent copy, so say so: they are not a number of skills
+        p.log.error(
+          pc.red(`Failed: ${failCount} skill copy(ies) for ${failedAgents.size} agent(s)`),
+        )
+        if (options.strict) throw new Error(`${failCount} skill install(s) failed`)
       }
     }
 
@@ -669,61 +853,127 @@ export async function runInstall(args: string[]): Promise<void> {
       const ownedMcpNames = new Set(Object.keys(existingLock.mcpServers))
 
       const installedMcpNames = new Set<string>()
+      // Agents that really received each server, and those that kept a same-named one of theirs
+      const writtenTo = new Map<string, AgentType[]>()
+      const keptBy: string[] = []
+      const mcpAgents = new Set<AgentType>()
       for (const agent of targetAgents) {
         const result = await installMcpServers(standaloneMcps, agent, { ownedNames: ownedMcpNames })
-        for (const name of result.installed) installedMcpNames.add(name)
+        for (const name of result.installed) {
+          installedMcpNames.add(name)
+          writtenTo.set(name, [...(writtenTo.get(name) ?? []), agent])
+        }
+        if (result.installed.length > 0) mcpAgents.add(agent)
+        if (agents[agent].mcpConfigPath) {
+          for (const name of result.skipped) keptBy.push(`${name} (${agent})`)
+        }
       }
 
       for (const serverName of installedMcpNames) {
         const mcpEntry = allMcpEntries.find((e) => e.serverName === serverName)!
         const folderPath = mcpEntry.source
         let folderHash = ''
-        if (parsed.type !== 'local') {
-          try {
-            folderHash = await getTreeHash(skillsDir, folderPath)
-          } catch {}
-        }
+        try {
+          folderHash = await hashFolder(isLocal, skillsDir, folderPath)
+        } catch {}
         await addMcpToLock(serverName, {
           source: ownerRepo || source,
           sourceUrl: parsed.type === 'local' ? parsed.localPath! : parsed.url,
           ref: parsed.ref,
           folderPath,
           folderHash,
-          agents: targetAgents,
+          // Only where it was written, so `remove` never deletes a hand-written server
+          agents: writtenTo.get(serverName)!,
           trusted: resolveTrust(trustChoice, priorLock.mcpServers[serverName]),
         })
       }
-      spinner.stop(`Installed ${installedMcpNames.size} MCP server(s)`)
+      // Never a "Installed 0": say what was written, and name what was written nowhere
+      spinner.stop(
+        installedMcpNames.size > 0
+          ? `Installed ${installedMcpNames.size} MCP server(s) for ${mcpAgents.size} agent(s)`
+          : 'No MCP server installed',
+      )
+      const unwrittenMcps = Object.keys(standaloneMcps).filter((n) => !installedMcpNames.has(n))
+      if (options.strict && unwrittenMcps.length > 0) {
+        throw new Error(
+          `MCP server(s) not installed: ${unwrittenMcps.join(', ')} (already in an agent config but not installed by maconfai, or no target agent supports MCP)`,
+        )
+      }
+      if (options.strict && keptBy.length > 0) {
+        throw new Error(
+          `MCP server(s) not written where a same-named server not installed by maconfai exists: ${keptBy.join(', ')}`,
+        )
+      }
+      if (unwrittenMcps.length > 0) {
+        p.log.warn(`No MCP server written for these agents: ${unwrittenMcps.join(', ')}`)
+      }
     }
 
     // Install hooks
     if (hasSelectedHooks) {
+      if (options.strict) {
+        // A hook with no handler for any target agent would be locked with nothing written
+        const hasHandlers = (events: unknown) =>
+          !!events &&
+          typeof events === 'object' &&
+          Object.values(events).some((handlers) => Array.isArray(handlers) && handlers.length > 0)
+        const writable = (entry: HookEntry) =>
+          targetAgents.some(
+            (a) => agents[a].hooksConfigPath && hasHandlers(entry.group[a as keyof HookGroup]),
+          )
+        const unwritable = selectedHookGroups.filter((e) => !writable(e)).map((e) => e.groupName)
+        if (unwritable.length > 0) {
+          throw new Error(
+            `Hook(s) not installed: ${unwritable.join(', ')} (no handler for ${targetAgents.join(', ')})`,
+          )
+        }
+      }
       spinner.start('Installing hooks...')
+      let installedHookCount = 0
+      const hookWrittenAgents = new Set<AgentType>()
+      // Groups no selected agent has on disk after this run: nothing written, nothing already there
+      const unwrittenHooks: string[] = []
       for (const entry of selectedHookGroups) {
         // Copy companion files (scripts, etc.) from hook directory
         if (entry.dirPath) {
           await installHookFiles(entry.dirPath, entry.groupName)
         }
 
+        // Agents where this run wrote a handler, and agents that already had them all
+        const writtenAgents: AgentType[] = []
+        let alreadyInstalled = false
         for (const agent of targetAgents) {
           const agentKey = agent as keyof HookGroup
           const hookEvents = entry.group[agentKey]
           if (hookEvents && typeof hookEvents === 'object' && !Array.isArray(hookEvents)) {
-            await installHooks(hookEvents as Record<string, unknown[]>, agent)
+            const result = await installHooks(hookEvents as Record<string, unknown[]>, agent)
+            if (result.installed.length > 0) writtenAgents.push(agent)
+            else if (agents[agent].hooksConfigPath && result.skipped.length > 0) {
+              alreadyInstalled = true
+            }
           }
         }
+        // A group counts as installed only where a handler was actually written
+        if (writtenAgents.length > 0) installedHookCount++
+        else if (!alreadyInstalled) unwrittenHooks.push(entry.groupName)
+        for (const agent of writtenAgents) hookWrittenAgents.add(agent)
         const folderPath = entry.source
         let folderHash = ''
-        if (parsed.type !== 'local') {
-          try {
-            folderHash = await getTreeHash(skillsDir, folderPath)
-          } catch {}
-        }
+        try {
+          folderHash = await hashFolder(isLocal, skillsDir, folderPath)
+        } catch {}
         const installedHandlers: Record<string, unknown> = {}
         for (const agent of targetAgents) {
           const agentKey = agent as keyof HookGroup
           const events = entry.group[agentKey]
-          if (events && typeof events === 'object' && !Array.isArray(events)) {
+          // An agent without a hooks config gets nothing written, so nothing may be recorded
+          // for it either: a lock claiming a handler that is not on disk is never repaired.
+          if (
+            agents[agent].hooksConfigPath &&
+            events &&
+            typeof events === 'object' &&
+            !Array.isArray(events)
+          ) {
             installedHandlers[agent] = events
           }
         }
@@ -738,10 +988,21 @@ export async function runInstall(args: string[]): Promise<void> {
           handlers: installedHandlers,
         })
       }
-      spinner.stop(`Installed ${selectedHookGroups.length} hook(s)`)
+      spinner.stop(
+        installedHookCount > 0
+          ? `Installed ${installedHookCount} hook(s) for ${hookWrittenAgents.size} agent(s)`
+          : unwrittenHooks.length < selectedHookGroups.length
+            ? 'Hooks already installed'
+            : 'No hook installed',
+      )
+      if (unwrittenHooks.length > 0) {
+        p.log.warn(`No hook written for these agents: ${unwrittenHooks.join(', ')}`)
+      }
     }
   } catch (error) {
     spinner.stop(pc.red('Error'))
+    // `add` reports the error itself, with a failing exit code (src/cli.ts)
+    if (options.strict) throw error
     p.log.error(error instanceof Error ? error.message : String(error))
     process.exit(1)
   } finally {
@@ -755,20 +1016,37 @@ export async function runInstall(args: string[]): Promise<void> {
   p.outro(pc.green('Done!'))
 }
 
-async function runUninstall(): Promise<void> {
+async function runUninstall(skipPrompts: boolean): Promise<void> {
   console.log()
   p.intro(pc.bgCyan(pc.black(' maconfai uninstall ')))
 
+  // Without a source, `install -y` would remove every installed config: refuse it, so a
+  // forgotten source never wipes a project.
+  if (skipPrompts) {
+    p.log.error(
+      'Without a source, install is an interactive uninstall: -y is not supported. Pass a source to install, or drop -y to pick what to remove.',
+    )
+    process.exit(1)
+  }
+
   const spinner = p.spinner()
 
+  // Only the current directory's project: user-scope skills (~/.claude/skills,
+  // ~/.agents/skills…) are never listed nor removed. To uninstall from another
+  // project, cd into it first. Within the project, offer only what its ai-lock.json
+  // records, for the agents it records: never a hand-written skill or copy.
   spinner.start('Scanning installed configs...')
-  const projectSkills = await listInstalledSkills({ global: false })
-  const globalSkills = await listInstalledSkills({ global: true })
-  const allSkills = [
-    ...projectSkills.map((s) => ({ ...s, scope: 'project' as const })),
-    ...globalSkills.map((s) => ({ ...s, scope: 'global' as const })),
-  ]
   const lock = await readLock()
+  const projectSkills = await listInstalledSkills({ global: false })
+  const allSkills = projectSkills.flatMap((s) => {
+    const entry = lock.skills[s.name] ?? lock.skills[s.dirName]
+    if (!entry) return []
+    // An entry written before `agents` existed keeps every agent found on disk.
+    const lockedAgents = entry.agents
+    return [
+      { ...s, agents: lockedAgents ? s.agents.filter((a) => lockedAgents.includes(a)) : s.agents },
+    ]
+  })
   const installedMcps = Object.keys(lock.mcpServers)
   const installedHooks = Object.keys(lock.hooks)
   spinner.stop(
@@ -786,7 +1064,7 @@ async function runUninstall(): Promise<void> {
   if (allSkills.length > 0) {
     const skillChoices = allSkills.map((s) => ({
       value: s,
-      label: `${s.name} ${pc.dim(`[${s.scope}]`)} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
+      label: `${s.name} ${pc.dim(`(${s.agents.map((a) => agents[a].displayName).join(', ')})`)}`,
     }))
 
     const selectedSkills = await p.multiselect({
@@ -861,7 +1139,7 @@ async function runUninstall(): Promise<void> {
     spinner.start('Removing skills...')
     for (const skill of skillsToRemove) {
       for (const agent of skill.agents) {
-        await uninstallSkill(skill.dirName, agent, { global: skill.scope === 'global' })
+        await uninstallSkill(skill.dirName, agent)
       }
       await removeFromLock(skill.name).catch(() => {})
     }
@@ -870,10 +1148,16 @@ async function runUninstall(): Promise<void> {
 
   if (mcpsToRemove.length > 0) {
     spinner.start('Removing MCP servers...')
-    for (const agent of ALL_AGENTS) {
-      await uninstallMcpServers(mcpsToRemove, agent)
-    }
     for (const name of mcpsToRemove) {
+      // Only the configs the lock says we wrote; an entry without `agents` predates the
+      // field, so every agent is cleaned as before.
+      const lockedAgents = lock.mcpServers[name]?.agents
+      const agentsToClean = lockedAgents
+        ? ALL_AGENTS.filter((a) => lockedAgents.includes(a))
+        : ALL_AGENTS
+      for (const agent of agentsToClean) {
+        await uninstallMcpServers([name], agent)
+      }
       await removeMcpFromLock(name).catch(() => {})
     }
     spinner.stop(`Removed ${mcpsToRemove.length} MCP server(s)`)

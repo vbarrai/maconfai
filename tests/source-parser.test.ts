@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseSource, getOwnerRepo } from '../src/source-parser.ts'
+import { parseSource, getOwnerRepo, repoRelativePath } from '../src/source-parser.ts'
 
 describe('parseSource', () => {
   describe('local paths', () => {
@@ -92,5 +92,21 @@ describe('getOwnerRepo', () => {
   it('returns null for local paths', () => {
     const parsed = parseSource('./local')
     expect(getOwnerRepo(parsed)).toBeNull()
+  })
+})
+
+describe('repoRelativePath', () => {
+  it('names a skill installed from its own sub-path by that sub-path', () => {
+    expect(repoRelativePath('skills/fix-pr-ci', '')).toBe('skills/fix-pr-ci')
+    expect(repoRelativePath('skills/fix-pr-ci/', '')).toBe('skills/fix-pr-ci')
+  })
+
+  it('prefixes a skill discovered under a sub-path with it', () => {
+    expect(repoRelativePath('skills', 'fix-pr-ci')).toBe('skills/fix-pr-ci')
+  })
+
+  it('keeps a whole-repository path as it is', () => {
+    expect(repoRelativePath(undefined, 'skills/fix-pr-ci')).toBe('skills/fix-pr-ci')
+    expect(repoRelativePath(undefined, '')).toBe('.')
   })
 })

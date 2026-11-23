@@ -1,6 +1,10 @@
 import { cpus } from 'os'
 import { defineConfig } from 'vitest/config'
 
+// Never let a test touch the real user-scope configs: see the file. Projects do not
+// inherit the root setup files, so each one lists it.
+const fakeHome = 'tests/setup-fake-home.ts'
+
 export default defineConfig({
   test: {
     minWorkers: 2,
@@ -16,7 +20,7 @@ export default defineConfig({
         test: {
           name: 'check',
           include: ['tests/check/**/*.test.ts'],
-          setupFiles: ['tests/check/setup.ts'],
+          setupFiles: [fakeHome, 'tests/check/setup.ts'],
         },
       },
       {
@@ -24,6 +28,7 @@ export default defineConfig({
           name: 'default',
           include: ['tests/**/*.test.ts'],
           exclude: ['tests/check/**/*.test.ts'],
+          setupFiles: [fakeHome],
         },
       },
     ],

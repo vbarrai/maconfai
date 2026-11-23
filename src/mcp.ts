@@ -1,4 +1,6 @@
-import { readFile, writeFile, mkdir } from 'fs/promises'
+import * as p from '@clack/prompts'
+import { readFile, writeFile, mkdir, realpath } from 'fs/promises'
+import { homedir } from 'os'
 import { join, dirname } from 'path'
 import type { AgentType, McpServerConfig, McpEnvSyntax } from './types.ts'
 import { agents } from './agents.ts'
@@ -35,28 +37,47 @@ function tomlValue(value: unknown): string {
   return String(value)
 }
 
+function tomlKey(key: string): string {
+  return /^[A-Za-z0-9_-]+$/.test(key) ? key : `"${tomlEscape(key)}"`
+}
+
 function tomlInlineTable(obj: Record<string, string>): string {
-  const entries = Object.entries(obj).map(([k, v]) => `${k} = ${tomlValue(v)}`)
+  const entries = Object.entries(obj).map(([k, v]) => `${tomlKey(k)} = ${tomlValue(v)}`)
   return `{ ${entries.join(', ')} }`
 }
 
+// A value that is exactly `${VAR}`: the only shape Codex can read from the environment.
+const WHOLE_ENV_VAR = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/
+const BEARER_ENV_VAR = /^Bearer \$\{([A-Za-z_][A-Za-z0-9_]*)\}$/
+
+// Codex reads env vars by name, never through `${...}` interpolation:
+// - header `Authorization: Bearer ${VAR}` → `bearer_token_env_var = "VAR"` (Codex adds `Bearer `)
+// - header `${VAR}`                       → `env_http_headers = { Header = "VAR" }` (raw value)
+// - stdio env `KEY: ${KEY}`               → `env_vars = ["KEY"]` (forwarded from the parent env)
+// Anything else (renamed variable, default value, text around the variable) has no Codex
+// equivalent and is written verbatim.
 function toCodexServer(name: string, server: McpServerConfig): string {
-  const lines: string[] = [`[mcp_servers.${name}]`]
+  const lines: string[] = [`[mcp_servers.${tomlKey(name)}]`]
 
   if (server.url) {
     lines.push(`url = ${tomlValue(server.url)}`)
     if (server.headers) {
+      let bearerVar: string | undefined
       const staticHeaders: Record<string, string> = {}
       const envHeaders: Record<string, string> = {}
       for (const [key, val] of Object.entries(server.headers)) {
-        const envMatch = val.match(/^Bearer \$\{(.+)\}$/)
-        if (envMatch) {
-          envHeaders[key] = envMatch[1]
-        } else if (/\$\{.+\}/.test(val)) {
-          envHeaders[key] = val.replace(/^\$\{|\}$/g, '')
+        const bearerMatch = val.match(BEARER_ENV_VAR)
+        const envMatch = val.match(WHOLE_ENV_VAR)
+        if (key.toLowerCase() === 'authorization' && bearerMatch && !bearerVar) {
+          bearerVar = bearerMatch[1]
+        } else if (envMatch) {
+          envHeaders[key] = envMatch[1]!
         } else {
           staticHeaders[key] = val
         }
+      }
+      if (bearerVar) {
+        lines.push(`bearer_token_env_var = ${tomlValue(bearerVar)}`)
       }
       if (Object.keys(staticHeaders).length > 0) {
         lines.push(`http_headers = ${tomlInlineTable(staticHeaders)}`)
@@ -68,40 +89,192 @@ function toCodexServer(name: string, server: McpServerConfig): string {
   } else {
     if (server.command) lines.push(`command = ${tomlValue(server.command)}`)
     if (server.args?.length) lines.push(`args = ${tomlValue(server.args)}`)
-    if (server.env && Object.keys(server.env).length > 0) {
-      lines.push(`env = ${tomlInlineTable(server.env)}`)
+    if (server.env) {
+      const literalEnv: Record<string, string> = {}
+      const forwardedVars: string[] = []
+      for (const [key, val] of Object.entries(server.env)) {
+        if (val.match(WHOLE_ENV_VAR)?.[1] === key) {
+          forwardedVars.push(key)
+        } else {
+          literalEnv[key] = val
+        }
+      }
+      if (Object.keys(literalEnv).length > 0) {
+        lines.push(`env = ${tomlInlineTable(literalEnv)}`)
+      }
+      if (forwardedVars.length > 0) {
+        lines.push(`env_vars = ${tomlValue(forwardedVars)}`)
+      }
     }
   }
 
   return lines.join('\n')
 }
 
-function parseCodexToml(content: string): Record<string, string[]> {
-  const servers: Record<string, string[]> = {}
-  let current: string | null = null
+// ── Codex config.toml document ─────────────────────────────
+//
+// `.codex/config.toml` holds much more than MCP servers (`model`, `[features]`,
+// `[[skills.config]]`, `[projects."…"]`…). It is edited line by line, never parsed and
+// re-serialized: every block maconfai does not own is written back byte for byte,
+// comments included.
 
-  for (const line of content.split('\n')) {
-    const match = line.match(/^\[mcp_servers\.(.+)\]$/)
-    if (match) {
-      current = match[1]
-      servers[current] = [line]
-    } else if (current !== null) {
-      if (line.startsWith('[') && !line.startsWith('[mcp_servers.')) {
-        current = null
+interface CodexBlock {
+  // MCP server this block belongs to (`[mcp_servers.<name>]` and its sub-tables), else null
+  server: string | null
+  lines: string[]
+}
+
+const KEY_PART = String.raw`(?:[A-Za-z0-9_-]+|"(?:[^"\\]|\\.)*"|'[^']*')`
+const TABLE_HEADER = new RegExp(
+  String.raw`^\s*(\[\[?)\s*(${KEY_PART}(?:\s*\.\s*${KEY_PART})*)\s*\]\]?\s*(?:#.*)?$`,
+)
+
+function splitTomlKey(key: string): string[] {
+  return (key.match(new RegExp(KEY_PART, 'g')) ?? []).map((part) => {
+    if (part.startsWith('"')) return JSON.parse(part) as string
+    if (part.startsWith("'")) return part.slice(1, -1)
+    return part
+  })
+}
+
+function parseHeader(line: string): { server: string | null } | null {
+  const match = line.replace(/\r$/, '').match(TABLE_HEADER)
+  if (!match) return null
+  const isArrayTable = match[1] === '[['
+  const parts = splitTomlKey(match[2]!)
+  const isServer = !isArrayTable && parts[0] === 'mcp_servers' && parts.length >= 2
+  return { server: isServer ? parts[1]! : null }
+}
+
+const isComment = (line: string) => line.trim().startsWith('#')
+const isBlank = (line: string) => line.trim() === ''
+
+// Returns the multiline-string delimiter (`"""` or `'''`) still open at the end of `line`, given
+// the one open at its start. Comments, single-line strings and escapes are skipped, so a `"""`
+// inside them does not open a string.
+function openMultilineAfter(line: string, open: string | null): string | null {
+  let i = 0
+  while (i < line.length) {
+    if (open) {
+      if (open === '"""' && line[i] === '\\') {
+        i += 2
+      } else if (line.startsWith(open, i)) {
+        // Up to two quotes of content may sit right before the closing delimiter (`a"""""`).
+        let end = i + 3
+        while (end < i + 5 && line[end] === open[0]) end++
+        i = end
+        open = null
       } else {
-        servers[current].push(line)
+        i++
       }
+      continue
+    }
+    const char = line[i]!
+    if (char === '#') break
+    if (line.startsWith('"""', i) || line.startsWith("'''", i)) {
+      open = line.slice(i, i + 3)
+      i += 3
+    } else if (char === '"' || char === "'") {
+      i++
+      while (i < line.length && line[i] !== char) i += char === '"' && line[i] === '\\' ? 2 : 1
+      i++
+    } else {
+      i++
     }
   }
+  return open
+}
 
-  // Trim trailing empty lines from each section
-  for (const lines of Object.values(servers)) {
-    while (lines.length > 1 && lines[lines.length - 1].trim() === '') {
-      lines.pop()
+function parseCodexToml(content: string): CodexBlock[] {
+  const lines = content.split('\n')
+  if (lines[lines.length - 1] === '') lines.pop()
+
+  const blocks: CodexBlock[] = [{ server: null, lines: [] }]
+  let openDelimiter: string | null = null
+
+  for (const line of lines) {
+    const current = blocks[blocks.length - 1]!
+    const header = openDelimiter ? null : parseHeader(line)
+    openDelimiter = openMultilineAfter(line, openDelimiter)
+    if (!header) {
+      current.lines.push(line)
+      continue
     }
+    // Comments right above a header describe that table: they move with it.
+    let commentStart = current.lines.length
+    while (commentStart > 0 && isComment(current.lines[commentStart - 1]!)) commentStart--
+    blocks.push({ server: header.server, lines: [...current.lines.splice(commentStart), line] })
   }
 
-  return servers
+  return blocks
+}
+
+function codexServerNames(blocks: CodexBlock[]): Set<string> {
+  return new Set(blocks.flatMap((block) => (block.server ? [block.server] : [])))
+}
+
+function trailingBlanks(lines: string[]): string[] {
+  let start = lines.length
+  while (start > 0 && isBlank(lines[start - 1]!)) start--
+  return lines.slice(start)
+}
+
+function setCodexServer(blocks: CodexBlock[], name: string, serverLines: string[]): CodexBlock[] {
+  const first = blocks.findIndex((block) => block.server === name)
+  if (first !== -1) {
+    // Keep the comments above the header and the blank lines after the server's last block.
+    const firstLines = blocks[first]!.lines
+    const comments = firstLines.slice(
+      0,
+      firstLines.findIndex((line) => parseHeader(line)),
+    )
+    const last = blocks.filter((block) => block.server === name).pop()!
+    const replaced = {
+      server: name,
+      lines: [...comments, ...serverLines, ...trailingBlanks(last.lines)],
+    }
+    return blocks.flatMap((block, i) =>
+      i === first ? [replaced] : block.server === name ? [] : [block],
+    )
+  }
+
+  // A new server goes right after the last MCP server, or at the end of the file.
+  let at = blocks.length
+  while (at > 1 && blocks[at - 1]!.server === null) at--
+  if (at === 1) at = blocks.length
+  let before = blocks[at - 1]!.lines
+  if (at === blocks.length) {
+    // The file's own trailing blank lines stay at the end (serializeCodexToml writes them back).
+    before = before.slice(0, before.length - trailingBlanks(before).length)
+    blocks = [...blocks.slice(0, at - 1), { ...blocks[at - 1]!, lines: before }]
+  }
+  const lines = [...serverLines]
+  if (before.length > 0 && !isBlank(before[before.length - 1]!)) lines.unshift('')
+  if (at < blocks.length) lines.push('')
+  return [...blocks.slice(0, at), { server: name, lines }, ...blocks.slice(at)]
+}
+
+// Comments above a removed server's header are the user's, not part of the table: keep them.
+function removeCodexServers(blocks: CodexBlock[], names: Set<string>): CodexBlock[] {
+  return blocks.flatMap((block) => {
+    if (!block.server || !names.has(block.server)) return [block]
+    const comments = block.lines.slice(
+      0,
+      block.lines.findIndex((line) => parseHeader(line)),
+    )
+    if (comments.length === 0) return []
+    return [{ server: null, lines: [...comments, ...trailingBlanks(block.lines)] }]
+  })
+}
+
+// `original` is the file as read: its trailing blank lines are written back unchanged.
+function serializeCodexToml(blocks: CodexBlock[], original: string): string {
+  const lines = blocks.flatMap((block) => block.lines)
+  while (lines.length > 0 && isBlank(lines[lines.length - 1]!)) lines.pop()
+  if (lines.length === 0) return ''
+  const originalLines = original.split('\n')
+  if (originalLines[originalLines.length - 1] === '') originalLines.pop()
+  return [...lines, ...trailingBlanks(originalLines)].join('\n') + '\n'
 }
 
 async function readCodexToml(filePath: string): Promise<string> {
@@ -118,40 +291,26 @@ async function installMcpServersCodex(
   syntax: McpEnvSyntax,
   ownedNames?: Set<string>,
 ): Promise<{ installed: string[]; skipped: string[] }> {
-  const content = await readCodexToml(configPath)
-  const existing = parseCodexToml(content)
+  const original = await readCodexToml(configPath)
+  let blocks = parseCodexToml(original)
+  const existing = codexServerNames(blocks)
 
   const installed: string[] = []
   const skipped: string[] = []
 
   for (const [name, serverConfig] of Object.entries(servers)) {
-    if (existing[name] && !ownedNames?.has(name)) {
+    if (existing.has(name) && !ownedNames?.has(name)) {
       skipped.push(name)
       continue
     }
     const translated = translateServerConfig(serverConfig, syntax)
-    existing[name] = toCodexServer(name, translated).split('\n')
+    blocks = setCodexServer(blocks, name, toCodexServer(name, translated).split('\n'))
     installed.push(name)
   }
 
   if (installed.length > 0) {
-    const nonMcpLines: string[] = []
-    for (const line of content.split('\n')) {
-      if (line.match(/^\[mcp_servers\./)) break
-      nonMcpLines.push(line)
-    }
-
-    // Remove trailing empty lines from non-MCP section
-    while (nonMcpLines.length > 0 && nonMcpLines[nonMcpLines.length - 1].trim() === '') {
-      nonMcpLines.pop()
-    }
-
-    const sections = Object.values(existing).map((lines) => lines.join('\n'))
-    const parts = nonMcpLines.length > 0 ? [nonMcpLines.join('\n'), ...sections] : sections
-    const output = parts.join('\n\n') + '\n'
-
     await mkdir(dirname(configPath), { recursive: true })
-    await writeFile(configPath, output, 'utf-8')
+    await writeFile(configPath, serializeCodexToml(blocks, original), 'utf-8')
   }
 
   return { installed, skipped }
@@ -172,28 +331,55 @@ function toOpenCodeServer(server: McpServerConfig): OpenCodeMcpServer {
   return result
 }
 
-export function translateEnvVar(value: string, syntax: McpEnvSyntax): string {
+// Variables Cursor resolves itself (https://cursor.com/docs/mcp.md, "Config interpolation").
+// They are not environment variables, so they must not get the `env:` prefix.
+const CURSOR_BUILTIN_VARIABLES = new Set([
+  'workspaceFolder',
+  'userHome',
+  'workspaceFolderBasename',
+  'pathSeparator',
+  '/',
+])
+
+// env-prefix (Cursor): `${VAR}` → `${env:VAR}`, except `${env:VAR}` and Cursor's own variables,
+// left as is. Cursor documents no default-value syntax, so `${VAR:-default}` becomes
+// `${env:VAR}`, pushed to `droppedDefaults`. Only the variable is reported: the default may be
+// a secret.
+export function translateEnvVar(
+  value: string,
+  syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
+): string {
   if (syntax === 'bare') return value
   if (syntax === 'opencode-env') {
     // Open Code uses {env:VAR} (no leading $). Convert ${VAR} → {env:VAR}, skip pre-converted {env:...}.
     return value.replace(/\$\{([^}]+)\}/g, '{env:$1}')
   }
-  // env-prefix (Cursor): convert ${VAR} and ${VAR:-default} to ${env:VAR}, skip already-prefixed.
-  return value.replace(/\$\{(?!env:)([^}]+)\}/g, '${env:$1}')
+  return value.replace(/\$\{(?!env:)([^}]+)\}/g, (match, inner: string) => {
+    if (CURSOR_BUILTIN_VARIABLES.has(inner)) return match
+    const fallbackAt = inner.indexOf(':-')
+    if (fallbackAt === -1) return `\${env:${inner}}`
+    const translated = `\${env:${inner.slice(0, fallbackAt)}}`
+    droppedDefaults?.push(translated)
+    return translated
+  })
 }
 
 function translateStringFields(
   obj: Record<string, unknown>,
   syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
-      result[key] = translateEnvVar(value, syntax)
+      result[key] = translateEnvVar(value, syntax, droppedDefaults)
     } else if (Array.isArray(value)) {
-      result[key] = value.map((v) => (typeof v === 'string' ? translateEnvVar(v, syntax) : v))
+      result[key] = value.map((v) =>
+        typeof v === 'string' ? translateEnvVar(v, syntax, droppedDefaults) : v,
+      )
     } else if (value && typeof value === 'object') {
-      result[key] = translateStringFields(value as Record<string, unknown>, syntax)
+      result[key] = translateStringFields(value as Record<string, unknown>, syntax, droppedDefaults)
     } else {
       result[key] = value
     }
@@ -204,11 +390,13 @@ function translateStringFields(
 export function translateServerConfig(
   server: McpServerConfig,
   syntax: McpEnvSyntax,
+  droppedDefaults?: string[],
 ): McpServerConfig {
   if (syntax === 'bare') return server
   return translateStringFields(
     server as unknown as Record<string, unknown>,
     syntax,
+    droppedDefaults,
   ) as unknown as McpServerConfig
 }
 
@@ -226,6 +414,82 @@ async function writeMcpConfig(filePath: string, config: McpConfigFile): Promise<
   await writeFile(filePath, JSON.stringify(config, null, 2) + '\n', 'utf-8')
 }
 
+// ── User-scope duplicates ──────────────────────────────────
+// maconfai only writes project files, but the same server name may also live in the
+// agent's own user config. Each agent then resolves it its own way (Claude Code keeps the
+// highest scope, Cursor keeps the project entry, Codex merges the fields and refuses to
+// start when the transports differ, Open Code merges the project entry over the global
+// one), so we only point the duplicate out. Paths are resolved at call time, the files are
+// read only (an unreadable file is ignored), and each one is read once per run:
+// `~/.claude.json` can weigh several MB.
+
+const userScopeCache = new Map<string, Promise<Map<string, string>>>()
+
+function serverNamesOf(servers: unknown): string[] {
+  return servers && typeof servers === 'object' ? Object.keys(servers) : []
+}
+
+async function loadUserScopeMcpServers(
+  agentType: AgentType,
+  cwd: string,
+): Promise<Map<string, string>> {
+  // name → where it is defined, as shown in the warning
+  const where = new Map<string, string>()
+  if (agentType === 'claude-code') {
+    // User scope = top-level `mcpServers`; local scope = `projects[<project path>].mcpServers`.
+    const path = join(process.env.CLAUDE_CONFIG_DIR?.trim() || homedir(), '.claude.json')
+    const config = await readMcpConfig(path)
+    for (const name of serverNamesOf(config.mcpServers)) where.set(name, `user config (${path})`)
+    const projects = config.projects as Record<string, McpConfigFile> | undefined
+    const keys = new Set([cwd, await realpath(cwd).catch(() => cwd)])
+    for (const key of keys) {
+      for (const name of serverNamesOf(projects?.[key]?.mcpServers)) {
+        where.set(name, `local scope (${path}, project ${key})`)
+      }
+    }
+  } else if (agentType === 'cursor') {
+    const path = join(homedir(), '.cursor', 'mcp.json')
+    for (const name of serverNamesOf((await readMcpConfig(path)).mcpServers))
+      where.set(name, `user config (${path})`)
+  } else if (agentType === 'codex') {
+    // A header scan rather than `parseCodexToml`, which only reads the project file we own.
+    const path = join(process.env.CODEX_HOME?.trim() || join(homedir(), '.codex'), 'config.toml')
+    const content = await readFile(path, 'utf-8').catch(() => '')
+    const header = /^\s*\[\s*mcp_servers\.(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_-]+))/gm
+    for (const match of content.matchAll(header)) {
+      where.set((match[1] ?? match[2] ?? match[3])!, `user config (${path})`)
+    }
+  } else if (agentType === 'open-code') {
+    const path = join(homedir(), '.config', 'opencode', 'opencode.json')
+    for (const name of serverNamesOf((await readMcpConfig(path)).mcp))
+      where.set(name, `user config (${path})`)
+  }
+  return where
+}
+
+async function warnUserScopeDuplicates(
+  serverNames: string[],
+  agentType: AgentType,
+  cwd: string,
+): Promise<void> {
+  if (serverNames.length === 0) return
+  const key = `${agentType}\0${homedir()}\0${process.env.CLAUDE_CONFIG_DIR ?? ''}\0${process.env.CODEX_HOME ?? ''}\0${cwd}`
+  let pending = userScopeCache.get(key)
+  if (!pending) {
+    pending = loadUserScopeMcpServers(agentType, cwd)
+    userScopeCache.set(key, pending)
+  }
+  const where = await pending
+  for (const name of serverNames) {
+    const location = where.get(name)
+    if (!location) continue
+    p.log.warn(
+      `MCP server "${name}" is also defined in your ${agents[agentType].displayName} ${location}. ` +
+        `The two definitions can conflict: keep one of them.`,
+    )
+  }
+}
+
 export async function installMcpServers(
   servers: Record<string, McpServerConfig>,
   agentType: AgentType,
@@ -239,12 +503,12 @@ export async function installMcpServers(
   const cwd = options.cwd || process.cwd()
   const configPath = join(cwd, agent.mcpConfigPath)
 
-  if (agent.mcpConfigFormat === 'opencode') {
-    return installMcpServersOpenCode(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
-  }
-
-  if (agent.mcpConfigFormat === 'codex') {
-    return installMcpServersCodex(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
+  if (agent.mcpConfigFormat === 'opencode' || agent.mcpConfigFormat === 'codex') {
+    const install =
+      agent.mcpConfigFormat === 'opencode' ? installMcpServersOpenCode : installMcpServersCodex
+    const result = await install(servers, configPath, agent.mcpEnvSyntax, options.ownedNames)
+    await warnUserScopeDuplicates(result.installed, agentType, cwd)
+    return result
   }
 
   const config = await readMcpConfig(configPath)
@@ -261,13 +525,24 @@ export async function installMcpServers(
       skipped.push(name)
       continue
     }
-    config.mcpServers[name] = translateServerConfig(serverConfig, agent.mcpEnvSyntax)
+    const droppedDefaults: string[] = []
+    config.mcpServers[name] = translateServerConfig(
+      serverConfig,
+      agent.mcpEnvSyntax,
+      droppedDefaults,
+    )
+    if (droppedDefaults.length > 0) {
+      p.log.warn(
+        `MCP server ${name}: ${agent.displayName} has no default-value syntax, default dropped for ${droppedDefaults.join(', ')}`,
+      )
+    }
     installed.push(name)
   }
 
   if (installed.length > 0) {
     await writeMcpConfig(configPath, config)
   }
+  await warnUserScopeDuplicates(installed, agentType, cwd)
 
   return { installed, skipped }
 }
@@ -332,8 +607,7 @@ export async function listInstalledMcpServerNames(
     } else if (agent.mcpConfigFormat === 'codex') {
       try {
         const content = await readFile(filePath, 'utf-8')
-        const servers = parseCodexToml(content)
-        for (const name of Object.keys(servers)) {
+        for (const name of codexServerNames(parseCodexToml(content))) {
           names.add(name)
         }
       } catch {}
@@ -381,23 +655,12 @@ export async function uninstallMcpServers(
   if (agent.mcpConfigFormat === 'codex') {
     const content = await readCodexToml(configPath)
     if (!content) return
-    const existing = parseCodexToml(content)
-    for (const name of serverNames) {
-      delete existing[name]
+    const blocks = parseCodexToml(content)
+    const names = new Set(serverNames)
+    if (blocks.some((block) => block.server && names.has(block.server))) {
+      const kept = removeCodexServers(blocks, names)
+      await writeFile(configPath, serializeCodexToml(kept, content), 'utf-8')
     }
-    const nonMcpLines: string[] = []
-    for (const line of content.split('\n')) {
-      if (line.match(/^\[mcp_servers\./)) break
-      nonMcpLines.push(line)
-    }
-    while (nonMcpLines.length > 0 && nonMcpLines[nonMcpLines.length - 1].trim() === '') {
-      nonMcpLines.pop()
-    }
-    const sections = Object.values(existing).map((lines) => lines.join('\n'))
-    const parts = nonMcpLines.length > 0 ? [nonMcpLines.join('\n'), ...sections] : sections
-    const output = parts.length > 0 ? parts.join('\n\n') + '\n' : ''
-    await mkdir(dirname(configPath), { recursive: true })
-    await writeFile(configPath, output, 'utf-8')
     return
   }
 

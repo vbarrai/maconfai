@@ -1,9 +1,14 @@
 import { expect, describe, beforeEach, afterEach, vi } from 'vitest'
 import { mkdtemp, rm, writeFile, mkdir, readFile, readdir, access } from 'fs/promises'
-import { join, relative } from 'path'
-import { tmpdir } from 'os'
+import { join, relative, sep } from 'path'
+import { homedir, tmpdir, userInfo } from 'os'
 import type { AgentType, McpServerConfig, HookGroup } from '../src/types.ts'
 import { runInstall } from '../src/install.ts'
+import { runCheck } from '../src/check.ts'
+import { agents } from '../src/agents.ts'
+import { runAdd, runRemove } from '../src/add-remove.ts'
+
+type ItemKind = Parameters<typeof runAdd>[0]
 
 type FileTree = Record<string, string>
 
@@ -111,6 +116,32 @@ export interface SkillFixture {
   name: string
 }
 
+// Second barrier behind tests/setup-fake-home.ts: never run a scenario unless the home
+// is a temp dir and every user-scope skills dir lives inside it. A test file may mock
+// `os.homedir` to its own temp dir: that passes too.
+function assertFakeHome() {
+  const fakeHome = homedir()
+  const inside = (dir: string, parent: string) => dir.startsWith(parent + sep)
+  let realHome: string | undefined
+  try {
+    realHome = userInfo().homedir
+  } catch {
+    // No passwd entry for this UID (some containers): the other checks still hold.
+  }
+  const leak = [
+    !inside(fakeHome, tmpdir()) || fakeHome === realHome ? fakeHome : undefined,
+    ...Object.values(agents).map((a) =>
+      inside(a.globalSkillsDir, fakeHome) ? undefined : a.globalSkillsDir,
+    ),
+  ].find((dir) => dir !== undefined)
+  if (leak) {
+    throw new Error(
+      `Refusing to run: ${leak} is not inside a temp HOME. ` +
+        'Run the tests through vitest, which loads tests/setup-fake-home.ts.',
+    )
+  }
+}
+
 export function setupScenario() {
   let tempDir: string
   let sourceDir: string
@@ -118,6 +149,7 @@ export function setupScenario() {
   const extraDirs: string[] = []
 
   async function init() {
+    assertFakeHome()
     tempDir = await mkdtemp(join(tmpdir(), 'maconfai-e2e-'))
     sourceDir = join(tempDir, 'source')
     targetDir = join(tempDir, 'target')
@@ -279,6 +311,38 @@ export function setupScenario() {
     }
   }
 
+  // `maconfai update [args]`
+  async function whenUpdate(args: string[] = []) {
+    await inTarget(() => runCheck(args, { autoUpdate: true }))
+  }
+
+  // `maconfai add <kind> <source> <names...> [args]`
+  async function whenAdd(kind: ItemKind, names: string[], args: string[] = []) {
+    await inTarget(() => runAdd(kind, [sourceDir, ...names, ...args]))
+  }
+
+  // `maconfai remove <kind> <names...>`
+  async function whenRemove(kind: ItemKind, names: string[]) {
+    await inTarget(() => runRemove(kind, names))
+  }
+
+  async function inTarget(run: () => Promise<void>) {
+    const originalCwd = process.cwd()
+    try {
+      process.chdir(targetDir)
+      await run()
+    } finally {
+      process.chdir(originalCwd)
+    }
+  }
+
+  // `maconfai install` without a source: the interactive uninstall. The calling test file
+  // must vi.mock('@clack/prompts') to answer, or the prompt waits on stdin until the
+  // test times out.
+  async function whenUninstall() {
+    await inTarget(() => runInstall([]))
+  }
+
   function getSourceDir() {
     return sourceDir
   }
@@ -351,6 +415,10 @@ export function setupScenario() {
     givenRemoteRef,
     sourceFiles,
     whenInstall,
+    whenUninstall,
+    whenUpdate,
+    whenAdd,
+    whenRemove,
     then,
     thenExists,
     targetFile,

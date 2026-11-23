@@ -1,4 +1,4 @@
-import { it, expect, vi } from 'vitest'
+import { it, expect, vi, afterEach } from 'vitest'
 import { getLogs, lockWith, skill } from './check-test-utils.ts'
 
 vi.mock('../../src/lock.ts', () => ({
@@ -16,6 +16,10 @@ vi.mock('../../src/lock.ts', () => ({
   },
 }))
 
+afterEach(() => {
+  process.exitCode = undefined
+})
+
 it('should handle mixed results: up-to-date, skipped, and errored', async () => {
   const { runCheck } = await import('../../src/check.ts')
   await runCheck()
@@ -23,7 +27,8 @@ it('should handle mixed results: up-to-date, skipped, and errored', async () => 
   expect(getLogs()).toMatchInlineSnapshot(`
     "info: 1 item(s) skipped (no version tracking)
     message:   - no-tracking: No version hash
-    warn: 1 item(s) could not be checked:
+    error: 1 item(s) could not be checked for updates:
     message:   - broken: Network error"
   `)
+  expect(process.exitCode).toBe(1)
 })
